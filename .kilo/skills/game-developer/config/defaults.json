@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "paths": {
+    "voxelai": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\VoxelAIArtist",
+    "blender": "",
+    "terminalmcp": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\TerminalMCP",
+    "unityCli": "",
+    "godot": ""
+  },
+  "engines": {
+    "default": "unity",
+    "godotEnabled": false
+  },
+  "modules": {
+    "skillFiles": true,
+    "gameCommand": true,
+    "gddCommand": true,
+    "playtestCommand": true,
+    "unityCli": true,
+    "unityMcp": true,
+    "blenderMcp": true,
+    "voxelMcp": true,
+    "cc0Fetch": true,
+    "designSkillCheck": true,
+    "godotMcp": false,
+    "terminalMcp": true,
+    "unityOfficialSkills": true
+  },
+  "mcp": {
+    "blenderCommand": ["cmd", "/c", "uvx", "blender-mcp"],
+    "voxelaiWorkdirMode": "per-project",
+    "terminalHttp": false
+  },
+  "unity": {
+    "templatePreference": ["urp-3d", "com.unity.template.3d-urp", "com.unity.template.3d"],
+    "coplayGitUrl": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
+    "packages": [
+      "com.unity.inputsystem",
+      "com.unity.cinemachine",
+      "com.unity.textmeshpro",
+      "com.unity.ugui",
+      "com.unity.render-pipelines.universal",
+      "com.unity.test-framework",
+      "com.unity.probuilder"
+    ]
+  },
+  "art": {
+    "scale": "1u=1m",
+    "forbidPaid3dApis": true,
+    "forbidHdriOnGameAssets": true,
+    "polyhavenUserAgent": "GameDeveloperSkill/1.0"
+  }
+}

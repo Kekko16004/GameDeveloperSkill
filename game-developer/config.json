@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "hosts": ["kilo", "claude", "codex", "antigravity"],
+  "paths": {
+    "voxelai": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\VoxelAIArtist",
+    "designerSkill": "C:\\Users\\FRANCY\\Desktop\\DesignerSkill",
+    "terminalmcp": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\TerminalMCP",
+    "blender": "",
+    "unityCli": "",
+    "godot": ""
+  },
+  "engines": {
+    "default": "unity",
+    "godotEnabled": true
+  },
+  "modules": {
+    "skillFiles": true,
+    "gameCommand": true,
+    "gddCommand": true,
+    "playtestCommand": true,
+    "unityCli": true,
+    "unityMcp": true,
+    "blenderMcp": true,
+    "voxelMcp": true,
+    "cc0Fetch": true,
+    "designSkillCheck": true,
+    "godotMcp": false,
+    "terminalMcp": true,
+    "unityOfficialSkills": true
+  },
+  "mcp": {
+    "blenderCommand": ["cmd", "/c", "uvx", "blender-mcp"],
+    "blenderEnv": {
+      "BLENDER_HOST": "localhost",
+      "BLENDER_PORT": "9876"
+    },
+    "voxelaiWorkdirMode": "per-project",
+    "terminalHttp": false,
+    "terminalTools": "all"
+  },
+  "unity": {
+    "templatePreference": ["urp-3d", "com.unity.template.3d-urp", "com.unity.template.3d"],
+    "coplayGitUrl": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity"
+  },
+  "art": {
+    "scale": "1u=1m",
+    "forbidPaid3dApis": true,
+    "forbidSloydDefault": true,
+    "preferKits": ["kenney", "kaykit", "quaternius-standard"],
+    "forbidBpyModelling": true,
+    "polyhavenUserAgent": "GameDeveloperSkill/1.0"
+  }
+}
