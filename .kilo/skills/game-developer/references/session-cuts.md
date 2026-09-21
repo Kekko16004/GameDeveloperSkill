@@ -43,10 +43,10 @@ Continuare in QUESTA chat e VIETATO. Lo slice verra marcato FAIL.
 | lookdev | preset + palette + luci |
 | characters | rig + animator + navmesh |
 | systems | un blocco verbi, non tutto il GDD se >4 script |
-| ui-main-menu | DesignerSkill + UXML |
-| ui-hud | DesignerSkill + UXML |
-| ui-pause | DesignerSkill + UXML |
-| ui-gameover | DesignerSkill + UXML |
+| ui-main-menu | DesignerSkill: 3-4 varianti → STOP scelta utente → UXML |
+| ui-hud | DesignerSkill: 3-4 varianti coerenti col menu → STOP scelta utente → UXML |
+| ui-pause | DesignerSkill: 3-4 varianti coerenti col menu → STOP scelta utente → UXML |
+| ui-gameover | DesignerSkill: 3-4 varianti coerenti col menu → STOP scelta utente → UXML |
 | juice | SFX |
 | playtest | QA |
 | slice | recap gate |

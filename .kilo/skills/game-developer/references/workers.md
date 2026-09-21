@@ -215,7 +215,7 @@ Gate: `docs/gates/10-systems.md` + test names.
 
 Tu fai SOLO il Main Menu.
 OBBLIGO Skill tool `real-world-design` mode=game. Vietato inventare UXML a mano come primo passo. Vietato saltare Variant Studio / mock HTML + Playwright.
-Flusso: tokens (palette GDD + preset lookdev) → 3-4 varianti HTML → screenshot 1440x900 `screenshots/040-ui-main-menu-variants.png` → pick (o prima variante se lo studio non parte, MA il mock HTML deve esistere) → `ui-transpiler.mjs` → UXML/USS + UIDocument + PanelSettings.
+Flusso: tokens (palette GDD + preset lookdev) → 3-4 varianti HTML con layout distinti → screenshot gallery 1440x900 `screenshots/040-ui-main-menu-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)** → solo dopo la scelta: `ui-transpiler.mjs` → UXML/USS + UIDocument + PanelSettings.
 Scena MainMenu **build index 0**. Sfondo: screenshot lookdev o camera sul livello con Volume. Spawn FP nel livello = FAIL.
 Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
 
@@ -223,23 +223,31 @@ Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
 
 ## PHASE ui-hud
 
-Tu fai SOLO HUD. Skill `real-world-design` mode=game OBBLIGATORIA (stesso flusso del menu: tokens, mock HTML, Playwright).
-Vitali, obiettivo testuale visibile, prompt `[E]`, orologio se nel GDD.
-UI Toolkit + PanelSettings. IMGUI = FAIL.
+Tu fai SOLO HUD. Skill `real-world-design` mode=game OBBLIGATORIA.
+REGOLA SCELTA UTENTE TASSATIVA: È VIETATO auto-generare l'HUD senza varianti. Mantieni i token di stile consolidati nel Main Menu (`ui/tokens.css`), ma devi SEMPRE creare 3-4 varianti di layout diverse (es. diegetico, barre angolari survival, bottom-bar compatta, minimal immersivo) in Variant Studio.
+Screenshot gallery 1440x900 `screenshots/041-ui-hud-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Solo dopo la scelta dell'utente: `ui-transpiler.mjs` → UXML/USS + PanelSettings.
+Vitali, obiettivo testuale visibile, prompt `[E]`, orologio se nel GDD. IMGUI = FAIL.
 Screenshot Play Mode `screenshots/041-ui-hud.png`. Gate `docs/gates/11-ui-hud.md`. Mock HTML mancante = FAIL.
 
 ---
 
 ## PHASE ui-pause
 
-Tu fai SOLO Pause. Skill `real-world-design` obbligatoria. Esc, timeScale 0, Riprendi / Menu.
+Tu fai SOLO Pause. Skill `real-world-design` obbligatoria.
+REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti di layout (sidebar laterale, modale centrale, registro/libro diegetico, minimal).
+Screenshot gallery `screenshots/042-ui-pause-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Solo dopo la scelta: transpiler UXML + controller (Esc, timeScale 0, Riprendi / Menu).
 Screenshot `screenshots/042-ui-pause.png`. Gate `docs/gates/11-ui-pause.md`.
 
 ---
 
 ## PHASE ui-gameover
 
-Tu fai SOLO Game Over / Victory. Skill `real-world-design` obbligatoria. Pulsante Riprova.
+Tu fai SOLO Game Over / Victory. Skill `real-world-design` obbligatoria.
+REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti (pergamena/certificato, epitaffio scuro, statistiche dettagliate, cinematico).
+Screenshot gallery `screenshots/043-ui-gameover-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Solo dopo la scelta: transpiler UXML + pulsante Riprova/Menu.
 Screenshot `screenshots/043-ui-gameover.png`. Gate `docs/gates/11-ui-gameover.md`.
 
 ---

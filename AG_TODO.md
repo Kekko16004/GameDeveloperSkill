@@ -43,5 +43,8 @@
 - [~~] catalogo: Kenney animati/nature/particle, Quaternius UAL/UBC, Synty Starter, Cartoon FX Free, Poly Haven models, Sketchfab CC0, shader URP MIT (100%)
 - [~~] sync .kilo + tutti gli host installati + comandi /game /resumegame (100%)
 - [~~] generatore Blender procedurale case vere (gds_building.py + gds-building.ps1) + LevelBuilder v2 (L/T/U, interni, attach, recinzioni) + GDS.Village (terreno/strade/lotti) — testati con render (100%)
+- [~~] ui variant studio obbligatorio per ciascuna schermata (main menu, hud, pause, gameover con scelta utente) (100%)
+- [~~] sync globale master skill + comandi su Claude Code, Antigravity, Kilo Code, Codex (100%)
+- [~~] fix MCP type http per 21st e originkit in .claude.json (100%)
 - [ ] test end-to-end su un progetto reale (kit Kenney castle → blueprint house → lookdev → screenshot) (0%)
 - [ ] GDS_SceneLint: overlap prop-prop e check NavMesh (0%)

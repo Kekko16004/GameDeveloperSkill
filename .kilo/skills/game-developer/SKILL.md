@@ -99,7 +99,7 @@ Vietato modellare a mano in `execute_blender_code` (ammesso solo: wipe, sanitize
 
 - Primitives Unity solo in greybox. Dopo, ogni cosa visibile = kit / ProBuilder con materiale palette / GLB.
 - Una famiglia kit per slice (Kenney **o** KayKit **o** Quaternius **o** Synty). Hero prop CC0 possono vestirla se low-poly.
-- UI: Skill `real-world-design` sempre. UXML a mano come primo passo = FAIL.
+- UI: Skill `real-world-design` sempre. Variant Studio con 3-4 opzioni e SCELTA UTENTE OBBLIGATORIA per CIASCUNA schermata (Main Menu, HUD, Pause, GameOver). Vietato generare HUD/Pause/GameOver in automatico senza mostrare varianti di layout e attendere il pick dell'utente (mantenendo però coerenza di token/stile del Main Menu). UXML a mano come primo passo = FAIL.
 - Dopo `create_script` o copia GDS: wait compile, `read_console`, poi usa.
 - No YAML `.unity` se Editor e vivo.
 - Scope = GDD slice. Non open world.

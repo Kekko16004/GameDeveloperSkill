@@ -34,15 +34,22 @@ L'agente deve progettare ciascuna delle 4 schermate attraverso il protocollo `re
 
 ---
 
-## 2. Flusso DesignerSkill (NON OPZIONALE)
+## 2. Flusso DesignerSkill (NON OPZIONALE — SCELTA UTENTE PER OGNI SCHERMATA)
 
 Saltare `real-world-design` = FAIL della macrotask UI. UXML scritto a mano come primo passo = FAIL.
 
-1. Skill tool `real-world-design`, mode `game`.
-2. Token in `ui/tokens.css` dalla palette GDD.
-3. 3-4 varianti HTML (Variant Studio se Node c'e; altrimenti mock HTML nella cartella `ui/mocks/`).
-4. Playwright 1440x900. File in `screenshots/`.
-5. Pick. Poi transpiler. Senza mock HTML su disco il parent non accetta il gate.
+### REGOLA TASSATIVA: VARIANT STUDIO E SCELTA UTENTE PER OGNI SCHERMATA
+**È VIETATO auto-scegliere o generare direttamente HUD, Pausa o GameOver basandosi sul Main Menu senza presentare le opzioni all'utente.**
+L'utente DEVE SEMPRE avere la scelta tra 3-4 varianti per CIASCUNA schermata (Main Menu, HUD, PauseMenu, GameOver/Victory):
+
+1. **Coerenza Stilistica nei Token**: Tutte le schermate successive riutilizzano i token estetici consolidati nel Main Menu (`ui/tokens.css`, palette colori, font, bordi, vibe).
+2. **3-4 Varianti Strutturali di Layout**: Per ogni schermata, genera 3-4 interpretazioni di layout distinte in Variant Studio (o mock HTML in `ui/mocks/`):
+   - **HUD**: es. Var 1 = Diegetico integrato; Var 2 = Split angoli (survival); Var 3 = Bottom bar compatta; Var 4 = Minimalista immersivo.
+   - **Pausa**: es. Var 1 = Sidebar laterale; Var 2 = Modale centrale semitrasparente; Var 3 = Registro/libro diegetico; Var 4 = Minimal scuro.
+   - **GameOver / Victory**: es. Var 1 = Certificato/pergamena con ceralacca; Var 2 = Epitaffio/banner oscuro; Var 3 = Statistiche dettagliate giorno; Var 4 = Cinematico sobrio.
+3. **Screenshot Gallery Playwright**: Cattura lo screenshot 1440x900 della gallery delle varianti (`screenshots/04X-ui-<screen>-variants.png`).
+4. **STOP e Scelta Esplicita dell'Utente**: Mostra la preview all'utente e ATTENDI la sua scelta. Procedere senza il consenso dell'utente è un bug.
+5. **Transpilazione**: Solo DOPO che l'utente ha scelto la variante (es. "Scelgo la 2"), procedi con il transpiler a generare UXML e USS.
 
 ---
 

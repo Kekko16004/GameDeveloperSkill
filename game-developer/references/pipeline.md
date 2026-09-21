@@ -18,8 +18,8 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 8  lookdev                          worker lookdev (GDS.LookDev.Apply(preset GDD) + palette + toon/outline opzionali)
 9  characters (+ navmesh se nemici) worker characters (GDS.Characters + skill initialize-ai-navigation)
 10 systems + test per verbo         worker systems
-11a Main Menu UI Toolkit            worker ui-main-menu   <-- obbligatorio, real-world-design
-11b HUD / 11c Pause / 11d GameOver   worker ui-hud / ui-pause / ui-gameover (real-world-design)
+11a Main Menu UI Toolkit            worker ui-main-menu   <-- obbligatorio (Variant Studio: 3-4 varianti → scelta utente → UXML)
+11b HUD / 11c Pause / 11d GameOver   worker ui-hud / ui-pause / ui-gameover (Variant Studio: 3-4 varianti coerenti col menu → scelta utente ciascuna)
 12 juice (VFX + audio + hit-stop)   worker juice (GDS.VFX + audio-pipeline)
 13 playtest                         worker playtest (SceneLint 0 + Play Mode + WASD + screenshot)
 14 slice recap                      worker slice  (FAIL se un gate e rosso)
