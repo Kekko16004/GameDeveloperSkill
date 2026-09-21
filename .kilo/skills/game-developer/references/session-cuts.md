@@ -1,10 +1,14 @@
-# Session cuts — meccanici, non a sensazione
+# Session cuts — configurabili da intervista GDD (session-mode)
 
-Dopo N tool call il modello diventa pigro. Questa skill NON lascia scegliere. Taglia.
+Il contesto vive su disco (`GAME_CONTEXT.md`, `GAME_TASKS.md`, `art/blueprints/*.json`, `art/kit-catalog.json`, `docs/lint/*.json`, `docs/gates/*.md`): un worker nuovo ricostruisce lo stato da quei file in < 2k token, quindi anche un host debole riparte senza rileggere chat.
 
-## HARD STOP (obbligatorio)
+La gestione del contesto dipende dalla modalità scelta in `GDD.md` (domanda 14 dell'intervista):
+- **`continuous`** (**Consigliato per Claude Code e Kilo Code** con subagents): i subagents isolati eseguono i compiti con contesti dedicati. Il parent aggiorna `GAME_TASKS.md` e `GAME_CONTEXT.md` come checkpoint, ma **non si ferma** e prosegue automaticamente.
+- **`hard-stop`** (**Consigliato per Antigravity** e ambienti monochat senza subagents): blocco rigido obbligatorio a ogni macrotask con cambio chat forzato per non saturare la sessione.
 
-Dopo **ogni macrotask** il parent:
+## Comportamento in modalità HARD STOP (`session-mode: hard-stop`)
+
+Se `session-mode: hard-stop` è attivo in `GDD.md`, dopo **ogni macrotask** il parent:
 
 1. Aggiorna `GAME_TASKS.md` e `GAME_CONTEXT.md` (puntatore al prossimo task).
 2. Stampa ESATTAMENTE questo banner (niente parafrasi morbide):
@@ -31,9 +35,13 @@ Continuare in QUESTA chat e VIETATO. Lo slice verra marcato FAIL.
 | gdd | lock GDD |
 | project | attach/create |
 | task-decomposition | GAME_TASKS + GAME_CONTEXT |
-| greybox | cubi + move test |
-| blender-asset | **UN** prop (max 3 prop nella stessa sessione, poi STOP comunque) |
-| import-art | GLB → Unity |
+| greybox | shell ProBuilder/primitives da PLAN.md + move test |
+| kit-fetch | download pack + `art/kit-catalog.json` |
+| level-build | **UN** blueprint (max 3 nella stessa sessione, poi STOP) |
+| hero-asset | batch fino a 3 hero prop (1 PNG ciascuno, poi STOP) |
+| import-art | GLB residui → Unity + rebuild blueprint |
+| lookdev | preset + palette + luci |
+| characters | rig + animator + navmesh |
 | systems | un blocco verbi, non tutto il GDD se >4 script |
 | ui-main-menu | DesignerSkill + UXML |
 | ui-hud | DesignerSkill + UXML |

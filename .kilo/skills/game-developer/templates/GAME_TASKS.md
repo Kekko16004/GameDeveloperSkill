@@ -32,17 +32,18 @@
 
 ---
 
-## 2. Modellazione 3D Atomica (Blender / Voxel / CC0)
-*Nota: Un prop per riga. Vietato raggruppare.*
+## 2. Kit CC0 (default) — un pezzo per riga
+*Nota: source=kenney|kaykit. Blender solo se il kit non ha il pezzo.*
 | ID | Categoria | Descrizione Atomica Task | File Target / Destinazione | Verifica / Evidenza | Stato | Note |
 |---|---|---|---|---|---|---|
-| TASK-010 | Blender | Modellazione struttura esterna mura casa (`house_walls`) | `art/exports/house_walls.glb` | PNG `screenshots/blender-house_walls.png` + GLB >15KB | [ ] | Mesh mura |
-| TASK-011 | Blender | Modellazione tetto a falde e travi in legno (`house_roof`) | `art/exports/house_roof.glb` | PNG `screenshots/blender-house_roof.png` + GLB >15KB | [ ] | Mesh tetto |
-| TASK-012 | Blender | Modellazione porta legno battente pivot su cardine (`door_leaf`) | `art/exports/door_leaf.glb` | PNG `screenshots/blender-door_leaf.png` + GLB >15KB | [ ] | Pivot X=0, Y=0 |
-| TASK-013 | Blender | Modellazione maniglia/chiavistello ferro battuto (`door_handle`) | `art/exports/door_handle.glb` | PNG `screenshots/blender-door_handle.png` + GLB >15KB | [ ] | Dettaglio |
-| TASK-014 | Blender | Modellazione tavolo rustico in legno per interni (`table_rustic`) | `art/exports/table_rustic.glb` | PNG `screenshots/blender-table_rustic.png` + GLB >15KB | [ ] | Arredo |
-| TASK-015 | Blender | Modellazione sedia in legno coordinata (`chair_rustic`) | `art/exports/chair_rustic.glb` | PNG `screenshots/blender-chair_rustic.png` + GLB >15KB | [ ] | Arredo |
-| TASK-016 | CC0/Mesh | Reperimento/Modellazione barile esterno (`barrel_wood`) | `art/exports/barrel_wood.glb` | PNG `screenshots/blender-barrel_wood.png` + GLB >15KB | [ ] | Prop esterno |
+| TASK-009 | KitFetch | Download pack genere GDD (`fetch-cc0-kits.ps1`) | `art/cc0/` | Zip unzippato su disco | [ ] | Una famiglia |
+| TASK-010 | Kit | Dress mura / tile pavimento da kit (`env_wall_a`) | `art/exports/env_wall_a.glb` | PNG `screenshots/030-import-env_wall_a.png` + collider | [ ] | source=kenney |
+| TASK-011 | Kit | Dress tetto o modulo tetto kit (`env_roof`) | `art/exports/env_roof.glb` | PNG `screenshots/030-import-env_roof.png` | [ ] | source=kenney |
+| TASK-012 | Kit | Dress porta battente kit (`door_leaf`) | `art/exports/door_leaf.glb` | PNG `screenshots/030-import-door_leaf.png` + pivot cardine | [ ] | source=kenney |
+| TASK-013 | Kit | Dress tavolo kit furniture (`table_rustic`) | `art/exports/table_rustic.glb` | PNG `screenshots/030-import-table_rustic.png` | [ ] | source=kenney |
+| TASK-014 | Kit | Dress sedia kit (`chair_rustic`) | `art/exports/chair_rustic.glb` | PNG `screenshots/030-import-chair_rustic.png` | [ ] | source=kenney |
+| TASK-015 | Kit | Dress barile kit (`barrel_wood`) | `art/exports/barrel_wood.glb` | PNG `screenshots/030-import-barrel_wood.png` | [ ] | source=kenney |
+| TASK-016 | PolyPizza | (OPZIONALE) Prop assente dal kit, import MCP | `art/exports/hero_relic.glb` | PNG `blender-hero_relic-2-import.png` + GLB | [ ] | source=polypizza |
 
 ---
 

@@ -23,7 +23,7 @@ Rooms = ProBuilder. Modular look = Kenney / KayKit / Quaternius Standard. Missin
 > ```
 > È SEVERAMENTE VIETATO importare o comporre un nuovo modello in una scena che contiene già elementi. Causa l'unione accidentale di asset diversi in un unico file GLB ("modelli mostro").
 
-Live addon (this machine): protocol 7, Blender 5.1, Poly Pizza **enabled**, Hunyuan/Rodin/Sketchfab **off**. Keep it that way.
+Live addon (this machine): protocol 7, Blender 5.1, Poly Pizza **enabled**. Sketchfab: enable with a free API token (CC0 filter) — allowed for hero props. Poly Haven models/HDRI: no key, allowed (HDRI only as skybox via `GDS.LookDev.Apply(..., hdriPath)`). Hyper3D / Hunyuan: **only if `GDD.md gen3d:` says so** ([gen3d.md](gen3d.md)); otherwise keep them off.
 
 ## Client config (stdio uvx — NOT http://localhost:9876/mcp)
 

@@ -1,0 +1,28 @@
+{
+    "name": "GDS.Editor.ProBuilder",
+    "rootNamespace": "GDS",
+    "references": [
+        "GDS.Editor",
+        "Unity.ProBuilder",
+        "Unity.ProBuilder.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "GDS_PROBUILDER"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.probuilder",
+            "expression": "5.0.0",
+            "define": "GDS_PROBUILDER"
+        }
+    ],
+    "noEngineReferences": false
+}

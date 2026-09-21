@@ -65,7 +65,16 @@ if ($unity) {
   Row "PASS" "unity-cli" "$uv"
   try {
     $ed = & $unity editors --installed --format json --no-banner --non-interactive 2>$null
-    if ($ed) { Row "PASS" "unity-editor" "listed (check 6000.x in JSON)" }
+    if ($ed) {
+      $edj = ($ed -join "`n") | ConvertFrom-Json
+      $rows = if ($edj.data) { $edj.data } else { $edj }
+      $vers = @($rows | ForEach-Object { $_.version })
+      $lts = @($vers | Where-Object { $_ -match '^6000\.(0|3)\.' })
+      $newer = @($vers | Where-Object { $_ -match '^6000\.([4-9]|\d{2,})\.' })
+      if ($lts.Count -gt 0) { Row "PASS" "unity-editor" ("LTS " + ($lts -join ", ")) }
+      elseif ($newer.Count -gt 0) { Row "WARN" "unity-editor" ("only " + ($newer -join ", ") + " (tech stream): needs ProBuilder >= 6.1.2 (install-gds-editor.ps1 sets it); prefer 6000.3 LTS for stability") }
+      else { Row "WARN" "unity-editor" "no 6000.x found: unity install lts --yes --accept-eula" }
+    }
     else { Row "WARN" "unity-editor" "unity install lts --yes --accept-eula" }
   } catch { Row "WARN" "unity-editor" "unity install lts --yes --accept-eula" }
   try {
@@ -140,3 +149,10 @@ if (Test-Path -LiteralPath $kitFetch) { Row "PASS" "cc0-kits" $kitFetch }
 else { Row "WARN" "cc0-kits" "scripts/fetch-cc0-kits.ps1 missing" }
 
 Row "PASS" "playwright" "Use existing Kilo MCP playwright if configured"
+
+$gds = Join-Path $SkillRoot "templates\Editor\GDS\GDS.Editor.asmdef"
+if (Test-Path -LiteralPath $gds) { Row "PASS" "gds-editor" "templates/Editor/GDS present (install-gds-editor.ps1 -ProjectPath <project>)" }
+else { Row "FAIL" "gds-editor" "templates/Editor/GDS missing: re-run install.ps1" }
+if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Assets\_Game\Editor\GDS\GDS.Editor.asmdef"))) { Row "PASS" "gds-project" "GDS scripts installed in project" }
+elseif ($ProjectPath) { Row "WARN" "gds-project" "powershell -File scripts/install-gds-editor.ps1 -ProjectPath $ProjectPath" }
+

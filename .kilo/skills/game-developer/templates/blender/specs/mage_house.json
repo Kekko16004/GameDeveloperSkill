@@ -1,0 +1,65 @@
+{
+  "name": "mage_house",
+  "style": "fantasy",
+  "volumes": [
+    {
+      "x": 0,
+      "z": 0,
+      "w": 6,
+      "d": 6,
+      "floors": 3,
+      "roof": "hip"
+    },
+    {
+      "x": 6,
+      "z": 0,
+      "w": 6,
+      "d": 4,
+      "floors": 1,
+      "roof": "gable",
+      "ridgeAxis": "x"
+    }
+  ],
+  "doors": [
+    {
+      "volume": 1,
+      "side": "S",
+      "t": 0.5
+    }
+  ],
+  "balconies": [
+    {
+      "volume": 0,
+      "side": "W",
+      "floor": 2,
+      "t": 0.5,
+      "w": 2.5,
+      "depth": 1.0
+    }
+  ],
+  "chimneys": [
+    {
+      "volume": 1,
+      "x": 4.5,
+      "z": 2
+    }
+  ],
+  "windowsOverride": [
+    {
+      "volume": 0,
+      "side": "S",
+      "floor": 0,
+      "count": 1
+    }
+  ],
+  "interior": {
+    "stairs": {
+      "volume": 0,
+      "x": 0.6,
+      "z": 0.8,
+      "rotY": 0
+    }
+  },
+  "export": "art/exports/building_mage_house.glb",
+  "preview": "screenshots/blender-building_mage_house.png"
+}

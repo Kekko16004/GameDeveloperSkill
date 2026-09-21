@@ -11,14 +11,16 @@ Quando un task è formulato a livello macro (es. *"crea casa medievale e arredam
 
 Ogni elemento del GDD (ambiente, oggetto interattivo, NPC, prop, meccanica) deve essere esploso in `GAME_TASKS.md` attraverso i seguenti livelli atomici:
 
-### Livello 1: Mesh 3D Singola (Blender / Voxel / CC0)
-- Un solo prop per riga.
-- Mai *"crea mobili"*. Sempre:
-  - `TASK-XXX`: Modella sedia in legno (`chair.glb`)
-  - `TASK-XXX`: Modella tavolo da pranzo (`table.glb`)
-  - `TASK-XXX`: Modella porta singola con cardine (`door_leaf.glb`)
-  - `TASK-XXX`: Modella maniglia ferro (`door_handle.glb`)
-- Evidenza richiesta: File `.glb` > 15KB + screenshot viewport `.png`.
+### Livello 1: Blueprint (edifici / stanze / aree) e hero asset
+- **Un task per blueprint**, non per pezzo. Il blueprint contiene shell + prop interni + scatter esterno ([level-builder.md](level-builder.md)).
+  - `TASK-XXX`: BP-house_a — casa 3x2 celle, 1 piano, porta S1, finestra N0, tetto kit, interni: tavolo, 2 sedie, baule; origine (0,0,12) rot 0 (source=kenney)
+  - `TASK-XXX`: BP-courtyard — scatter 25 alberi + 8 rocce, avoidRadius 14 (source=kenney nature)
+  - `TASK-XXX`: BP-keep — mode probuilder 3x2 celle 2 piani gable, materiale Mat_Palette_2
+- **Un task per hero asset** (solo ciò che nessun kit ha):
+  - `TASK-XXX`: HERO-prop_relic — Poly Pizza "ancient relic" → se assente tier gen3d GDD (max 1 credito-run)
+- Mai *"crea mobili"*, mai *"piazza muro 1..40"*, mai *"modella in Blender la cassa"* se il kit ce l'ha.
+- Evidenza blueprint: `art/blueprints/<name>.json` + `docs/lint/build-<name>.json` PASS + `screenshots/020-build-<name>.png` + lint 0.
+- Evidenza hero: GLB > 15KB + `blender-<id>.png` + riga ledger + rebuild blueprint.
 
 ### Livello 2: Importazione e Materiali Unity
 - Setup importazione URP Lit, scala 1u=1m.
@@ -31,14 +33,13 @@ Ogni elemento del GDD (ambiente, oggetto interattivo, NPC, prop, meccanica) deve
 - Aggiunta Rigidbody se prop dinamico.
 - Evidenza richiesta: Prefab salvato in `Assets/_Game/Prefabs/`.
 
-### Livello 4: Allestimento Scena (Scene Placement a Coordinate Precise)
-- Nessun posizionamento casuale. Ogni istanziazione deve avere coordinate (X, Y, Z) esplicite nel task.
-- Esempi:
-  - `TASK-XXX`: Posiziona `House.prefab` a coordinate (0, 0, 15)
-  - `TASK-XXX`: Posiziona `TableRustic.prefab` all'interno della casa a (1.5, 0, 16.5)
-  - `TASK-XXX`: Posiziona 2x `ChairRustic.prefab` orientate verso il tavolo
-  - `TASK-XXX`: Posiziona 3 barili esterni lungo il muro perimetrale a (-3.2, 0, 13.5)
-- Evidenza richiesta: GameObject presente nella gerarchia della scena `MainGame.unity`.
+### Livello 4: Allestimento Scena (coordinate nel blueprint, non nella chat)
+- Le coordinate stanno in `art/blueprints/PLAN.md` (origine/rotazione di ogni blueprint sulla griglia 4 m) e nelle righe `props`/`scatter` dei JSON (relative all'origine del blueprint).
+- Il piazzamento lo esegue `GDS.LevelBuilder` (allineamento per bounds + raycast a terra); il gate e `GDS.SceneLint` `issues: 0`.
+- Esempi PLAN.md:
+  - `BP-house_a | origin (0,0,12) | rotY 0 | 3x2 | ingresso verso S`
+  - `BP-keep | origin (20,0,0) | rotY 90 | 3x2 x2 piani`
+- Evidenza richiesta: `docs/lint/build-<name>.json` + `docs/lint/scene-lint.json` con `issues: 0`.
 
 ### Livello 5: Scripting Gameplay & Interazioni Atomiche
 - Singola responsabilità: uno script fa una sola cosa.
@@ -61,6 +62,32 @@ Ogni elemento del GDD (ambiente, oggetto interattivo, NPC, prop, meccanica) deve
 ### Livello 7: QA Playtest Atomico
 - Screenshot Play Mode che dimostri il funzionamento della specifica feature.
 - Evidenza richiesta: PNG in `screenshots/` con prova visiva inconfutabile.
+
+---
+
+## Gestione Asset 3D Forniti dall'Utente (User-Provided Asset Protocol)
+
+Se nel GDD è stato impostato `asset-strategy: user-provided` oppure `hybrid`:
+
+1. **Generazione Immediata del Manifesto (`art/ASSET_MANIFEST.md`)**:
+   L'agente genera la lista completa degli asset necessari prima di iniziare lo sviluppo, specificando:
+   - **Cartella di destinazione**: `art/exports/` (o cartella scelta nel progetto).
+   - **Nome file obbligatorio**: es. `building_house.glb`, `prop_chest.glb`.
+   - **Dimensioni stimate (X, Y, Z)** in metri (scala 1u=1m).
+   - **Vincolo di Pivot**: base a terra $Y=0$ (Unity Y-up), centro $X=0, Z=0$. Se il pivot e sbagliato non importa: il builder allinea per bounds.
+   - **Formato**: `.glb` (raccomandato per materiali PBR) o `.fbx`.
+
+2. **Formulazione dei Task in `GAME_TASKS.md`**:
+   - `TASK-XXX: [WAIT-USER-ASSET] Fornitura prop_nome.glb da parte dell'utente in art/exports/`
+   - `TASK-YYY: Verifica presenza e validazione metrica prop_nome.glb`
+   - `TASK-ZZZ: Importazione e creazione Prefab Unity da prop_nome.glb`
+
+3. **Ripresa con `/resumegame` ("Ho messo i modelli")**:
+   Quando l'utente inserisce i file e notifica l'agente o lancia `/resumegame`:
+   - L'agente scansiona la cartella: `Test-Path "art/exports/prop_nome.glb"`.
+   - Se il file esiste, valida la dimensione (> 5KB) e l'integrità.
+   - Segna il task `[x]`, aggiorna `GAME_CONTEXT.md` come `asset_ready: true`.
+   - Procede immediatamente alla creazione dei materiali URP, Prefabs e allestimento della scena.
 
 ---
 

@@ -87,17 +87,22 @@ Apri il tuo coding agent preferito (Kilo, Claude Code, Codex o Antigravity) e di
 
 ---
 
-### 7. L'Intervista Guidata (A Blocchi Liberi ed Esaustivi)
+### 7. L'Intervista Guidata (19 domande, a blocchi — fondamentali)
 L'agente pone blocchi ampi (anche 5–10 domande). Una domanda è **quali tool usare per tutto il gioco** (stack raccomandato: ProBuilder + una famiglia kit + Poly Pizza per i buchi + UI DesignerSkill). Confermi o override, poi LOCK.
 
 ---
 
-### 8. Livelli (ProBuilder) + Kit CC0, non Blender-from-code
-- **Stanze / muri / scale**: Unity ProBuilder via `manage_probuilder`, griglia Geometra (pareti 4×3m, pavimenti 4×4m, porte 1×2.2m). Zero export.
-- **Props / moduli visibili**: pack **Kenney** o **KayKit** CC0 (`scripts/fetch-cc0-kits.ps1`). Una famiglia per slice. Screenshot `030-import-*.png`.
-- **Blender MCP**: `uvx blender-mcp` (stdio) parla col socket TCP 9876 dell’addon. **Non** usare `http://localhost:9876/mcp`. Import Poly Pizza (`search` + `download` + `export_scene`). Vietato creare mesh in Python.
-- **Sloyd / Meshy / Tripo**: vietati di default (Guest Sloyd = 1 modello/giorno, licenza personale — inutile per un gioco intero).
-- **Interfaccia Grafica**: L'agente crea i mock HTML/CSS con `DesignerSkill`, te li mostra tramite screenshot Playwright e, appena ne approvi uno, lo script `ui-transpiler.mjs` lo converte in **UXML/USS nativo per Unity UI Toolkit**.
+### 8. Livelli da blueprint + LookDev: niente cubi, niente prop sottoterra
+- **Layer deterministico** (`Assets/_Game/Editor/GDS/`, installato dal worker *project* con `scripts/install-gds-editor.ps1`): l'agente scrive un **blueprint JSON** (`art/blueprints/house_a.json`: celle, piani, porte, finestre, tetto, prop interni, scatter esterno) e chiama `GDS.LevelBuilder.BuildFromFile(...)` via CoplayDev `execute_code`. Una casa da 40 moduli = **una chiamata**, allineata per bounds (nessun pivot da indovinare) con collider. Vedi [level-builder.md](game-developer/references/level-builder.md).
+- **Stanze / torri / scale**: `GDS.PB.Room / Tower / Stairs / Arch` = ProBuilder vero da C#, con vani porta/finestra senza CSG. `manage_probuilder` solo per ritocchi. Vedi [probuilder-levels.md](game-developer/references/probuilder-levels.md).
+- **Lint scena**: `GDS.SceneLint.RunJson(autoFix:true)` snappa a terra e aggiunge collider; `RunJson()` deve dare `issues: 0` (sepolti > 2 cm, flottanti > 5 cm, senza collider, materiali rosa). È il gate: lo screenshot non decide più. Vedi [scene-lint.md](game-developer/references/scene-lint.md).
+- **LookDev**: `GDS.LookDev.Apply("stylized-day")` (o sunset / dungeon-torch / night-moon / pastel-bright / scifi-cold) = sole, ambient, fog, skybox o HDRI Poly Haven, Volume ACES + bloom + vignette + color, SSAO, qualità URP. Palette dal GDD con `ApplyPalette`. Toon/outline opzionali (pacchetti GitHub gratis). Vedi [lookdev.md](game-developer/references/lookdev.md).
+- **Kit**: **una** famiglia per slice — Kenney / KayKit / Quaternius Standard / Synty POLYGON Starter (Asset Store gratis, se lo consenti in intervista). `fetch-cc0-kits.ps1` + `GDS.KitCatalog` misura ogni pezzo (`art/kit-catalog.json`).
+- **Personaggi**: KayKit / Kenney Animated / Quaternius Universal Animation Library (CC0) → `GDS.Characters` (Humanoid, Animator, CharacterController). NavMesh con lo skill `initialize-ai-navigation`. Vedi [characters.md](game-developer/references/characters.md).
+- **VFX**: `GDS.VFX.CreateAll()` (dust/hit/pickup/torch/smoke/sparkle) + `manage_vfx` + Cartoon FX Free. Vedi [vfx.md](game-developer/references/vfx.md).
+- **Hero prop**: Blender MCP nativo — Poly Pizza → Poly Haven models → Sketchfab CC0 → **tier generativo scelto in intervista** (`none` | Modly locale ≥ 8 GB VRAM | Meshy / Tripo con key e budget crediti | Hyper3D). Solo prop unici, mai moduli. Vedi [gen3d.md](game-developer/references/gen3d.md). `uvx blender-mcp` stdio, **non** `http://localhost:9876/mcp`. Vietato creare mesh in Python.
+- **Interfaccia Grafica**: L'agente crea i mock HTML/CSS con `DesignerSkill` (`real-world-design`, obbligatoria), te li mostra tramite screenshot Playwright e, appena ne approvi uno, `ui-transpiler.mjs` lo converte in **UXML/USS nativo per Unity UI Toolkit**.
+- **Unity**: 6000.0 / 6000.3 LTS consigliate. Su 6000.5+ l'installer fissa ProBuilder ≥ 6.1.2 (il 6.0.x non compila lì).
 
 ---
 

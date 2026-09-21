@@ -218,6 +218,7 @@ $cfg = [ordered]@{
   }
   mcp = [ordered]@{
     blenderCommand      = @("cmd", "/c", "uvx", "blender-mcp")
+    blenderEnv          = [ordered]@{ BLENDER_HOST = "localhost"; BLENDER_PORT = "9876" }
     voxelaiWorkdirMode  = "per-project"
     terminalHttp        = $false
   }
@@ -229,6 +230,9 @@ $cfg = [ordered]@{
     scale                   = "1u=1m"
     forbidPaid3dApis        = $true
     forbidHdriOnGameAssets  = $true
+    forbidSloydDefault      = $true
+    preferKits              = @("kenney", "kaykit", "quaternius-standard")
+    forbidBpyModelling      = $true
     polyhavenUserAgent      = "GameDeveloperSkill/1.0"
   }
 }

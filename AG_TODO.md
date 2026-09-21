@@ -36,3 +36,12 @@
 - [~~] protocollo pulizia preventiva scena blender (wipe scena pre-import obbligatorio) (100%)
 - [~~] fast-track polypizza (no 5 step / solo 1 screenshot finale, batch fino 3 task simultanei) (100%)
 
+- [~~] audit set 2026: cause radice cubi/sottoterra/piatto + ricerca tool free (docs/AUDIT-2026-09.md) (100%)
+- [~~] layer deterministico GDS (LevelBuilder, PB, SceneLint, LookDev, KitCatalog, VFX, Characters) compilato + smoke test Unity 6000.5 (100%)
+- [~~] fasi level-build / hero-asset / lookdev / characters, gate lint issues 0, blueprint JSON come memoria su disco (100%)
+- [~~] intervista Q16-Q19 (gen3d tier + budget Meshy/Tripo/Modly, asset store, GPU/VRAM, look preset) (100%)
+- [~~] catalogo: Kenney animati/nature/particle, Quaternius UAL/UBC, Synty Starter, Cartoon FX Free, Poly Haven models, Sketchfab CC0, shader URP MIT (100%)
+- [~~] sync .kilo + tutti gli host installati + comandi /game /resumegame (100%)
+- [~~] generatore Blender procedurale case vere (gds_building.py + gds-building.ps1) + LevelBuilder v2 (L/T/U, interni, attach, recinzioni) + GDS.Village (terreno/strade/lotti) — testati con render (100%)
+- [ ] test end-to-end su un progetto reale (kit Kenney castle → blueprint house → lookdev → screenshot) (0%)
+- [ ] GDS_SceneLint: overlap prop-prop e check NavMesh (0%)

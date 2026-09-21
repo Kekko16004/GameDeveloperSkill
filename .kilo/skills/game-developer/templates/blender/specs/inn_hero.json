@@ -1,0 +1,72 @@
+{
+  "name": "inn_hero",
+  "style": "medieval",
+  "volumes": [
+    {
+      "x": 0,
+      "z": 0,
+      "w": 10,
+      "d": 7,
+      "floors": 2,
+      "roof": "gable",
+      "ridgeAxis": "x"
+    },
+    {
+      "x": 10,
+      "z": 1,
+      "w": 5,
+      "d": 5,
+      "floors": 1,
+      "roof": "hip"
+    }
+  ],
+  "doors": [
+    {
+      "volume": 0,
+      "side": "S",
+      "t": 0.3
+    }
+  ],
+  "balconies": [
+    {
+      "volume": 0,
+      "side": "S",
+      "floor": 1,
+      "t": 0.7,
+      "w": 3.0,
+      "depth": 1.2
+    }
+  ],
+  "chimneys": [
+    {
+      "volume": 0,
+      "x": 2.5,
+      "z": 3.5
+    }
+  ],
+  "interior": {
+    "partitions": [
+      {
+        "volume": 0,
+        "floor": 0,
+        "from": [
+          5,
+          0
+        ],
+        "to": [
+          5,
+          7
+        ],
+        "door": 0.5
+      }
+    ],
+    "stairs": {
+      "volume": 0,
+      "x": 0.6,
+      "z": 0.8,
+      "rotY": 0
+    }
+  },
+  "export": "art/exports/building_inn_hero.glb",
+  "preview": "screenshots/blender-building_inn_hero.png"
+}

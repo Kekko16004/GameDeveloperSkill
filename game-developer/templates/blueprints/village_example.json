@@ -1,0 +1,126 @@
+{
+  "name": "Hamlet",
+  "group": "Level/Village",
+  "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "seed": 7,
+  "terrain": {
+    "enabled": true,
+    "size": 220,
+    "height": 14,
+    "noiseScale": 0.018,
+    "flattenRadius": 50,
+    "layers": [
+      "#6B8E4E",
+      "#8A7B5C"
+    ]
+  },
+  "roads": [
+    {
+      "points": [
+        {
+          "x": -60,
+          "z": 0
+        },
+        {
+          "x": 60,
+          "z": 0
+        }
+      ],
+      "width": 5
+    },
+    {
+      "points": [
+        {
+          "x": 0,
+          "z": -50
+        },
+        {
+          "x": 0,
+          "z": 50
+        }
+      ],
+      "width": 4
+    }
+  ],
+  "roadMaterial": "",
+  "plaza": {
+    "x": 0,
+    "z": 0,
+    "w": 18,
+    "d": 18,
+    "enabled": true
+  },
+  "lots": {
+    "spacing": 16,
+    "setback": 3,
+    "minDistFromPlaza": 10,
+    "gate": 2.2,
+    "bothSides": true
+  },
+  "buildings": [
+    {
+      "file": "building_cottage_a",
+      "weight": 3,
+      "collider": "mesh"
+    },
+    {
+      "file": "building_inn_hero",
+      "weight": 1,
+      "collider": "mesh"
+    },
+    {
+      "file": "building_mage_house",
+      "weight": 1,
+      "collider": "mesh"
+    },
+    {
+      "blueprint": "art/blueprints/house_kit_a.json",
+      "weight": 2
+    }
+  ],
+  "streetProps": [
+    {
+      "file": "lantern",
+      "every": 12,
+      "offset": 3.2,
+      "alternate": true,
+      "faceRoad": true
+    },
+    {
+      "file": "barrel",
+      "every": 23,
+      "offset": 3.8,
+      "jitter": 0.6,
+      "faceRoad": false
+    }
+  ],
+  "plazaProps": [
+    {
+      "file": "well",
+      "x": 0,
+      "z": 0,
+      "rotY": 0
+    }
+  ],
+  "fenceFile": "fence",
+  "scatter": [
+    {
+      "file": "tree_pineTallA",
+      "count": 140,
+      "radius": 95,
+      "minDist": 4,
+      "avoidVillageRadius": 52
+    },
+    {
+      "file": "rock_largeA",
+      "count": 20,
+      "radius": 95,
+      "minDist": 8,
+      "avoidVillageRadius": 52
+    }
+  ]
+}

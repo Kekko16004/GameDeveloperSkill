@@ -26,7 +26,7 @@ Prefer `licence=CC0`. CC-BY only if CC0 empty; write attribution in `ASSET-LEDGE
 
 If search returns junk (photogrammetry, 80k tris, whole rooms): do not download. Fall back to Kenney/KayKit or ProBuilder. Do not `execute_blender_code` a cube.
 
-Poly Haven: **textures on the imported mesh** (`set_texture`) if the GLB is untextured. Never HDRI on game assets.
+Poly Haven: **textures on the imported mesh** (`set_texture`) if the GLB is untextured. Never HDRI on game-asset materials (HDRI as scene skybox is fine — LookDev handles it).
 
 ## Sanitize (the only allowed execute_blender_code)
 

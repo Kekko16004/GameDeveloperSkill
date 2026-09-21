@@ -6,7 +6,9 @@ Una feature non e spedita finche **non gira**. “Dovrebbe funzionare” in chat
 
 - Nessun Main Menu: il giocatore spawna gia nel livello
 - HUD senza frase obiettivo visibile nello screenshot
-- Game View = solo cubi Unity default e nessun kit in `Assets/_Game/Art/` né file in `art/exports/`
+- `GDS.SceneLint.RunJson()` con `issues > 0` (sepolti, flottanti, senza collider, materiali rosa)
+- Game View con primitives Unity visibili (cubo/capsula default) o nessun blueprint in `art/blueprints/`
+- Nessun `Global_Volume` / scena piatta senza fog e ombre (lookdev saltato)
 - Mix di due famiglie kit (Kenney + KayKit) visibile nello stesso shot
 - Console errori
 - Test movimento non eseguito (manca job_id / output in `docs/gates/`)
@@ -30,4 +32,4 @@ Play Mode input: MCP inject, altrimenti TerminalMCP `window: Unity` + `shot: tru
 
 `docs/playtest.md` tabella verb / test / result / screenshot / console.
 `screenshots/000-index.md` aggiornato.
-Gate: `docs/gates/11-playtest.md`.
+Gate: `docs/gates/13-playtest.md` (con la riga `lint:`).

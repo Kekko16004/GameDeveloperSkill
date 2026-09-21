@@ -64,12 +64,15 @@ Package Manager → Add from git URL:
 https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity
 ```
 
-`Window → MCP for Unity → Configure All Detected Clients`. Attendi compile + `ready_for_tools`.
+`Window → MCP for Unity → Configure All Detected Clients`. Attendi compile + `ready_for_tools`. Abilita il gruppo tool `scripting_ext` (`execute_code`): è quello che chiama `GDS.*`.
+
+Script Editor GDS nel progetto: `powershell -File game-developer/scripts/install-gds-editor.ps1 -ProjectPath <progetto> [-WithToonShader] [-WithOutline]` (il worker *project* lo fa da solo).
 
 ## Vietato
 
-- Meshy / Tripo / Rodin / Sloyd Guest come path primario (Sloyd Plus è a pagamento; Guest = 1 gen/giorno + licenza personale)
+- Sloyd Guest (1 gen/giorno + licenza personale); Meshy / Tripo / Rodin / Modly **solo** come tier `gen3d` scelto nell'intervista (Q16) con budget crediti, per hero prop
 - Mix Kenney + KayKit nello stesso slice
-- HDRI / luci studio su asset di gioco
+- HDRI / luci studio sui materiali dei prop (HDRI come skybox via LookDev è ok)
+- Piazzare muri/pavimenti uno a uno con `manage_gameobject` (si scrive il blueprint JSON)
 - TerminalMCP `--http` su `0.0.0.0`
 - Aprire Blender/Voxel/scena prima del GDD lock

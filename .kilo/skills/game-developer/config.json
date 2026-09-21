@@ -1,6 +1,11 @@
 {
   "version": 1,
-  "hosts": ["kilo", "claude", "codex", "antigravity"],
+  "hosts": [
+    "kilo",
+    "claude",
+    "codex",
+    "antigravity"
+  ],
   "paths": {
     "voxelai": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\VoxelAIArtist",
     "designerSkill": "C:\\Users\\FRANCY\\Desktop\\DesignerSkill",
@@ -26,21 +31,83 @@
     "designSkillCheck": true,
     "godotMcp": false,
     "terminalMcp": true,
-    "unityOfficialSkills": true
+    "unityOfficialSkills": true,
+    "gdsEditor": true
   },
   "mcp": {
-    "blenderCommand": ["cmd", "/c", "uvx", "blender-mcp"],
+    "blenderCommand": [
+      "cmd",
+      "/c",
+      "uvx",
+      "blender-mcp"
+    ],
+    "blenderEnv": {
+      "BLENDER_HOST": "localhost",
+      "BLENDER_PORT": "9876"
+    },
     "voxelaiWorkdirMode": "per-project",
     "terminalHttp": false,
     "terminalTools": "all"
   },
   "unity": {
-    "templatePreference": ["urp-3d", "com.unity.template.3d-urp", "com.unity.template.3d"],
-    "coplayGitUrl": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity"
+    "templatePreference": [
+      "urp-3d",
+      "com.unity.template.3d-urp",
+      "com.unity.template.3d"
+    ],
+    "coplayGitUrl": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
+    "packages": [
+      "com.unity.inputsystem",
+      "com.unity.cinemachine",
+      "com.unity.textmeshpro",
+      "com.unity.ugui",
+      "com.unity.render-pipelines.universal",
+      "com.unity.test-framework",
+      "com.unity.probuilder@6.1.2"
+    ],
+    "recommendedEditors": [
+      "6000.3",
+      "6000.0"
+    ],
+    "gdsEditorTemplates": "templates/Editor/GDS",
+    "optionalRenderingPackages": {
+      "toon": "https://github.com/Delt06/urp-toon-shader.git?path=Packages/com.deltation.toon-shader",
+      "outline": "https://github.com/CristianQiu/Unity-URP-Outline.git",
+      "volumetric": "https://github.com/CristianQiu/Unity-URP-Volumetric-Light.git"
+    }
   },
   "art": {
     "scale": "1u=1m",
-    "forbidPaid3dApis": true,
-    "polyhavenUserAgent": "GameDeveloperSkill/1.0"
+    "forbidPaid3dApis": false,
+    "forbidSloydDefault": true,
+    "preferKits": [
+      "kenney",
+      "kaykit",
+      "quaternius-standard",
+      "synty-starter"
+    ],
+    "forbidBpyModelling": true,
+    "polyhavenUserAgent": "GameDeveloperSkill/1.0",
+    "gen3dTiers": [
+      "none",
+      "local",
+      "meshy",
+      "tripo",
+      "hyper3d"
+    ],
+    "gen3dDefault": "none",
+    "gen3dMaxAssetsDefault": 5,
+    "assetStoreDefault": "ask",
+    "forbidHdriOnPropMaterials": true,
+    "forbidWallByWallPlacement": true,
+    "lookdevPresets": [
+      "stylized-day",
+      "stylized-sunset",
+      "dungeon-torch",
+      "night-moon",
+      "pastel-bright",
+      "scifi-cold"
+    ],
+    "lookdevDefault": "stylized-day"
   }
 }

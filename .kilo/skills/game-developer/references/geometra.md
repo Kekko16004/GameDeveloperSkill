@@ -3,8 +3,8 @@
 Il Geometra governa tutte le dimensioni, scale e posizionamenti di stanze, modelli modulari, arredi e personaggi nel gioco.
 
 ## 1. Unità Fondamentale
-- **1 Blender Unit = 1 Unity Unit = 1 Metro**.
-- Nessuna scala arbitraria. Prima di esportare qualsiasi mesh, applicare sempre la scala (`Ctrl+A` -> Apply All Transforms).
+- **1 ProBuilder/Kenney/KayKit/Blender Unit = 1 Unity Unit = 1 Metro**.
+- Nessuna scala arbitraria. Kit: un import scale per cartella. Handmade: Apply All Transforms prima dell'export.
 
 ## 2. Griglia e Snap Modulare
 Tutti i componenti ambientali devono allinearsi alla griglia standard:
@@ -33,7 +33,7 @@ Tutti i componenti ambientali devono allinearsi alla griglia standard:
 - **Personaggi / Nemici**: Pivot a terra tra i due piedi ($X=0, Z=0, Y=0$).
 
 ## 6. Verifica Geometra
-Prima di importare in Unity o Godot:
+Le stanze nascono in ProBuilder su questa griglia. I kit Kenney/KayKit si snappano agli stessi moduli. Prima di importare:
 1. Verificare che il bounding box rispetti i valori di `config/metrics.json`.
 2. Verificare che l'origine sia a $Y=0$.
 3. Verificare che le facce abbiano normali orientate verso l'esterno.

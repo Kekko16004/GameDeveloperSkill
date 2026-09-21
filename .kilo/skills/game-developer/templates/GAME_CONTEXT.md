@@ -37,9 +37,13 @@
   - `Index 0:` `Assets/_Game/Scenes/MainMenu.unity` (Schermata Iniziale obbligatoria)
   - `Index 1:` `Assets/_Game/Scenes/MainGame.unity` (Scena di Gameplay Vertical Slice)
 - **Stato Connessioni Tool & MCP:**
-  - `Unity MCP (CoplayDev):` Attivo (permette controllo scene, prefab, script, console)
-  - `Blender MCP:` Attivo (`uvx blender-mcp` per modellazione automatica)
-  - `TerminalMCP:` Attivo (per esecuzione comandi OS e screenshot)
+   - `Unity MCP (CoplayDev):` Attivo (scene, prefab, script, console, ProBuilder)
+   - `Kit CC0:` Kenney/KayKit in `art/cc0/` (default art)
+   - `Blender MCP:` Poly Pizza import se ledger source=polypizza; sanitize only
+   - `TerminalMCP:` Attivo (OS, screenshot, input)
+   - `Blender MCP:` `uvx blender-mcp` stdio → TCP 9876 (non HTTP /mcp)
+   - `Poly Pizza:` fill props se il kit manca il pezzo
+   - `Sloyd / Hunyuan:` Vietati di default
 
 ---
 
@@ -82,11 +86,10 @@
   - `Assets/_Game/Scripts/Interactions/DoorInteractable.cs`
   - `Assets/_Game/Scripts/Core/GameManager.cs`
   - `Assets/_Game/Scripts/UI/HUDController.cs`
-- **Modelli 3D & GLB (Esportazioni):**
-  - `art/exports/house_walls.glb`
-  - `art/exports/house_roof.glb`
+- **Kit & GLB:**
+  - `art/cc0/` (pack scaricati)
+  - `art/exports/env_wall_a.glb`
   - `art/exports/door_leaf.glb`
-  - `art/exports/door_handle.glb`
   - `art/exports/table_rustic.glb`
   - `art/exports/chair_rustic.glb`
   - `art/exports/barrel_wood.glb`
@@ -121,4 +124,4 @@
 - **Task Attuale in Esecuzione:** `[ID es. TASK-010]`
 - **Prossimo Task Immediato:** `[ID es. TASK-011]`
 - **Istruzione Esatta per chi riprende (`/resumegame`):**
-  > Eseguire `TASK-010`: modellare in Blender `art/exports/house_walls.glb`, scattare screenshot viewport in `screenshots/blender-house_walls.png`, registrare gate `docs/gates/07-blender-house_walls.md`.
+  > Eseguire `TASK-010`: kit-dress `env_wall_a` da `art/cc0/`, copiare in `art/exports/`, prefab+collider, screenshot `screenshots/030-import-env_wall_a.png`, gate `docs/gates/07-kit-env_wall_a.md`.

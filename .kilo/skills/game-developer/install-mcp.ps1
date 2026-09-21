@@ -43,14 +43,22 @@ $kiloBlender = @'
     "blender": {
       "type": "local",
       "command": ["cmd", "/c", "uvx", "blender-mcp"],
-      "enabled": true
+      "enabled": true,
+      "environment": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876"
+      }
     }
 '@
 
 $genericBlender = @'
     "blender": {
       "command": "cmd",
-      "args": ["/c", "uvx", "blender-mcp"]
+      "args": ["/c", "uvx", "blender-mcp"],
+      "env": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876"
+      }
     }
 '@
 
@@ -199,6 +207,9 @@ if ($Codex) {
 [mcp_servers.blender]
 command = 'cmd'
 args = ['/c', 'uvx', 'blender-mcp']
+[mcp_servers.blender.env]
+BLENDER_HOST = 'localhost'
+BLENDER_PORT = '9876'
 "@
   }
   if (-not $SkipVoxel -and $VoxelPath -and ($raw -notmatch '\[mcp_servers\.voxelai\]')) {
