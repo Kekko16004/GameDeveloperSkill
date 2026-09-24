@@ -32,7 +32,7 @@ Un agente solo, con 50k token di chat, chiude in fretta: cubi al posto dell'art,
 | Scene/script/test/graphics/vfx/code | CoplayDev unity-mcp (`execute_code`, `manage_graphics`, `manage_vfx`, `manage_camera`, `manage_animation`, `manage_ui`) | [unity-loop.md](references/unity-loop.md) |
 | Edifici veri (esterni) | spec JSON → `scripts/gds-building.ps1` (Blender procedurale headless: infissi, cornici, tetti, travi, balconi, interni) | [blender-building.md](references/blender-building.md) |
 | Livelli / interni | blueprint JSON → `GDS.LevelBuilder` (kit L/T/U, partizioni, attach, recinzioni) / `GDS.PB` | [level-builder.md](references/level-builder.md) + [probuilder-levels.md](references/probuilder-levels.md) |
-| Mondo | `GDS.Village` (terreno, strade, piazza, lotti, lampioni, bosco) | [village.md](references/village.md) |
+| Mondo | ambiente dal GDD: `GDS.Village` SOLO per insediamenti; caverna/dungeon/interno/citta/sci-fi = `GDS.LevelBuilder` (`mode: kit` o `probuilder`) | [environments.md](references/environments.md) + [village.md](references/village.md) |
 | QA scena | `GDS.SceneLint` | [scene-lint.md](references/scene-lint.md) |
 | Art default | Kit CC0 (Kenney/KayKit/Quaternius) o Synty Starter (Asset Store, se GDD) | [art-pipeline.md](references/art-pipeline.md) + [cc0-sources.md](references/cc0-sources.md) |
 | Look | `GDS.LookDev` preset + palette + toon/outline opzionali | [lookdev.md](references/lookdev.md) |
@@ -56,6 +56,16 @@ Vietato modellare a mano in `execute_blender_code` (ammesso solo: wipe, sanitize
 2. `get_scene_info` + `get_object_info` per bounding box. 3. `get_viewport_screenshot` 1 PNG finale. 4. `set_texture` per PBR. 5. `export_scene` GLB. 6. `bpy_api_lookup`.
 `execute_blender_code` SOLO per: wipe iniziale; sanitize finale (luci/camere via, pivot Y=0, decimate).
 
+## Console
+
+Non esiste una dashboard web. Su Windows l'utente apre `start-dashboard.bat` (script: `tools/tui/gds_tui.py`).
+
+Leggi `config.json` prima di toccare Fab o la UI:
+
+- `project.path` — gioco da monitorare. Se è vuoto, chiedi il percorso e salvalo. Non costruire un viewer di modelli.
+- `fab.enabled` — assente o false: non chiamare Fab. true: binario in `fab.cli`, altrimenti `fabcli` sul PATH. Login una volta con `fabcli auth login`. Stato: `fabcli auth status`. Download: `fabcli download <uid> -o "<fab.library_path>"`. FabCLI è il tool non ufficiale https://github.com/zirklerite/FabCLI. Niente cookie e niente API fab.com inventate.
+- `designerSkillPolicy.allowUpdate` — false: non ricopiare DesignerSkill. Sorgente: `paths.designerSkill` (la cartella che contiene `real-world-design/SKILL.md`). Un aggiornamento non sovrascrive il `config.json` già presente nella copia installata.
+
 ## Cosa fa il parent
 
 1. Doctor (`scripts/doctor.ps1`).
@@ -64,7 +74,7 @@ Vietato modellare a mano in `execute_blender_code` (ammesso solo: wipe, sanitize
 4. Worker **project** (attach/create + `install-gds-editor.ps1` + packages + `execute_code` verificato).
 5. Worker **task-decomposition** → `GAME_TASKS.md` + `GAME_CONTEXT.md` + `ASSET-LEDGER.md` + `art/blueprints/PLAN.md`.
 6. Worker **greybox** (`GDS.PB.Room` / blueprint primitives, ground top Y=0, lint 0). Test movimento verde.
-7. Worker **kit-fetch** (+ `GDS.KitCatalog`). Poi **building-gen** (case Blender, batch 5), **un worker level-build per blueprint** (parallelo max 3), **village** se il GDD e esterno, **hero-asset** batch max 3 per i prop unici, **import-art** se serve. Ogni gate con `lint: issues 0`.
+7. Worker **kit-fetch** (+ `GDS.KitCatalog`, genere dalla tabella di [environments.md](references/environments.md)). Poi **building-gen** (case Blender, batch 5, solo se il GDD ha edifici esterni), **un worker level-build per blueprint** (parallelo max 3), **village** SOLO se il GDD e un insediamento (caverna, dungeon, interno, citta, sci-fi, natura aperta NON usano `GDS.Village`), **hero-asset** batch max 3 per i prop unici, **import-art** se serve. Ogni gate con `lint: issues 0`.
 8. Worker **lookdev** (preset GDD). Screenshot con Volume visibile.
 9. Worker **characters** (+ NavMesh se nemici).
 10. Worker **systems** (un verbo/script per task con test dedicato).

@@ -17,7 +17,7 @@
    - `cartoon`: cel-shaded, palette vibrante, forme morbide.
    - `playful`: proporzioni esagerate, colori allegri.
    - `realistic-stylized`: proporzioni realistiche con texture stilizzate.
-8. **Geometria e Ambiente**: Interno (stanze/corridoi) o Esterno (arena/mappa aperta)?
+8. **Geometria e Ambiente**: Interno (stanze/corridoi) o Esterno (arena/mappa aperta)? E il TIPO di mondo, che decide la fase di costruzione (tabella in [environments.md](environments.md)): `villaggio` (unico caso che usa `GDS.Village`) | `caverna` | `dungeon` | `interno` | `citta` | `scifi` | `natura`. Una caverna NON si costruisce come villaggio: shell ProBuilder + kit nature + hero prop cercati (Poly Pizza → Poly Haven → Sketchfab CC0).
 9. **Telecamera**: First-Person | Third-Person (Cinemachine) | Top-Down | Isometrica.
 10. **Palette e Materiale Dominante**: 4-6 colori esadecimali + 1 materiale principale (legno, pietra, metallo, plastica, neon).
 11. **Architettura Completa delle Schermate UI (da creare con DesignerSkill)**:

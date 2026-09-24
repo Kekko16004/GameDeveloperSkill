@@ -12,7 +12,7 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 7a kit-fetch + kit-catalog          worker kit-fetch (fetch-cc0-kits.ps1 + GDS.KitCatalog.BuildJson → art/kit-catalog.json)
 7b building-gen (Blender procedurale, batch max 5 spec)  worker building-gen  ← case/locande/torri-casa VERE: gds-building.ps1 → FBX + preview
 7c level-build (1 blueprint = 1 worker) worker level-build  ← kit L/T/U + interni + attach + recinzioni, o shell ProBuilder per interni/dungeon
-7d village (se il GDD e esterno)   worker village (GDS.Village: terreno, strade, piazza, lotti con edifici 7b/7c, lampioni, bosco)
+7d village (SOLO insediamento — environments.md)   worker village (GDS.Village: terreno, strade, piazza, lotti con edifici 7b/7c, lampioni, bosco). Caverna/dungeon/interno/citta/sci-fi: il mondo e fatto da 7c, non da village
 7e hero-asset (Poly Pizza / Poly Haven / Sketchfab / gen3d tier)   worker hero-asset (batch max 3, sanitize, export, poi riga props nel blueprint)
 7f import-art                       se restano GLB fuori Unity
 8  lookdev                          worker lookdev (GDS.LookDev.Apply(preset GDD) + palette + toon/outline opzionali)

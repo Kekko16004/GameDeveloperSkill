@@ -136,7 +136,11 @@ Gate: `docs/gates/07-build-$BP_NAME.md` con `build:` JSON, `lint:` JSON, PNG. Pa
 
 ---
 
-## PHASE village (solo GDD esterno / insediamento)
+## PHASE village (SOLO se il GDD descrive un insediamento)
+
+NON e il default del mondo. Caverna, dungeon, cripta, interno, citta, base sci-fi, natura aperta: NON lanciare questa fase — il mondo lo fa `level-build` secondo [environments.md](environments.md) (kit genre, lookdev preset, recipe caverna).
+
+
 
 Tu fai SOLO il layout del mondo. Leggi `village.md`, `scene-lint.md`, `GDD.md` (mappa/ambiente). Prerequisiti su disco: gli edifici di building-gen in `Assets/_Game/Art/Exports/` e/o i blueprint kit in `art/blueprints/`.
 1. Scrivi `art/blueprints/village_<name>.json` (template `SKILL/templates/blueprints/village_example.json`): strade = percorsi del GDD, piazza = hub, `buildings` con pesi (cottage 3, hero 1), `streetProps`/`plazaProps`/`fenceFile` dal kit catalog, `scatter` alberi/rocce dal kit nature, `terrain.enabled` false se il GDD e un interno.
