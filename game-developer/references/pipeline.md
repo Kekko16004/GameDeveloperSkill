@@ -5,22 +5,26 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 
 ```
 0  doctor                          parent
-1-3 GDD interview (19 domande) + LOCK   parent parla; oppure worker gdd
+1-3 GDD interview (blocchi A-D, domande adattive) + LOCK   parent parla; oppure worker gdd
+    style realistic → engine unreal: stesse fasi, tool di unreal-loop.md
 4  project attach|create + GDS editor scripts + packages     worker project
 5  task-decomposition               worker task-decomposition (GAME_TASKS + GAME_CONTEXT + ASSET-LEDGER + lista blueprint)
 6  greybox + movement test          worker greybox  (GDS.PB.Room / primitives blueprint; ground top = Y 0)
-7a kit-fetch + kit-catalog          worker kit-fetch (fetch-cc0-kits.ps1 + GDS.KitCatalog.BuildJson → art/kit-catalog.json)
+7a kit-fetch + kit-catalog          worker kit-fetch (fetch-cc0-kits.ps1 + gds_catalog → art/kit-catalog.json)
+7w world-gen (se mondo procedurale) worker world-gen (gds_world: terrain / island / dungeon / cave / voxel → spawn, scatter, layout)
 7b building-gen (Blender procedurale, batch max 5 spec)  worker building-gen  ← case/locande/torri-casa VERE: gds-building.ps1 → FBX + preview
 7c level-build (1 blueprint = 1 worker) worker level-build  ← kit L/T/U + interni + attach + recinzioni, o shell ProBuilder per interni/dungeon
 7d village (SOLO insediamento — environments.md)   worker village (GDS.Village: terreno, strade, piazza, lotti con edifici 7b/7c, lampioni, bosco). Caverna/dungeon/interno/citta/sci-fi: il mondo e fatto da 7c, non da village
 7e hero-asset (Poly Pizza / Poly Haven / Sketchfab / gen3d tier)   worker hero-asset (batch max 3, sanitize, export, poi riga props nel blueprint)
 7f import-art                       se restano GLB fuori Unity
-8  lookdev                          worker lookdev (GDS.LookDev.Apply(preset GDD) + palette + toon/outline opzionali)
+8  lookdev                          worker lookdev (gds_lookdev preset GDD + palette + toon/outline opzionali)
+8r art-review                       worker art-review (gds_sheet + rubric R1-R7, media ≥ 4, fix list → rilancio fasi)
 9  characters (+ navmesh se nemici) worker characters (GDS.Characters + skill initialize-ai-navigation)
 10 systems + test per verbo         worker systems
 11a Main Menu UI Toolkit            worker ui-main-menu   <-- obbligatorio (Variant Studio: 3-4 varianti → scelta utente → UXML)
 11b HUD / 11c Pause / 11d GameOver   worker ui-hud / ui-pause / ui-gameover (Variant Studio: 3-4 varianti coerenti col menu → scelta utente ciascuna)
-12 juice (VFX + audio + hit-stop)   worker juice (GDS.VFX + audio-pipeline)
+12 juice (VFX + audio + hit-stop)   worker juice (gds_vfx + audio-pipeline)
+12r art-review                      worker art-review (seconda passata, con VFX e UI)
 13 playtest                         worker playtest (SceneLint 0 + Play Mode + WASD + screenshot)
 14 slice recap                      worker slice  (FAIL se un gate e rosso)
 ```
@@ -39,6 +43,8 @@ Ogni fase legge/scrive solo file piccoli e strutturati, mai la chat:
 | `ASSET-LEDGER.md` | task-decomposition, hero-asset | level-build, slice |
 | `art/kit-catalog.json` | kit-fetch | level-build |
 | `art/specs/*.json` | building-gen (uno per edificio Blender) | building-gen (rebuild), village |
+| `art/world/*.json` (+ `*.layout.json`) | task-decomposition, world-gen | world-gen (rebuild), systems (spawn), playtest |
+| `art/reference/BOARD.md` | task-decomposition | art-review |
 | `art/blueprints/*.json` | level-build (uno per edificio/area), village (`village_*.json`) | level-build / village (rebuild), playtest |
 | `docs/lint/scene-lint.json`, `docs/lint/build-*.json` | GDS scripts | parent (gate) |
 | `docs/gates/NN-*.md` | ogni worker | parent, slice |

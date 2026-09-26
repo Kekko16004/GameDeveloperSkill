@@ -5,7 +5,7 @@ Art comes later. First: a level that already **plays**, built the same way the f
 1. Create scene `Assets/_Game/Scenes/Slice.unity` (fresh, avoid default-object name clashes)
 2. Ground: Unity Cube named `Ground`, scale `[size, 0.2, size]`, position `[0, -0.1, 0]` → **top face at Y = 0** (never a cube at y=0: that buries everything 10 cm). Keep its BoxCollider. Size from GDD (~20–40 m).
 3. Rooms / buildings: read `art/blueprints/PLAN.md` (from task-decomposition). For each entry, either
-   - `execute_code`: `return GDS.PB.Room(new Vector3(x,0,z), w, 3, d, "S:1", null, "<name>");` (ProBuilder shell, door gap, colliders), or
+   - `unity command eval`: `return GDS.PB.Room(new Vector3(x,0,z), w, 3, d, "S:1", null, "<name>");` (ProBuilder shell, door gap, colliders), or
    - write `art/blueprints/<name>.json` with `"mode": "primitives"` (or `"probuilder"`) and `return GDS.LevelBuilder.BuildFromFile(...)`.
    Same `name` as the final blueprint → level-build rebuilds in place later. Never place walls one by one.
 4. Player at (0, 1, 0), CharacterController (height 1.8, radius 0.4), Input System Move

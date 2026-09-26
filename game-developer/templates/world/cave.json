@@ -1,0 +1,8 @@
+{
+  "name": "Grotto",
+  "mode": "cave",
+  "seed": 11,
+  "grid": { "cell": 2, "wallHeight": 5, "width": 60, "depth": 60, "fill": 0.46, "smooth": 5, "jitter": 0.7,
+            "floorColor": "#4A4540", "wallColor": "#5C5650", "ceiling": true,
+            "roomProps": [ { "file": "crystal", "perRoom": 2 } ] }
+}

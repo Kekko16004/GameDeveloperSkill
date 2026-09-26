@@ -29,13 +29,13 @@ Live addon (this machine): protocol 7, Blender 5.1, Poly Pizza **enabled**. Sket
 
 Two hops:
 
-1. Kilo launches **`uvx blender-mcp`** over **stdio** (MCP JSON-RPC). That process is the tool list you see (`search_polypizza_models`, `export_scene`, …).
+1. Kilo launches **`uvx mcp-for-blender`** over **stdio** (MCP JSON-RPC). That process is the tool list you see (`search_polypizza_models`, `export_scene`, …).
 2. The addon in Blender listens on **raw TCP** `localhost:9876` (JSON socket). Not HTTP. There is no `/mcp` path.
 
 ```json
 "blender": {
   "command": "cmd",
-  "args": ["/c", "uvx", "blender-mcp"],
+  "args": ["/c", "uvx", "mcp-for-blender"],
   "env": { "BLENDER_HOST": "localhost", "BLENDER_PORT": "9876" }
 }
 ```
@@ -146,14 +146,12 @@ Un modello LLM non deve applicare rigidità da compilatore a elementi artistici 
       if o.type == 'EMPTY': bpy.data.objects.remove(o, do_unlink=True)
   ```
 
-### 3. Quando il Modello non Esiste Online o l'Utente chiede Creazione Custom
-- Se la ricerca non dà risultati o se l'utente richiede un asset specifico (es. tavolo alchemico magico):
-  - **NON arrenderti e non fare FAIL**.
-  - Crea il modello proceduralmente rispettando il **Contratto Bel Low-Poly** (`blender-game-assets.md`):
-    1. Geometria composita a strati (mai un monoblocco).
-    2. Modificatore `Bevel` a 1 segmento per catturare la luce lungo i bordi.
-    3. Almeno 2 o 3 materiali PBR contrastanti (es. Legno `#3D2719`, Ferro `#1E1E22`, Accento Magico `#00FFAA` con emissione).
-    4. Pivot sempre al centro della base d'appoggio a $Y=0$ (quota terra).
+### 3. Quando il Modello non Esiste Online
+- **NON arrenderti e NON modellare in bpy.** Scala nell'ordine:
+  1. Riformula la ricerca (sinonimi, inglese, parte dell'oggetto: "alchemy table" → "table" + "potion" + "cauldron" come 3 prop).
+  2. Edifici / strutture: `gds_building.py` (spec JSON) o blueprint `GDS.LevelBuilder`/`GDS.PB`.
+  3. Tier `gen3d` del GDD (Hunyuan3D/Hyper3D nel Blender MCP, Meshy/Tripo, Modly locale) entro il budget.
+  4. `gen3d: none` e nessun match → prop sostituto dal kit + nota nel ledger, oppure `user-provided` nel manifest.
 
 ### 4. Gestione Errori Script Python in execute_blender_code
 - Se uno script fallisce, non ripeterlo uguale:
@@ -186,7 +184,6 @@ Se il modello viene prelevato pronto da Poly Pizza (`source: polypizza`), **è i
 
 Ripeti per max 3 asset del ledger nello stesso turno. Parent verifica unicamente lo screenshot finale `blender-$ID.png` per ciascun modello.
 
-*(Nota: Solo per modelli procedurali composti/assemblati da zero con più parti si applicano gli step multi-screenshot descritti in [procedural-prop-recipe.md](procedural-prop-recipe.md)).*
 
 GLB ≥ 15KB. Ledger `source: polypizza`, `licence: CC0|CC-BY`, `polypizza_id`, attribution string dal download.
 

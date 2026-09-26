@@ -39,6 +39,9 @@ namespace GDS
             ["dungeon-torch"]   = new Preset { name = "dungeon-torch", sunAngles = new Vector2(60, 0), sunColor = "#3A4B7A", sunIntensity = 0.12f, shadowStrength = 0.6f, ambSky = "#1B2033", ambEquator = "#262231", ambGround = "#0E0C10", fogColor = "#0A0C14", fogDensity = 0.06f, skyTint = "#0A0C14", skyGround = "#050508", skyExposure = 0.2f, bloom = 0.9f, bloomThreshold = 0.8f, postExposure = 0.1f, contrast = 20, saturation = -5, vignette = 0.42f, temperature = -10 },
             ["night-moon"]      = new Preset { name = "night-moon", sunAngles = new Vector2(35, 20), sunColor = "#8FA8FF", sunIntensity = 0.45f, ambSky = "#223055", ambEquator = "#1A2036", ambGround = "#0A0C12", fogColor = "#101828", fogDensity = 0.02f, skyTint = "#1A2B55", skyGround = "#0A0C12", skyExposure = 0.4f, bloom = 0.7f, saturation = -10, contrast = 15, vignette = 0.35f, temperature = -20 },
             ["pastel-bright"]   = new Preset { name = "pastel-bright", sunAngles = new Vector2(55, -20), sunColor = "#FFFFFF", sunIntensity = 1.4f, shadowStrength = 0.6f, ambSky = "#E8F3FF", ambEquator = "#F3E8FF", ambGround = "#D0C8C0", fogColor = "#F0E6F5", fogDensity = 0.004f, skyTint = "#A6D8FF", skyGround = "#C9B7D8", skyExposure = 1.35f, bloom = 0.25f, contrast = -5, saturation = 25, vignette = 0.15f, temperature = 5 },
+            ["toon-bright"]     = new Preset { name = "toon-bright", sunAngles = new Vector2(48, -35), sunColor = "#FFF8EC", sunIntensity = 1.5f, shadowStrength = 0.55f, ambSky = "#CFE6FF", ambEquator = "#E6E0F5", ambGround = "#8A8070", fogColor = "#D6E8F7", fogDensity = 0.004f, skyTint = "#6FB6FF", skyGround = "#8FA0B0", skyExposure = 1.3f, bloom = 0.3f, contrast = 6, saturation = 12, vignette = 0.12f, temperature = 6, ssao = false },
+            ["realistic-overcast"] = new Preset { name = "realistic-overcast", sunAngles = new Vector2(55, -40), sunColor = "#F2F4F7", sunIntensity = 1.1f, shadowStrength = 0.45f, ambSky = "#AEB8C4", ambEquator = "#A0A6AA", ambGround = "#5A5650", fogColor = "#B9C2CB", fogDensity = 0.009f, skyTint = "#9DB0C4", skyGround = "#6A6E70", skyExposure = 1.0f, bloom = 0.12f, bloomThreshold = 1.2f, postExposure = 0.1f, contrast = 6, saturation = -8, vignette = 0.18f, temperature = -3 },
+            ["realistic-golden"] = new Preset { name = "realistic-golden", sunAngles = new Vector2(14, -55), sunColor = "#FFC98A", sunIntensity = 1.8f, shadowStrength = 0.9f, ambSky = "#7F8FB0", ambEquator = "#B58E6E", ambGround = "#3F3730", fogColor = "#D9B08C", fogDensity = 0.007f, skyTint = "#D99A6C", skyGround = "#3A3430", skyExposure = 1.15f, skyAtmosphere = 1.3f, bloom = 0.35f, bloomThreshold = 1.1f, postExposure = 0.15f, contrast = 12, saturation = 2, vignette = 0.25f, temperature = 12 },
             ["scifi-cold"]      = new Preset { name = "scifi-cold", sunAngles = new Vector2(45, -90), sunColor = "#CFE8FF", sunIntensity = 1.3f, ambSky = "#4A6A8C", ambEquator = "#3A4C60", ambGround = "#202830", fogColor = "#7FA7C9", fogDensity = 0.01f, skyTint = "#3A6A9C", skyGround = "#1A2230", skyExposure = 0.9f, bloom = 0.5f, bloomThreshold = 0.9f, contrast = 15, saturation = 5, vignette = 0.3f, temperature = -15 },
         };
 
@@ -63,7 +66,10 @@ namespace GDS
             RenderSettings.ambientEquatorColor = Common.Hex(p.ambEquator, Color.gray);
             RenderSettings.ambientGroundColor = Common.Hex(p.ambGround, Color.black);
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = Common.Hex(p.fogColor, Color.gray); RenderSettings.fogDensity = p.fogDensity;
+            RenderSettings.fogColor = Common.Hex(p.fogColor, Color.gray);
+            // presets are tuned for ~100 m levels: thin the fog on big terrains so the world is not a white wall
+            float worldSize = 0f; foreach (var t in Terrain.activeTerrains) worldSize = Mathf.Max(worldSize, t.terrainData.size.x);
+            RenderSettings.fogDensity = worldSize > 150f ? p.fogDensity * Mathf.Sqrt(150f / worldSize) * 0.6f : p.fogDensity;
             log.Add("ambient+fog");
 
             // --- skybox
@@ -74,6 +80,19 @@ namespace GDS
                 sky.SetTexture("_MainTex", hdri); sky.SetFloat("_Exposure", p.skyExposure);
                 RenderSettings.ambientMode = AmbientMode.Skybox; log.Add("skybox:hdri");
             }
+            else if (Shader.Find("GDS/SkyGradient") is Shader grad)
+            {
+                // art-directed gradient: horizon = fog colour, so the far terrain dissolves into the sky instead of a hard seam
+                sky = new Material(grad);
+                sky.SetColor("_TopColor", Common.Hex(p.skyTint, Color.cyan));
+                sky.SetColor("_HorizonColor", Common.Hex(p.fogColor, Color.white));
+                sky.SetColor("_BottomColor", Common.Hex(p.skyGround, Color.gray));
+                sky.SetColor("_SunColor", Common.Hex(p.sunColor, Color.white));
+                sky.SetVector("_SunDirection", -sun.transform.forward);
+                sky.SetFloat("_Exposure", Mathf.Clamp(p.skyExposure * 0.85f, 0.2f, 2f));
+                sky.SetFloat("_SunHalo", p.skyAtmosphere * 0.4f);
+                log.Add("skybox:gradient");
+            }
             else
             {
                 sky = new Material(Shader.Find("Skybox/Procedural"));
@@ -82,7 +101,7 @@ namespace GDS
                 log.Add("skybox:procedural");
             }
             var skyPath = $"{Common.SettingsRoot}/Sky_{p.name}.mat";
-            AssetDatabase.CreateAsset(sky, skyPath); RenderSettings.skybox = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
+            AssetDatabase.DeleteAsset(skyPath); AssetDatabase.CreateAsset(sky, skyPath); RenderSettings.skybox = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
 
 #if GDS_URP
             // --- volume
@@ -182,6 +201,41 @@ namespace GDS
         }
 
         /// <summary>Swap every material under Assets/_Game/Art that uses fromShader to toShader (e.g. an installed toon shader), keeping base color/map.</summary>
+        /// <summary>Recolor a kit to the GDD palette without touching the source files: every model in `folder` that uses the
+        /// embedded material `materialName` (e.g. Kenney "leafsGreen") is remapped to Mat_Kit_<name> with `hex`. Batched reimport.</summary>
+        public static string Recolor(string folder, string materialName, string hex, float smoothness = 0.1f)
+        {
+            Common.EnsureFolder(Common.MaterialsRoot);
+            var path = $"{Common.MaterialsRoot}/Mat_Kit_{materialName}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            var col = Common.Hex(hex, Color.white);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", col); else mat.color = col;
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+            EditorUtility.SetDirty(mat); AssetDatabase.SaveAssets();
+            int n = 0;
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                foreach (var g in AssetDatabase.FindAssets("t:Model", new[] { folder }))
+                {
+                    var p = AssetDatabase.GUIDToAssetPath(g);
+                    if (!(AssetImporter.GetAtPath(p) is ModelImporter mi)) continue;
+                    bool uses = AssetDatabase.LoadAllAssetsAtPath(p).OfType<Material>().Any(m => m.name == materialName)
+                                || mi.GetExternalObjectMap().Keys.Any(k => k.type == typeof(Material) && k.name == materialName);
+                    if (!uses) continue;
+                    mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), materialName), mat);
+                    mi.SaveAndReimport(); n++;
+                }
+            }
+            finally { AssetDatabase.StopAssetEditing(); }
+            return $"{{\"status\":\"PASS\",\"material\":\"{Common.Esc(materialName)}\",\"color\":\"#{ColorUtility.ToHtmlStringRGB(col)}\",\"models\":{n}}}";
+        }
+
         public static string ConvertMaterials(string fromShader, string toShaderContains, string folder = Common.ArtRoot)
         {
             var target = Resources.FindObjectsOfTypeAll<Shader>().FirstOrDefault(s => s.name.IndexOf(toShaderContains, StringComparison.OrdinalIgnoreCase) >= 0 && !s.name.StartsWith("Hidden/"));

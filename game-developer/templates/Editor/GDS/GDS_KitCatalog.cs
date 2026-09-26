@@ -24,7 +24,8 @@ namespace GDS
         }
         [Serializable] public class Catalog
         {
-            public string root; public int count; public string suggestedModule; public string notes;
+            public string root; public int count; public string suggestedModule; public float suggestedScale = 1f; public string notes;
+            public List<string> materials = new List<string>();   // embedded material names: targets for gds_recolor
             public List<Entry> entries = new List<Entry>();
         }
 
@@ -71,6 +72,9 @@ namespace GDS
                     }
                     e.tris = inst.GetComponentsInChildren<MeshFilter>(true).Where(m => m.sharedMesh != null).Sum(m => m.sharedMesh.triangles.Length / 3);
                     e.hasCollider = inst.GetComponentInChildren<Collider>(true) != null;
+                    foreach (var r in inst.GetComponentsInChildren<Renderer>(true))
+                        foreach (var m in r.sharedMaterials)
+                            if (m != null && !cat.materials.Contains(m.name)) cat.materials.Add(m.name);
                     cat.entries.Add(e);
                     UnityEngine.Object.DestroyImmediate(inst);
                 }
@@ -81,12 +85,30 @@ namespace GDS
             var floors = cat.entries.Where(x => x.role == "floor" && x.sizeX > 0.2f).Select(x => Mathf.Max(x.sizeX, x.sizeZ)).ToList();
             var walls = cat.entries.Where(x => x.role == "wall" && x.sizeX > 0.2f).Select(x => Mathf.Max(x.sizeX, x.sizeZ)).ToList();
             float module = floors.Count > 0 ? Median(floors) : walls.Count > 0 ? Median(walls) : 0f;
-            cat.suggestedModule = module > 0 ? module.ToString("F2") : "unknown";
-            var doors = cat.entries.Where(x => x.role == "wallDoor").ToList();
-            float doorH = doors.Count > 0 ? doors.Max(d => d.sizeY) : 0f;
-            cat.notes = doorH > 0 && (doorH < 1.5f || doorH > 4.5f)
-                ? $"door piece height {doorH:F2} m — kit is not in metres, run SetImportScale(folder, {(2.4f / doorH):F3})"
-                : "scale looks metric";
+            cat.suggestedModule = module > 0 ? module.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "unknown";
+            // scale from several real-world references (median), so one odd piece (a 35 cm fence "gate") cannot decide it
+            var byCat = new Dictionary<string, List<float>>();
+            void Ref(string k, float v) { if (!byCat.ContainsKey(k)) byCat[k] = new List<float>(); byCat[k].Add(v); }
+            foreach (var x in cat.entries)
+            {
+                var n = x.name.ToLowerInvariant(); float longSide = Mathf.Max(x.sizeX, x.sizeZ);
+                if (n.Contains("door") && !n.Contains("frame") && x.sizeY > 0.05f) Ref("door", 2.2f / x.sizeY);
+                else if ((n == "bed" || n.StartsWith("bed_") || n.StartsWith("bed")) && longSide > 0.05f) Ref("bed", 2.0f / longSide);
+                else if (n.StartsWith("fence") && x.sizeY > 0.05f) Ref("fence", 1.1f / x.sizeY);
+                else if ((n.StartsWith("chair") || n.Contains("_chair")) && x.sizeY > 0.05f) Ref("chair", 0.95f / x.sizeY);
+                else if ((n.StartsWith("table") || n.Contains("_table")) && x.sizeY > 0.05f) Ref("table", 0.78f / x.sizeY);
+                else if (x.role == "tree" && x.sizeY > 0.8f) Ref("tree", 6f / x.sizeY);
+            }
+            // one vote per category (70 trees must not outvote 1 door and 2 beds)
+            var refs = byCat.Values.Select(v => Median(v)).ToList();
+            int nRefs = byCat.Values.Sum(v => v.Count);
+            float scale = refs.Count >= 2 ? Median(refs) : refs.Count == 1 && nRefs >= 3 ? refs[0] : 1f;
+            bool metric = (refs.Count < 2 && nRefs < 3) || (scale > 0.7f && scale < 1.4f);
+            cat.suggestedScale = metric ? 1f : R(scale);
+            cat.notes = metric
+                ? (nRefs < 3 ? "scale looks metric (few references to check)" : "scale looks metric")
+                : string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "kit is not in metres ({0} reference categories: {2}; factor {1:F2}): run SetImportScale(folder, {1:F2}) once, then rebuild the catalog", refs.Count, scale, string.Join(",", byCat.Keys));
             return cat;
         }
 
@@ -99,21 +121,27 @@ namespace GDS
             return json;
         }
 
-        /// <summary>One import scale for a whole kit folder (never per piece).</summary>
+        /// <summary>Multiply the import scale of a whole kit folder by `scale` (the catalog suggestedScale). Relative, so running it twice doubles: rebuild the catalog after each run.</summary>
         public static string SetImportScale(string folder, float scale, bool generateColliders = false)
         {
             int n = 0;
-            foreach (var g in AssetDatabase.FindAssets("t:Model", new[] { folder }))
+            // one batched import pass instead of one reimport per model (329 Kenney pieces: minutes → seconds)
+            AssetDatabase.StartAssetEditing();
+            try
             {
-                var p = AssetDatabase.GUIDToAssetPath(g);
-                if (AssetImporter.GetAtPath(p) is ModelImporter mi)
+                foreach (var g in AssetDatabase.FindAssets("t:Model", new[] { folder }))
                 {
-                    mi.useFileScale = false; mi.globalScale = scale; mi.addCollider = generateColliders;
-                    mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
-                    mi.SaveAndReimport(); n++;
+                    var p = AssetDatabase.GUIDToAssetPath(g);
+                    if (AssetImporter.GetAtPath(p) is ModelImporter mi)
+                    {
+                        mi.globalScale = mi.globalScale * scale; mi.addCollider = generateColliders;   // relative: the catalog factor is measured on the current import
+                        mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+                        mi.SaveAndReimport(); n++;
+                    }
                 }
             }
-            return $"{{\"reimported\":{n},\"scale\":{scale}}}";
+            finally { AssetDatabase.StopAssetEditing(); }
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{{\"reimported\":{0},\"scale\":{1}}}", n, scale);
         }
 
         public static string GuessRole(string name)

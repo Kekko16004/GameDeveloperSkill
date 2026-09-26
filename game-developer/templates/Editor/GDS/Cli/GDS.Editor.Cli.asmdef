@@ -1,0 +1,28 @@
+{
+    "name": "GDS.Editor.Cli",
+    "rootNamespace": "GDS",
+    "references": [
+        "GDS.Editor",
+        "GDS.Runtime",
+        "Unity.Pipeline"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "GDS_PIPELINE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.pipeline",
+            "expression": "0.0.1",
+            "define": "GDS_PIPELINE"
+        }
+    ],
+    "noEngineReferences": false
+}

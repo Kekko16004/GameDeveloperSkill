@@ -10,7 +10,7 @@ if (-not $uvx) {
   exit 1
 }
 $uvxPath = if ($uvx.Source) { $uvx.Source } else { [string]$uvx }
-Write-Host "uvx blender-mcp install-addon"
+Write-Host "uvx mcp-for-blender install-addon"
 & $uvxPath blender-mcp install-addon
 Write-Host "Then: Blender -> Edit -> Preferences -> Add-ons -> enable MCP for Blender"
 Write-Host "Then: 3D View N -> MCP for Blender -> Start MCP Server"

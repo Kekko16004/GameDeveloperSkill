@@ -1,9 +1,11 @@
 // GDS SceneLint — deterministic scene QA. Replaces "the parent looks at the screenshot".
 // Detects: buried / floating props, missing colliders, pink (error) materials, non-URP shaders,
-// empty meshes, objects far from origin, missing ground hit.
+// empty meshes, objects far from origin, missing ground hit, duplicated / interpenetrating walls (overlappingWalls),
+// duplicated / coplanar floor, ceiling and ground slabs (overlappingFloors).
 // Usage (execute_code):   return GDS.SceneLint.RunJson();            // report only
 //                         return GDS.SceneLint.RunJson(autoFix:true); // snap to ground + add box colliders
-// Gate rule: issues == 0 (after autoFix, re-run report and require 0).
+// Gate rule: issues == 0 (after autoFix, re-run report and require 0). overlappingWalls / overlappingFloors have no auto-fix:
+// fix the blueprint (or omit / wallOwner) and rebuild — LevelBuilder shares wall lines and clips slabs between blueprints.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,12 +23,12 @@ namespace GDS
         [Serializable] public class Report
         {
             public string scene; public int checkedObjects; public int issues;
-            public int buried, floating, noGround, noCollider, pinkMaterial, nonUrpShader, emptyMesh, outOfBounds;
+            public int buried, floating, noGround, noCollider, pinkMaterial, nonUrpShader, emptyMesh, outOfBounds, overlappingWalls, overlappingFloors;
             public List<Issue> list = new List<Issue>();
         }
 
         // Environment shells (ground, ProBuilder rooms, walls) are not props: skip their ground test.
-        public static string EnvRegex = @"(?i)^(ground|floor|terrain|slab|env_|room|wall|ceiling|roof|corner|stair|ramp|platform|road|plaza|pb_|probuilder|building_shell|gable|partition|global_volume|directional|light|camera|player|main camera|eventsystem|ui|hud|audiomanager|navmesh|spawn|trigger|volume)";
+        public static string EnvRegex = @"(?i)^(ground|floor|terrain|slab|env_|room|wall|ceiling|roof|corner|stair|ramp|platform|road|plaza|pb_|probuilder|building_shell|gable|partition|global_volume|directional|light|camera|player|main camera|eventsystem|ui|hud|audiomanager|navmesh|spawn|trigger|volume|attach_|water|chunk_|voxelworld|cave|dungeon)";
 
         public static Report Run(float buriedTol = 0.02f, float floatTol = 0.05f, float worldRadius = 500f, bool autoFix = false)
         {
@@ -68,7 +70,8 @@ namespace GDS
                 if (b.center.magnitude > worldRadius)
                 { Add(rep, "outOfBounds", path, b.center.magnitude, "move inside the playable area"); rep.outOfBounds++; }
 
-                if (go.GetComponentInChildren<Collider>(true) == null && go.GetComponentInChildren<CharacterController>(true) == null)
+                bool deco = go.name.StartsWith("deco_", StringComparison.OrdinalIgnoreCase);   // walk-through dressing (grass, flowers): ground check yes, collider no
+                if (!deco && go.GetComponentInChildren<Collider>(true) == null && go.GetComponentInChildren<CharacterController>(true) == null)
                 {
                     var iss = Add(rep, "noCollider", path, 0, "add BoxCollider");
                     rep.noCollider++;
@@ -92,6 +95,9 @@ namespace GDS
                     if (autoFix) { Undo.RecordObject(go.transform, "GDS snap"); go.transform.position -= Vector3.up * delta; iss.isFixed = true; }
                 }
             }
+
+            CheckOverlappingWalls(rep);
+            CheckOverlappingFloors(rep);
 
             if (autoFix && reimportModels.Count > 0)
             {
@@ -150,6 +156,122 @@ namespace GDS
             Undo.RecordObject(go.transform, "GDS snap");
             go.transform.position += Vector3.up * (gy - b.min.y);
             return $"{{\"snapped\":\"{Common.Esc(objectName)}\",\"surface\":\"{Common.Esc(hit)}\",\"y\":{go.transform.position.y:F4}}}";
+        }
+
+        // ---------------- overlappingWalls: one wall per line ----------------
+        // Two wall pieces (GDS builds, ProBuilder shells, kit walls, collision-only walls) that are parallel, interpenetrate in
+        // thickness (centre-lines closer than the mean thickness), overlap > 50% of the shorter one's length and > 50% of the
+        // lower one's height = the same wall built twice (z-fighting, doubled thickness, doors to align twice).
+        // Corner contacts, touching faces and wainscot panels are not reported. No auto-fix: disabling one copy would drop that
+        // side's doors/windows — rebuild the blueprints (LevelBuilder resolves shared walls) or set "omit"/"wallOwner".
+        public static string WallRegex = @"(?i)wall|partition";
+
+        class WallBox { public GameObject go; public string path; public Bounds b; public bool alongX; public float thick, len, perp, a0, a1; }
+
+        static bool WallBounds(GameObject go, out Bounds b)
+        {
+            b = new Bounds(); bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(false))
+            {
+                if (!r.enabled || !(r is MeshRenderer)) continue;
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+            if (any) return true;
+            foreach (var c in go.GetComponentsInChildren<Collider>(false))   // invisible collision walls
+            {
+                if (!c.enabled || c.isTrigger) continue;
+                if (!any) { b = c.bounds; any = true; } else b.Encapsulate(c.bounds);
+            }
+            return any;
+        }
+
+        static void CollectWalls(Transform t, Regex re, List<WallBox> outList)
+        {
+            var go = t.gameObject; if (!go.activeInHierarchy) return;
+            if (go.name.IndexOf("wainscot", StringComparison.OrdinalIgnoreCase) >= 0) return;
+            bool candidate = re.IsMatch(go.name) || go.GetComponent("ProBuilderMesh") != null;
+            if (candidate && WallBounds(go, out var b))
+            {
+                var s = b.size; float thick = Mathf.Min(s.x, s.z), len = Mathf.Max(s.x, s.z);
+                // wall-like: thin horizontally, long, not a slab; a container ("Walls", a whole room) is not → look at its children
+                if (thick <= 0.8f && len >= 0.3f && len >= 1.5f * thick && s.y >= 0.3f)
+                {
+                    bool ax = s.x >= s.z;
+                    outList.Add(new WallBox { go = go, path = Common.HierarchyPath(t), b = b, alongX = ax, thick = thick, len = len,
+                        perp = ax ? b.center.z : b.center.x, a0 = ax ? b.min.x : b.min.z, a1 = ax ? b.max.x : b.max.z });
+                    return;
+                }
+            }
+            for (int i = 0; i < t.childCount; i++) CollectWalls(t.GetChild(i), re, outList);
+        }
+
+        static void CheckOverlappingWalls(Report rep)
+        {
+            Physics.SyncTransforms();
+            var walls = new List<WallBox>(); var re = new Regex(WallRegex);
+            foreach (var root in EditorSceneManager.GetActiveScene().GetRootGameObjects()) CollectWalls(root.transform, re, walls);
+            foreach (var axis in new[] { true, false })
+            {
+                var w = walls.Where(x => x.alongX == axis).OrderBy(x => x.perp).ToList();
+                for (int i = 0; i < w.Count; i++)
+                    for (int j = i + 1; j < w.Count; j++)
+                    {
+                        var A = w[i]; var B = w[j];
+                        if (B.perp - A.perp > 1f) break;                                            // sorted: farther lines cannot touch
+                        if (B.perp - A.perp >= (A.thick + B.thick) / 2f - 0.01f) continue;             // touching / separate faces
+                        if (A.go.transform.IsChildOf(B.go.transform) || B.go.transform.IsChildOf(A.go.transform)) continue;
+                        float ov = Mathf.Min(A.a1, B.a1) - Mathf.Max(A.a0, B.a0);
+                        if (ov <= 0.5f * Mathf.Min(A.len, B.len)) continue;                           // corner / end contact
+                        float ovY = Mathf.Min(A.b.max.y, B.b.max.y) - Mathf.Max(A.b.min.y, B.b.min.y);
+                        if (ovY <= 0.5f * Mathf.Min(A.b.size.y, B.b.size.y)) continue;                // lintel over a lower wall, other storey
+                        Add(rep, "overlappingWalls", A.path + " <-> " + B.path, ov,
+                            "same wall built twice: rebuild both blueprints (LevelBuilder shares the line: one owner, openings of both sides) or add \"omit\"/\"wallOwner\"; hand-made walls: delete one");
+                        rep.overlappingWalls++;
+                    }
+            }
+        }
+
+        // ---------------- overlappingFloors: one slab per surface ----------------
+        // Two horizontal slabs (floor / ceiling / roof / ground: renderers named slab_ floor_ ground roof ceiling terrain lawn plaza
+        // road, or kit tiles under such a parent) whose TOP faces or BOTTOM faces are coplanar (±5 mm) and whose XZ overlap covers
+        // > 50 % of the smaller one = z-fighting surface (two rooms' floors on the same spot, a Ground cube coplanar with a room
+        // floor, two ceilings). A slab lying ON another (rug, dais, a floor 2 cm above the ground) is not reported. No auto-fix:
+        // rebuild the blueprints (LevelBuilder clips slabs between blueprints and lowers a coplanar ground by groundGap).
+        public static string FloorRegex = @"(?i)^(slab|floor|ground|roof|ceiling|terrain|lawn|grass|plaza|road)";
+
+        class FloorBox { public string path; public Transform t; public Bounds b; }
+
+        static void CheckOverlappingFloors(Report rep, float coplanarTol = 0.005f)
+        {
+            var re = new Regex(FloorRegex); var floors = new List<FloorBox>();
+            foreach (var root in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+                foreach (var r in root.GetComponentsInChildren<MeshRenderer>(false))
+                {
+                    if (!r.enabled) continue;
+                    var t = r.transform; string n = t.name;
+                    if (n.IndexOf("wainscot", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                    if (!re.IsMatch(n) && !(t.parent != null && re.IsMatch(t.parent.name))) continue;   // kit tile: instance floor_i_j, mesh child
+                    var b = r.bounds; var s = b.size;
+                    if (s.y > 0.6f || s.x < 0.3f || s.z < 0.3f) continue;                                    // horizontal slabs only
+                    floors.Add(new FloorBox { path = Common.HierarchyPath(t), t = t, b = b });
+                }
+            floors.Sort((x, y) => x.b.max.y.CompareTo(y.b.max.y));
+            for (int i = 0; i < floors.Count; i++)
+                for (int j = i + 1; j < floors.Count; j++)
+                {
+                    var A = floors[i]; var B = floors[j];
+                    if (B.b.max.y - A.b.max.y > 0.6f + coplanarTol) break;                              // sorted by top: bottoms can't match either
+                    bool top = Mathf.Abs(A.b.max.y - B.b.max.y) <= coplanarTol, bottom = Mathf.Abs(A.b.min.y - B.b.min.y) <= coplanarTol;
+                    if (!top && !bottom) continue;
+                    if (A.t.IsChildOf(B.t) || B.t.IsChildOf(A.t)) continue;
+                    float ox = Mathf.Min(A.b.max.x, B.b.max.x) - Mathf.Max(A.b.min.x, B.b.min.x), oz = Mathf.Min(A.b.max.z, B.b.max.z) - Mathf.Max(A.b.min.z, B.b.min.z);
+                    if (ox <= 0f || oz <= 0f) continue;
+                    float area = ox * oz, smaller = Mathf.Min(A.b.size.x * A.b.size.z, B.b.size.x * B.b.size.z);
+                    if (area <= 0.5f * smaller) continue;                                                // edge / eave overlap
+                    Add(rep, "overlappingFloors", A.path + " <-> " + B.path, area,
+                        (top ? "coplanar top faces" : "coplanar bottom faces") + ": rebuild the blueprints (LevelBuilder clips slabs between blueprints, owner = wallOwner/taller/name; \"omit\":[\"floor\"|\"roof\"]) or lower the ground 2 cm under the floors (builder groundGap); hand-made slabs: delete one");
+                    rep.overlappingFloors++;
+                }
         }
 
         static Issue Add(Report r, string type, string obj, float value, string fix)

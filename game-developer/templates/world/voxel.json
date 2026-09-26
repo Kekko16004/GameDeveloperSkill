@@ -1,0 +1,11 @@
+{
+  "name": "Blocks",
+  "mode": "voxel",
+  "seed": 1234,
+  "voxel": {
+    "chunkSize": 16, "height": 64, "baseHeight": 20, "heightAmp": 20, "scale": 0.018, "octaves": 4, "mountains": 0.55,
+    "seaLevel": 17, "snowLine": 44, "caves": true, "caveThreshold": 0.64, "treeChance": 0.012,
+    "viewRadiusChunks": 5, "editorRadiusChunks": 3, "stream": true, "interact": true,
+    "palette": []
+  }
+}

@@ -5,9 +5,15 @@ Write this file at `<game-root>/GDD.md`.
 ```markdown
 ---
 status: draft
-engine: unity
-style: low-poly
+genre: action-adventure   # row of genres.md
+engine: unity             # unity | unreal (style realistic)
+style: lowpoly            # lowpoly | toon | stylized | voxel | realistic | 2d-pixel (styles.md)
+world: terrain            # terrain | island | village | city | dungeon | cave | interior | scifi | voxel | arena | 2d
+worldSize: medium         # small 100 m | medium 300 m | large 500 m+
+landmark: ""              # one thing the player navigates by
 camera: third
+platform: pc              # pc | pc+webgl | pc+mobile
+targetFps: 60
 scale: 1u=1m
 slice: 1 level, 1 enemy, 1 win
 phase: gdd
@@ -61,17 +67,19 @@ session-mode: continuous # continuous (Claude Code / Kilo con subagents) | hard-
 asset-strategy: agent-full # agent-full | user-provided | hybrid
 forbid: bpy-modelling, sloyd, blockbench, dust3d, wall-by-wall placement
 
-## Hardware, budget, look (Q16–Q19)
+## Hardware, budget, look (Q20–Q24)
 gpu: GTX 1660 Super       # from the user
 vram: 6                   # GB
 gen3d: none               # none | local (Modly, ≥8 GB) | meshy | tripo | hyper3d
 gen3dBudgetCredits: 0     # only for meshy/tripo
 gen3dMaxAssets: 0         # hero props allowed through gen3d (default 5 when a tier is on)
 assetStore: no            # yes → Synty Starter / Cartoon FX Free / Unity Particle Pack allowed
-lookdev: stylized-day     # stylized-day | stylized-sunset | dungeon-torch | night-moon | pastel-bright | scifi-cold
+lookdev: stylized-day     # stylized-day | stylized-sunset | dungeon-torch | night-moon | pastel-bright | scifi-cold | toon-bright | realistic-overcast | realistic-golden
 toon: no                  # Delt06 URP toon shader package
 outline: no               # CristianQiu URP outline package
 hdri: none                # Poly Haven HDRI id for the skybox, or none
+fab: no                   # yes = FabCLI library allowed (realistic)
+worldSpec: art/world/<name>.json   # GDS.World spec when world is procedural
 
 ## Art
 genre-kit: dungeon|medieval|scifi|city|pirate|interior|prototype

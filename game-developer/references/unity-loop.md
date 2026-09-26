@@ -1,95 +1,73 @@
-# Unity editor loop (CoplayDev MCP)
+# Unity editor loop
 
-Load `unity-mcp-orchestrator` if that skill is installed. This file is the game-slice overlay.
-
-Package git URL: `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity`
+Bridge: **Unity CLI + Pipeline** ([unity-cli.md](unity-cli.md)). CoplayDev MCP only where unity-cli.md says so. Examples below use `unity command`; with CoplayDev the same GDS call goes through `execute_code: return GDS.X.Y(...);`.
 
 ## Preflight
 
-Read `mcpforunity://editor/state`. Wait until `ready_for_tools` and not compiling. If Safe Mode / compile errors: fix scripts first.
-
-`batch_execute` for 2+ independent creates (max 25).
+`unity status` → `ready`, `unity command gds_ping` → JSON. Compile errors = Safe Mode: fix the C#, restart, never edit YAML.
 
 ## Greybox scene
 
 ```
-manage_scene(action="create", name="Slice", path="Assets/_Game/Scenes/")
+unity command create_scene --path Assets/_Game/Scenes/Slice.unity
 ```
 
-Ground: cube `[size,0.2,size]` at `y=-0.1` so the **top face is Y=0** (a cube *at* y=0 buries every prop by half its height — this was the root cause of "leggermente sottoterra"). Rooms via `GDS.PB.Room` / blueprints, never wall by wall. Player empty + CharacterController + camera per GDD (`manage_camera`).
+Ground: its **top face is Y = 0** (cube `[size,0.2,size]` at `y=-0.1`, or a `GDS.World` terrain / dungeon). A cube *at* y=0 buries every prop by half its height — the historical cause of "leggermente sottoterra". Rooms via `GDS.PB.Room` / blueprints, never wall by wall. Player: CharacterController + camera per GDD (Cinemachine).
 
-**Input System** (not old Input): Actions `Move` (Vector2 WASD), `Look`, `Jump`, `Interact`, `Pause`. Generate C# class. Player reads that asset — never `Input.GetAxis("Horizontal")`.
+**Input System** only: actions `Move`, `Look`, `Jump`, `Interact`, `Pause` (+ genre verbs from [genres.md](genres.md)). Never `Input.GetAxis`.
 
 ## Scripts
 
-1. `create_script` under `Assets/_Game/Scripts/`
-2. Poll editor state until not compiling
-3. `read_console(types=["error"], include_stacktrace=true)`
-4. Only then `manage_gameobject` add component
+1. `unity command create_script` (or write the file under `Assets/_Game/Scripts/`)
+2. `unity command recompile` → poll `recompile_status` until `completed`
+3. `unity command console` → 0 errors
+4. `unity command attach_script` / `add_component`
 
-## Tests — mandatory per verb
+## Tests — one per verb
 
-Put tests in `Assets/_Game/Scripts/Tests/` assembly (`Editor` or PlayMode).
-
-For `move`:
-
-- EditMode: PlayerController applies a known input vector and transform.position.x increases
-- or PlayMode: enter play, inject input, assert position delta after 0.5s
-
-For `jump` / `interact` / `win` / `pause`: one test each, named `Verb_DoesX`.
-
-Run them in the same turn you add the verb:
+Tests in `Assets/_Game/Scripts/Tests/` (EditMode or PlayMode assembly), named `Verb_DoesX` (`Move_ChangesPosition`, `Jump_LeavesGround`, `Interact_OpensDoor`, `Pause_StopsTime`).
 
 ```
-run_tests(mode="EditMode")   # MCP
+unity command run_tests        # then test_status
+unity test <P> --mode EditMode --format json    # exit 8 = failed tests, other non-zero = infrastructure
 ```
 
-or `unity test <project> --mode EditMode --format json`
+Red test = fix before art. No "will test later".
 
-Red test = fix before art. Do not skip with “will test later”.
+## Play Mode probe
 
-## Play Mode probe (feel)
+1. `unity command gds_shot --out screenshots/<n>-game.png` (Main Camera)
+2. `unity command editor_play` → wait 2 s → `unity command capture_game_view` (or `screenshot --output`)
+3. Input: PlayMode test that injects input (preferred, deterministic) or TerminalMCP `input` on the Game window (fallback)
+4. `unity command console` errors → `editor_stop`
 
-After tests pass:
+Results in `docs/playtest.md`.
 
-1. Screenshot Game view → copy to `screenshots/`
-2. Enter Play Mode
-3. If MCP can send input, send WASD for ~1s, screenshot again
-4. Else: TerminalMCP `screen` + `input` on the Game window **only as fallback**
-5. `read_console` errors
-6. Exit Play Mode
-
-Write results into `docs/playtest.md`.
-
-## execute_code (the tool this skill leans on)
-
-Group `scripting_ext`. Body = C# method body with UnityEngine + UnityEditor. Always `return GDS.X.Y(...);` so JSON comes back:
+## GDS layer
 
 ```
-return GDS.LevelBuilder.BuildFromFile("art/blueprints/house_a.json");
-return GDS.SceneLint.RunJson(autoFix:true);
-return GDS.LookDev.Apply("stylized-day");
+unity command gds_build --blueprint art/blueprints/house_a.json
+unity command gds_world --spec art/world/overworld.json
+unity command gds_lint --autofix true      # then again without autofix → issues 0
+unity command gds_lookdev --preset stylized-day
 ```
-
-If the group is hidden: `manage_tools` enable `scripting_ext`. If the MCP build lacks it: `execute_menu_item` on `GDS/...` and read `docs/lint/*.json`.
 
 ## Import art
 
-Copy `art/exports/*.glb` → `Assets/_Game/Art/Exports/`. Scale 1, no cameras/lights from the file (strip if present). Then reference the file in a blueprint `props` row and rebuild — the builder adds the collider and snaps it. Prefab in `Prefabs/` only for things spawned at runtime.
+Copy `art/exports/*.glb` → `Assets/_Game/Art/Exports/`. Scale 1, no cameras/lights from the file. Reference the file in a blueprint `props` row (or world `scatter`) and rebuild — the builder adds the collider and snaps it. Prefabs only for runtime spawns.
 
-## Camera & Post-Processing
-Cinemachine follow/third-person/top-down da GDD via `manage_camera`. `CinemachineImpulseSource` sul player o su eventi di impatto per il camera shake (juice). Il `Global_Volume` (Bloom, ACES, Color Adjustments, Vignette, White Balance), sole, fog, skybox, SSAO e qualità URP li crea `GDS.LookDev.Apply(<preset GDD>)` — fine-tune con `manage_graphics` (`volume_set_effect`, `skybox_set_fog`, `feature_add`), mai a mano nello YAML. `manage_camera screenshot` con `include_image=true`, `max_resolution=512`, poi salvare copia in `screenshots/`.
+## Camera & post
 
-## ProBuilder — geometria di livello
-`GDS.PB.Room / Tower / Stairs / Arch` o blueprint `mode: probuilder` (vedi [probuilder-levels.md](probuilder-levels.md)), non bpy, non `manage_probuilder` face-by-face per le stanze.
-- `manage_probuilder` solo per ritocchi (bevel, materiale per faccia, subdivide) su UNA mesh: `get_mesh_info include=faces` prima, `validate_mesh` dopo, poi `GDS.SceneLint.RunJson()`.
-- Kit vestono le shell; ProBuilder resta come collision + look con materiale palette.
+Cinemachine follow / third-person / top-down from the GDD; `CinemachineImpulseSource` for shake. Sun, fog, sky, Global Volume (ACES, bloom, color, vignette), SSAO, URP quality: `gds_lookdev`. Fine-tune with `unity command set_lighting_settings` / `set_quality_settings` or `eval`, never the YAML.
 
-## VFX & Feedback Visivo
-`GDS.VFX.CreateAll()` produce i prefab base (dust/hit/pickup/torch/smoke/sparkle); `manage_vfx` per tuning, trail e line renderer; Cartoon FX Free se il GDD lo consente. VFX Graph solo per effetti GPU massivi, orchestrato dai componenti C#:
-- Aggiungere componente `VisualEffect` a prefab di impatti, proiettili, scie o polvere dei passi.
-- Pilotare i parametri esposti a runtime: `vfx.SetFloat("SpawnRate", ...)`, `vfx.SetVector3("ImpactPoint", ...)`, `vfx.SendEvent("OnHit")`.
-- Combinare VFX Graph con hit-stop e audio procedurale generato per il massimo impatto visivo.
+## ProBuilder
 
-## Console & Stabilità
-Dopo ogni modifica di script o scena: `read_console` con filtri error e warning. Zero errori per procedere. Mai toccare file YAML di scena quando l'Editor è attivo.
+`GDS.PB.Room / Tower / Stairs / Arch` or blueprint `mode: probuilder` ([probuilder-levels.md](probuilder-levels.md)). No face-by-face editing for rooms.
+
+## VFX
+
+`unity command gds_vfx` creates dust/hit/pickup/torch/smoke/sparkle prefabs; Cartoon FX Free if the GDD allows. VFX Graph only for massive GPU effects, driven from C# (`SetFloat`, `SendEvent`).
+
+## Console
+
+After every script or scene change: `unity command console` → 0 errors to continue.

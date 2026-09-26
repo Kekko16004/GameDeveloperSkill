@@ -42,7 +42,7 @@ if (-not $pyCmd) { $py = "py" }
 $kiloBlender = @'
     "blender": {
       "type": "local",
-      "command": ["cmd", "/c", "uvx", "blender-mcp"],
+      "command": ["cmd", "/c", "uvx", "mcp-for-blender"],
       "enabled": true,
       "environment": {
         "BLENDER_HOST": "localhost",
@@ -54,7 +54,7 @@ $kiloBlender = @'
 $genericBlender = @'
     "blender": {
       "command": "cmd",
-      "args": ["/c", "uvx", "blender-mcp"],
+      "args": ["/c", "uvx", "mcp-for-blender"],
       "env": {
         "BLENDER_HOST": "localhost",
         "BLENDER_PORT": "9876"
@@ -206,7 +206,7 @@ if ($Codex) {
 
 [mcp_servers.blender]
 command = 'cmd'
-args = ['/c', 'uvx', 'blender-mcp']
+args = ['/c', 'uvx', 'mcp-for-blender']
 [mcp_servers.blender.env]
 BLENDER_HOST = 'localhost'
 BLENDER_PORT = '9876'

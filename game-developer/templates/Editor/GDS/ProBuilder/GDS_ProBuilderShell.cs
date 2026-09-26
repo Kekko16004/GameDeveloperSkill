@@ -17,7 +17,7 @@ namespace GDS
     [InitializeOnLoad]
     public static class PB
     {
-        static PB() { LevelBuilder.ProBuilderShell = Shell; }
+        static PB() { LevelBuilder.ProBuilderShell = Shell; LevelBuilder.ProBuilderBox = Box; }
 
         static Material LoadMat(string path) => string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<Material>(path);
 
@@ -46,9 +46,11 @@ namespace GDS
         public static int Shell(LevelBuilder.Blueprint bp, List<LevelBuilder.Volume> vols, List<LevelBuilder.Seg> segs, Transform shell, LevelBuilder.Result res)
         {
             var mat = LoadMat(bp.material); if (mat == null) mat = Common.PaletteMaterial(1, new Color(0.80f, 0.74f, 0.62f), "Wall");
-            var roofMat = Common.PaletteMaterial(2, new Color(0.48f, 0.24f, 0.18f), "Roof");
+            var roofMat = LoadMat(bp.roofMaterial); if (roofMat == null) roofMat = Common.PaletteMaterial(2, new Color(0.48f, 0.24f, 0.18f), "Roof");
+            var floorMat = LoadMat(bp.floorMaterial); if (floorMat == null) floorMat = mat;
+            var wainMat = LoadMat(bp.wainscotMaterial); if (wainMat == null) wainMat = mat;
             int c = 0;
-            GameObject B(string n, Vector3 center, Vector3 size) { c++; return Box(n, center, size, shell, n.StartsWith("roof") ? roofMat : mat); }
+            GameObject B(string n, Vector3 center, Vector3 size) { c++; return Box(n, center, size, shell, n.StartsWith("roof") ? roofMat : n.StartsWith("slab") ? floorMat : n.EndsWith("_wainscot") ? wainMat : mat); }
             // flat roofs / slabs / walls come from the shared box layout; gable volumes get their flat roof replaced below
             var gableVols = new HashSet<int>();
             for (int i = 0; i < vols.Count; i++) if ((string.IsNullOrEmpty(vols[i].roof) ? bp.roof : vols[i].roof).ToLowerInvariant() == "gable") { gableVols.Add(i); vols[i].roof = "none"; }
@@ -56,6 +58,7 @@ namespace GDS
             foreach (int vi in gableVols)
             {
                 var v = vols[vi]; v.roof = "gable"; float M = bp.module, T = bp.wallThickness;
+                if (LevelBuilder.OmitsPart(bp, "roof")) continue;             // "omit":["roof"]: a neighbour / the floor above is the ceiling
                 float W = v.cellsX * M, D = v.cellsZ * M; var o = bp.origin.V;
                 var ridgeBase = o + new Vector3(v.x + W / 2, v.floors * bp.wallHeight, v.z + D / 2);
                 if (W >= D) Gable(ridgeBase, W + T + 0.6f, D + T + 0.6f, D * 0.32f, true, shell, mat, roofMat, ref c);

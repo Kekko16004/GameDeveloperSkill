@@ -1,62 +1,44 @@
 # GameDeveloperSkill
 
-Pipeline autonoma da idea a vertical slice Unity beta-ready: intervista GDD, poi un worker isolato per fase. Edifici veri da generatore Blender procedurale, livelli da blueprint (kit CC0 o ProBuilder), lint di scena deterministico, lookdev, personaggi, VFX, UI.
+Skill multi-host (Claude Code, Kilo, Codex, Antigravity, Cursor...) che porta un'idea a una **vertical slice giocabile e curata**, di qualsiasi genere e stile: intervista GDD approfondita, poi un worker isolato per fase, ognuna chiusa da prove su disco (lint, test, screenshot con voto).
 
-Il villaggio e un ambiente tra gli altri: caverna, dungeon, interno, citta, sci-fi e natura aperta hanno il loro flusso (`game-developer/references/environments.md`).
+| Stile | Motore | Come |
+|---|---|---|
+| low-poly, toon, stylized, voxel, 2D | Unity 6 URP | Unity CLI (`unity command gds_*`), kit CC0, mondi procedurali GDS, Blender per le case |
+| realistico | Unreal 5.8 | MCP ufficiale Epic, Megascans/Fab, Landscape + PCG, `gds_ue.py` |
 
 ## Avvio
 
 ```bat
-check-status.bat       :: verifica stato
+install.bat            :: rileva host e tool, installa la skill una volta e la collega a ogni host
 start-dashboard.bat    :: console: progetto, FabCLI, DesignerSkill
-install.bat            :: installa la skill sugli host (Kilo, Claude, Codex, Antigravity)
 ```
 
-La console (`game-developer/tools/tui/gds_tui.py`) non e un sito: tre schermate, `1` `2` `3` per cambiare, `e` modifica un percorso, `s` salva, `q` esce. Serve Python 3.10+, nessun pacchetto.
+Poi nel client: `/game <idea>` (o `/gdd`, `/playtest`, `/resumegame`).
 
-## Struttura
+## Cosa c'è dentro
 
 ```
-game-developer/            la skill (SKILL.md + tutto il resto)
-  references/              un file per fase, letti on demand
-  scripts/                 fetch kit CC0, doctor, installer GDS, generatore edifici
-  templates/               C# GDS (Editor), generatore Blender, blueprint di esempio
-  command/                 /game, /gdd, /playtest, /resumegame
-  tools/tui/               la console
-  config.json              percorsi e moduli (locale, gitignorato nei deploy)
-scripts/                   check dipendenze e stato
-docs/                      audit e storico
+game-developer/
+  SKILL.md                 orchestratore (parent)
+  references/              un file per fase/tema, letto on demand
+  templates/Editor/GDS/    layer C# deterministico (World, LevelBuilder, Village, PB, SceneLint, LookDev, Shots, ...) + comandi CLI
+  templates/Runtime/GDS/   runtime: Noise, VoxelWorld (chunk, greedy meshing, scava/costruisci), SkyGradient shader
+  templates/world/         spec di esempio: terrain, island, dungeon, cave, voxel
+  templates/blender/       generatore procedurale di edifici
+  templates/unreal/        gds_ue.py (lookdev, lint, screenshot, import Fab, heightmap)
+  scripts/                 doctor, install GDS nel progetto, fetch kit/audio CC0, edifici Blender headless
+  command/                 /game /gdd /playtest /resumegame
+  tools/tui/               console
+docs/                      audit, roadmap, sample render
 ```
 
-`install.ps1` copia la skill negli host. Le copie deployate (`.kilo/`, `.claude/`, ...) non stanno nel repo.
+## Pipeline
 
-## Configurazione
-
-Tutto sta in `game-developer/config.json` (parti da `config.example.json`):
-
-| Chiave | A cosa serve |
-|---|---|
-| `paths.voxelai` / `paths.designerSkill` / `paths.terminalmcp` | tool esterni |
-| `paths.blender` / `paths.unityCli` / `paths.godot` | eseguibili |
-| `fab.enabled`, `fab.cli`, `fab.library_path` | FabCLI (libreria Fab/MegaScan personale) |
-| `modules.*` | accende/spegne i pezzi |
-| `art.gen3dDefault` | `none` di default: zero costi |
-
-## Workflow
-
-1. `/game` — intervista GDD (19 domande, incluso il tipo di mondo).
-2. La pipeline lancia un worker per fase: greybox, kit, edifici, livelli, mondo, lookdev, personaggi, sistemi, UI, juice, playtest.
-3. Ogni fase chiude con un gate su disco (`docs/gates/`) e `lint: issues 0`. Nessun "fatto" senza file.
-
-## Asset
-
-- Kit CC0 per genere: Kenney, KayKit, Quaternius (`references/cc0-sources.md`, `scripts/fetch-cc0-kits.ps1`).
-- Hero prop: Poly Pizza, poi Poly Haven, poi Sketchfab CC0, poi il tier gen3d scelto nel GDD.
-- FabCLI solo per la libreria Fab personale, e solo se `fab.enabled` e true.
+`/game` → intervista (blocchi A-D, domande adattive) → project → task (60-80, per deliverable) → greybox + test → kit → **world-gen** → edifici/livelli → hero prop → lookdev → **art review a punteggio** → personaggi → sistemi (verbo = script + test) → UI (scelta utente per ogni schermata) → juice → art review → playtest → slice.
 
 ## Documentazione
 
-- `INSTALL.md` — installazione
-- `docs/AUDIT-2026-09.md` — perche la pipeline e fatta cosi
-- `docs/archive/` — report delle versioni precedenti
-- `docs/ideas/` — idee non implementate (bozze, non funzionalita)
+- `INSTALL.md` — installazione e setup
+- `docs/AUDIT-2026-09.md` — perché la pipeline è fatta così (con fonti)
+- `docs/ROADMAP.md` — idee non ancora fatte

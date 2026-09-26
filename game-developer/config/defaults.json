@@ -1,30 +1,27 @@
 {
   "version": 1,
   "paths": {
-    "voxelai": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\VoxelAIArtist",
+    "voxelai": "",
+    "designerSkill": "",
+    "terminalmcp": "",
     "blender": "",
-    "terminalmcp": "C:\\Users\\FRANCY\\Desktop\\Dev Things\\TerminalMCP",
     "unityCli": "",
-    "godot": ""
+    "unreal": ""
   },
   "engines": {
     "default": "unity",
-    "godotEnabled": false
+    "realistic": "unreal",
+    "unrealMin": "5.8"
   },
   "modules": {
     "skillFiles": true,
-    "gameCommand": true,
-    "gddCommand": true,
-    "playtestCommand": true,
+    "commands": true,
     "unityCli": true,
-    "unityMcp": true,
+    "unityOfficialSkills": true,
     "blenderMcp": true,
     "voxelMcp": true,
-    "cc0Fetch": true,
-    "designSkillCheck": true,
-    "godotMcp": false,
     "terminalMcp": true,
-    "unityOfficialSkills": true,
+    "designSkill": true,
     "gdsEditor": true
   },
   "mcp": {
@@ -32,7 +29,7 @@
       "cmd",
       "/c",
       "uvx",
-      "blender-mcp"
+      "mcp-for-blender"
     ],
     "blenderEnv": {
       "BLENDER_HOST": "localhost",
@@ -43,9 +40,8 @@
   },
   "unity": {
     "templatePreference": [
-      "urp-3d",
-      "com.unity.template.3d-urp",
-      "com.unity.template.3d"
+      "com.unity.template.urp-blank",
+      "com.unity.template.universal-2d"
     ],
     "coplayGitUrl": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
     "packages": [
@@ -55,9 +51,11 @@
       "com.unity.ugui",
       "com.unity.render-pipelines.universal",
       "com.unity.test-framework",
-      "com.unity.probuilder@6.1.2"
+      "com.unity.probuilder",
+      "com.unity.pipeline"
     ],
     "recommendedEditors": [
+      "6000.5",
       "6000.3",
       "6000.0"
     ],
@@ -66,7 +64,8 @@
       "toon": "https://github.com/Delt06/urp-toon-shader.git?path=Packages/com.deltation.toon-shader",
       "outline": "https://github.com/CristianQiu/Unity-URP-Outline.git",
       "volumetric": "https://github.com/CristianQiu/Unity-URP-Volumetric-Light.git"
-    }
+    },
+    "gdsRuntimeTemplates": "templates/Runtime/GDS"
   },
   "art": {
     "scale": "1u=1m",
@@ -98,8 +97,33 @@
       "dungeon-torch",
       "night-moon",
       "pastel-bright",
-      "scifi-cold"
+      "scifi-cold",
+      "toon-bright",
+      "realistic-overcast",
+      "realistic-golden"
     ],
-    "lookdevDefault": "stylized-day"
+    "lookdevDefault": "stylized-day",
+    "styles": [
+      "lowpoly",
+      "toon",
+      "stylized",
+      "voxel",
+      "realistic",
+      "2d-pixel"
+    ]
+  },
+  "bridge": {
+    "unity": "cli",
+    "unityFallback": "coplay-mcp",
+    "unreal": "unreal-mcp-5.8"
+  },
+  "fab": {
+    "enabled": false,
+    "cli": "",
+    "library_path": ""
+  },
+  "tasks": {
+    "target": "60-80",
+    "max": 90
   }
 }

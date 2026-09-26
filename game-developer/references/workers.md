@@ -4,9 +4,9 @@ Il parent **non implementa**. Lancia `Task` (`subagent_type: general`, `backgrou
 
 Se un worker chiude senza i file del gate, il parent **rilancia lo stesso worker** (stesso prompt + "GATE ROSSO: manca X"). Max 2 retry. Poi FAIL visibile all'utente.
 
-Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `execute_code`, non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `GDS.SceneLint.RunJson()`.
+Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Style `realistic` → stessi worker, tool di [unreal-loop.md](unreal-loop.md).
 
-## Contesto minimo (le uniche 8 righe per ogni worker)
+## Contesto minimo (le uniche 9 righe per ogni worker)
 
 ```
 PROJECT=<abs path Unity/Godot>
@@ -15,8 +15,9 @@ CONTEXT=<abs path GAME_CONTEXT.md>
 TASKS=<abs path GAME_TASKS.md>
 SKILL=<abs path game-developer/>
 PHASE=<id>
-ENGINE=unity|godot
-STYLE=<from GDD: famiglia kit + lookdev preset>
+ENGINE=unity|unreal
+STYLE=<GDD style + famiglia kit + lookdev preset>
+GENRE=<riga di genres.md>
 ```
 
 Vietato incollare conversazioni, screenshot chat, o "abbiamo già fatto greybox". Il worker rilegge `GDD.md`, `GAME_CONTEXT.md`, `GAME_TASKS.md`, `art/kit-catalog.json`, `art/blueprints/` e `docs/gates/` da disco.
@@ -30,36 +31,36 @@ Task:
   prompt: <blocco PHASE x da questo file, con le 8 righe sostituite>
 ```
 
-Un worker alla volta per fasi dipendenti (greybox → kit-fetch → building-gen → level-build → village → lookdev → characters → systems → ui → juice → playtest).
+Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → ui → juice → art-review → playtest).
 Art: **un blueprint per worker** per level-build (parallelo max 3 blueprint indipendenti), **fino a 3 hero asset in batch** per hero-asset.
 
 ---
 
 ## PHASE gdd
 
-Tu fai SOLO l'intervista GDD. Leggi `gdd-interview.md`, `tool-stack.md`, `gdd-template.md`, `gen3d.md`, `lookdev.md`.
-Tutte le 19 domande, a blocchi. Q13 tool stack, Q16 gen3d tier + budget, Q17 asset store, Q18 GPU/VRAM, Q19 look preset sono obbligatorie e vanno lockate in `GDD.md` (`gen3d:`, `gen3dBudgetCredits:`, `gen3dMaxAssets:`, `assetStore:`, `gpu:`, `vram:`, `lookdev:`, `toon:`, `outline:`, `hdri:`).
+Tu fai SOLO l'intervista GDD. Leggi `gdd-interview.md`, `genres.md`, `styles.md`, `world-gen.md`, `tool-stack.md`, `gdd-template.md`, `gen3d.md`, `lookdev.md`.
+Blocchi A-D, tante domande, follow-up su tutto ciò che è vago, default consigliati. Tutti i campi elencati in fondo a `gdd-interview.md` vanno lockati in `GDD.md`.
 Scrivi `PROJECT/GDD.md` (se PROJECT ancora vuoto, scrivi nel workspace e il parent lo sposterà).
 NON aprire Unity, Blender, Voxel, UI.
 Stop quando `status: locked` e l'utente ha confermato il recap.
 
-Gate: `GDD.md` contiene `status: locked` e tutti i campi Q13–Q19.
+Gate: `GDD.md` contiene `status: locked` e tutti i campi della lista in `gdd-interview.md`.
 
 ---
 
 ## PHASE project
 
-Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md`.
-1. Attach o `unity projects create` (template URP). Unity **6000.0 / 6000.3 LTS**; 6000.5+ richiede ProBuilder ≥ 6.1.2.
-2. `powershell -File SKILL/scripts/install-gds-editor.ps1 -ProjectPath PROJECT` (+ `-WithToonShader` se `GDD toon: yes`, `-WithOutline` se `outline: yes`). Copia `Assets/_Game/Editor/GDS/` e aggiorna il manifest (ProBuilder 6.1.2).
-3. CoplayDev MCP: `manage_packages` per Input System, Cinemachine, ProBuilder; wait compile; `read_console` 0 errori; `manage_tools` → gruppo `scripting_ext` attivo.
-4. Verifica: `execute_code` → `return GDS.SceneLint.RunJson();` deve rispondere JSON.
+Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md` (Unreal: `unreal-loop.md`).
+1. Attach o `unity projects create ... --template com.unity.template.urp-blank` (2D: `com.unity.template.universal-2d`). Unity 6000.x installato; 6000.5+ richiede ProBuilder ≥ 6.1.2 (l'installer usa le versioni consigliate dall'Editor).
+2. `powershell -File SKILL/scripts/install-gds-editor.ps1 -ProjectPath PROJECT` (+ `-WithToonShader` se `toon: yes`, `-WithOutline` se `outline: yes`). Copia GDS Editor + Runtime, esempi `art/world/`, pacchetti, e `unity pipeline install`.
+3. Apri/lascia aprire l'Editor: `unity command recompile` → `recompile_status` completed → `unity command console` 0 errori. `unity command package_add` per Cinemachine se il GDD lo usa.
+4. Verifica: `unity command gds_ping` e `unity command gds_lint` rispondono JSON.
 5. Se `GDD gen3d: meshy|tripo`: verifica che `MESHY_API_KEY`/`TRIPO_API_KEY` sia nell'env del MCP (non chiederla in chat, non loggarla).
 Crea le cartelle `art/ blender/ voxel/ cc0/ exports/ blueprints/`, `screenshots/`, `ui/`, `docs/gates/`, `docs/lint/`, `Assets/_Game/...`.
 NON modellare, NON scrivere gameplay, NON UI.
 Scrivi `docs/gates/04-project.md` con `projectPath`, versione Unity, output di `GDS.SceneLint.RunJson()` e `PASS`.
 
-Gate: `ProjectSettings/` + `Assets/_Game/Editor/GDS/GDS.Editor.asmdef` + console 0 errori + `docs/gates/04-project.md` PASS.
+Gate: `ProjectSettings/` + `Assets/_Game/Editor/GDS/GDS.Editor.asmdef` + `gds_ping` JSON + console 0 errori + `docs/gates/04-project.md` PASS.
 
 ---
 
@@ -68,13 +69,15 @@ Gate: `ProjectSettings/` + `Assets/_Game/Editor/GDS/GDS.Editor.asmdef` + console
 Tu fai SOLO la scomposizione dei task e l'inizializzazione della memoria centrale.
 Leggi `SKILL/references/task-decomposition.md`, `art-pipeline.md`, `level-builder.md`, `context-management.md`, e i template `SKILL/templates/GAME_TASKS.md` e `GAME_CONTEXT.md`.
 Genera:
-1. `PROJECT/GAME_TASKS.md`: righe singole numerate (TASK-001..). Per l'art: **un task per edificio Blender** (`BG-inn`: stile, volumi, porte, balconi → `art/specs/inn.json`), **un task per blueprint kit/ProBuilder** (`BP-house_a`: volumi, aperture, partizioni, attach, prop, scatter), **un task per il villaggio** (`VL-hamlet`: strade, piazza, pesi edifici) se il GDD e esterno, e **un task per hero asset**. VIETATO "modelli 3D"/"props" generici, VIETATO un task per muro.
+1. `PROJECT/GAME_TASKS.md`: righe numerate (TASK-001..), un task = un deliverable (60-80 totali). Per l'art: **un task per edificio Blender** (`BG-inn`: stile, volumi, porte, balconi → `art/specs/inn.json`), **un task per blueprint kit/ProBuilder** (`BP-house_a`: volumi, aperture, partizioni, attach, prop, scatter), **un task per il villaggio** (`VL-hamlet`: strade, piazza, pesi edifici) se il GDD e esterno, e **un task per hero asset**. VIETATO "modelli 3D"/"props" generici, VIETATO un task per muro.
 2. `PROJECT/GAME_CONTEXT.md`: visione, game loop, win/fail, controlli, mapping script, lookdev preset, famiglia kit.
 3. `PROJECT/ASSET-LEDGER.md`: una riga per blueprint e per hero asset, `source:` dal catalogo `cc0-sources.md` o tier gen3d del GDD.
-4. `PROJECT/art/blueprints/PLAN.md`: tabella edifici/aree → `source: blender-gen|kit|probuilder`, posizione/rotazione nel livello (griglia Geometra 4 m) o `lot: village`, così building-gen / level-build / village non inventano nulla. Default per esterni low-poly: **blender-gen** per le case, kit per props/recinzioni/lampioni/alberi, ProBuilder per interni.
+4. `PROJECT/art/reference/BOARD.md` + 4-8 immagini di riferimento ([art-direction.md](art-direction.md)).
+5. Se il mondo è procedurale (`GDD world`, vedi world-gen.md): `PROJECT/art/world/<name>.json` partendo da `art/world/example_<mode>.json` (seed, dimensione, scatter con nomi TODO fino al kit-fetch).
+6. `PROJECT/art/blueprints/PLAN.md`: tabella edifici/aree → `source: blender-gen|kit|probuilder`, posizione/rotazione nel livello (griglia Geometra 4 m) o `lot: village`, così building-gen / level-build / village non inventano nulla. Default per esterni low-poly: **blender-gen** per le case, kit per props/recinzioni/lampioni/alberi, ProBuilder per interni.
 NON modellare, NON aprire Unity.
 
-Gate: `GAME_TASKS.md` (> 15 task atomici con ID) + `GAME_CONTEXT.md` + `ASSET-LEDGER.md` + `art/blueprints/PLAN.md`.
+Gate: `GAME_TASKS.md` (60-80 task per deliverable, max 90, regole di merge di task-decomposition.md) + `GAME_CONTEXT.md` (con `genre:` e `style:`) + `ASSET-LEDGER.md` + `art/blueprints/PLAN.md` + `art/reference/BOARD.md`.
 
 ---
 
@@ -83,9 +86,10 @@ Gate: `GAME_TASKS.md` (> 15 task atomici con ID) + `GAME_CONTEXT.md` + `ASSET-LE
 Tu fai SOLO geometria giocabile + player che si muove. Leggi `greybox.md`, `level-builder.md`, `unity-loop.md`, `geometra.md`, `scene-lint.md`.
 Terreno: cubo/plane con **faccia superiore a Y=0** (cubo `[n,0.2,n]` a `y=-0.1`) e collider.
 Stanze/edifici del greybox: `GDS.PB.Room(...)` oppure blueprint `mode: probuilder|primitives` da `art/blueprints/PLAN.md` (stesso `name` che userà level-build → rebuild in place). Vietato piazzare muri uno a uno.
-Obbligo: Input System, CharacterController, `PlayerMovementTests` che **giri** (`run_tests` o `unity test`).
+Un muro per linea condivisa: stanze adiacenti = blueprint nella stessa cartella + `group`; il builder costruisce la linea una volta sola con le porte di entrambi (`omit` / `wallOwner` per forzare). Lint deve mostrare `overlappingWalls: 0`, `overlappingFloors: 0`.
+Obbligo: Input System, controller della riga di `genres.md`, `PlayerMovementTests` che **giri** (`unity command run_tests` o `unity test`).
 Vietato Blender. Vietato kit. Vietato UI Toolkit. Vietato dire che il gioco è finito.
-Lint: `GDS.SceneLint.RunJson(autoFix:true)` poi `RunJson()` → `issues: 0`.
+Lint: `unity command gds_lint --autofix true` poi `gds_lint` → `issues: 0`.
 Play Mode + screenshot `screenshots/010-greybox-play.png`.
 Scrivi `docs/gates/06-greybox.md` (test job_id, lint JSON, PNG).
 
@@ -103,10 +107,22 @@ powershell -File SKILL/scripts/fetch-cc0-kits.ps1 -ProjectPath PROJECT -Genre <m
 ```
 
 Se `GDD assetStore: yes` e famiglia = Synty: apri Package Manager > My Assets (TerminalMCP browser se serve) e importa POLYGON Starter Pack in `Assets/_Game/Art/AssetStore/`.
-Copia i modelli usati in `Assets/_Game/Art/Kits/<family>/` (FBX o glTF, non entrambi). Poi `execute_code`:
-`return GDS.KitCatalog.BuildJson("Assets/_Game/Art/Kits/<family>/<pack>");` → se `notes` dice che la scala non è metrica: `GDS.KitCatalog.SetImportScale(folder, <fattore>)` una volta e rifai il catalogo.
+Copia i modelli usati in `Assets/_Game/Art/Kits/<family>/` (FBX o glTF, non entrambi). Poi:
+`unity command gds_catalog --folder Assets/_Game/Art/Kits/<family>/<pack>` → se `notes` dice che la scala non è metrica: `unity command gds_kit_scale --folder <kit> --scale <suggestedScale>` UNA volta (è relativo) e rifai il catalogo finché `scale looks metric`. Colori fuori palette GDD: `gds_recolor` per ogni materiale in `materials` del catalogo.
 NON importare in scena. NON mischiare due famiglie. NON scaricare Quaternius Pro/Source né Sloyd.
 Gate: `art/cc0/` con almeno un pack + `art/kit-catalog.json` con `count > 0` + `docs/gates/07-kit-fetch.md` (incolla `suggestedModule` e `notes`).
+
+---
+
+## PHASE world-gen (se il mondo del GDD è procedurale)
+
+Tu fai SOLO il mondo da spec. Leggi `world-gen.md`, `scene-lint.md`, `art/kit-catalog.json`, `GDD.md` (world, worldSize, landmark, style).
+1. Apri `art/world/<name>.json`: nomi scatter/prop = file veri del catalogo (stessa famiglia), dimensione da `worldSize`, `flat` per villaggio/arena/landmark, `seed` fisso.
+2. `unity command gds_world --spec art/world/<name>.json` → `status: PASS`, `warnings` vuoti (nome mancante → correggi la spec e rilancia; mai a mano nella scena).
+3. `gds_lint --autofix true` poi `gds_lint` → `issues: 0`.
+4. `unity command gds_sheet --prefix screenshots/review/world`.
+VIETATO: spostare alberi/rocce a mano, cambiare seed senza annotarlo, mondi più grandi del GDD.
+Gate: `docs/gates/07-world.md` con il JSON del risultato, `lint:`, PNG.
 
 ---
 
@@ -128,9 +144,9 @@ Gate: `docs/gates/07-building-<name>.md` per edificio con `GDS_RESULT`, PNG, FBX
 Tu fai SOLO UN blueprint: `$BP_NAME` (riga di `art/blueprints/PLAN.md`). Leggi `level-builder.md`, `scene-lint.md`, `geometra.md`, `art/kit-catalog.json`.
 1. Scegli dal catalogo i file per i ruoli `floor wall wallDoor wallWindow corner roof stair` (stessa famiglia). Se manca `wall`/`floor` nel kit → `mode: probuilder` (interni/dungeon) oppure edificio `building-gen` come `props` con `collider: mesh`. MAI cubi Unity.
 2. Scrivi `art/blueprints/$BP_NAME.json`: pianta con `volumes` (L/T/U se PLAN.md lo dice), `openings` per volume, `partitions` interne con porta, `stairs` + `floorHoles` se >1 piano, `attach` (lanterne, insegne, tende, fioriere: almeno 2 per facciata visibile), `fences` se il lotto ne ha, `props` interni con coordinate relative, `scatter` esterno con `avoidRadius`.
-3. `execute_code`: `return GDS.LevelBuilder.BuildFromFile("art/blueprints/$BP_NAME.json");` → leggi `missingRoles`/`warnings`, correggi il JSON e rilancia finché `missingRoles: []`.
-4. `return GDS.SceneLint.RunJson(autoFix:true);` poi `return GDS.SceneLint.RunJson();` → `issues: 0`.
-5. Screenshot Scene/Game view `screenshots/020-build-$BP_NAME.png`.
+3. `unity command gds_build --blueprint art/blueprints/$BP_NAME.json` → leggi `missingRoles`/`warnings`, correggi il JSON e rilancia finché `missingRoles: []`.
+4. `unity command gds_lint --autofix true` poi `gds_lint` → `issues: 0`. Un muro per linea condivisa: lint deve mostrare `overlappingWalls: 0 overlappingFloors: 0` (se no: correggi `openings`/`omit`/`wallOwner` e ricostruisci i DUE blueprint della linea; warning "built by X, not in the scene" = costruisci X).
+5. `unity command gds_shot --out screenshots/020-build-$BP_NAME.png --view orbit1`.
 VIETATO: `manage_gameobject` per piazzare muri, ProBuilder MCP face-by-face, Blender, seconda famiglia, "visto che ci sono faccio anche la casa B".
 Gate: `docs/gates/07-build-$BP_NAME.md` con `build:` JSON, `lint:` JSON, PNG. Parent Read del PNG solo per stile (coerenza famiglia), non per misurare.
 
@@ -144,9 +160,9 @@ NON e il default del mondo. Caverna, dungeon, cripta, interno, citta, base sci-f
 
 Tu fai SOLO il layout del mondo. Leggi `village.md`, `scene-lint.md`, `GDD.md` (mappa/ambiente). Prerequisiti su disco: gli edifici di building-gen in `Assets/_Game/Art/Exports/` e/o i blueprint kit in `art/blueprints/`.
 1. Scrivi `art/blueprints/village_<name>.json` (template `SKILL/templates/blueprints/village_example.json`): strade = percorsi del GDD, piazza = hub, `buildings` con pesi (cottage 3, hero 1), `streetProps`/`plazaProps`/`fenceFile` dal kit catalog, `scatter` alberi/rocce dal kit nature, `terrain.enabled` false se il GDD e un interno.
-2. `execute_code`: `return GDS.Village.BuildFromFile("art/blueprints/village_<name>.json");` → `buildings >= 6`, `warnings: []` (file mancanti → correggi nomi dal catalogo).
-3. `return GDS.SceneLint.RunJson(autoFix:true);` poi `RunJson()` → `issues: 0`.
-4. Player spawn sulla piazza (sposta il Player del greybox). Screenshot aerea `screenshots/025-village-aerial.png` + strada `screenshots/026-village-street.png`.
+2. `unity command gds_village --spec art/blueprints/village_<name>.json` → `buildings >= 6`, `warnings: []` (file mancanti → correggi nomi dal catalogo).
+3. `gds_lint --autofix true` poi `gds_lint` → `issues: 0`.
+4. Player spawn sulla piazza (sposta il Player del greybox). `gds_shot --view aerial` → `screenshots/025-village-aerial.png`, `--view hero` → `screenshots/026-village-street.png`.
 VIETATO: piazzare edifici a mano, modificare i lotti generati, terreno senza collider, strade fuori dalla zona piatta.
 Gate: `docs/gates/07-village.md` con il JSON village, `lint:`, i 2 PNG.
 
@@ -182,13 +198,23 @@ Gate: `docs/gates/07-import.md` con lista prefab + `lint:`.
 
 Tu fai SOLO il look. Leggi `lookdev.md`, `gds-editor.md`, `GDD.md → lookdev/toon/outline/hdri/palette`.
 1. (HDRI opzionale) Blender MCP `download_polyhaven_asset(asset_type="hdris", resolution="2k")` → copia `.hdr` in `Assets/_Game/Art/HDRI/`.
-2. `execute_code`: `return GDS.LookDev.Apply("<preset>", hdriPath:<o null>);` → `applied` deve contenere `volume` e `camera-post`.
-3. `return GDS.LookDev.ApplyPalette(new[]{<hex GDD>});` e assegna `Mat_Palette_*` alle shell ProBuilder (`manage_material` o rebuild blueprint con `material`).
+2. `unity command gds_lookdev --preset <preset> [--hdri <asset>]` → `applied` deve contenere `volume` e `camera-post`.
+3. `unity command gds_palette --colors "<hex GDD>"` e assegna `Mat_Palette_*` alle shell ProBuilder (`manage_material` o rebuild blueprint con `material`).
 4. Se `toon: yes`: pacchetto installato dal project → `GDS.LookDev.ConvertMaterials("Universal Render Pipeline/Lit", "Toon")`. Se `outline: yes`: `manage_graphics feature_add` della feature del pacchetto.
 5. Luci locali: `GDS.VFX.AttachTorches("torch")` per interni; 1 fill light sull'obiettivo.
 6. `read_console` 0 errori. Lint 0. Screenshot Game view `screenshots/035-lookdev.png` (bloom/fog/ombre visibili).
 NON toccare gameplay/UI. NON YAML.
 Gate: `docs/gates/08-lookdev.md` con l'`applied` JSON, preset, PNG, `lint:`.
+
+---
+
+## PHASE art-review (dopo lookdev e dopo juice)
+
+Tu fai SOLO la valutazione estetica. Leggi `art-direction.md`, `styles.md`, `art/reference/BOARD.md`. Non modifichi la scena.
+1. `unity command gds_sheet --prefix screenshots/review/<fase>` (Unreal: `gds_ue.shot`).
+2. Read di ogni PNG + board. Punteggio R1-R7 con una riga di evidenza ciascuno.
+3. Media ≥ 4 e nessun voto < 3 → PASS. Altrimenti fix list su file di spec (world JSON, blueprint, preset, VFX), mai "sistemo la scena".
+Gate: `docs/gates/15-art-review.md`. Il parent rilancia le fasi citate nella fix list, poi di nuovo art-review (max 2 giri, poi riporta i voti all'utente).
 
 ---
 
@@ -259,7 +285,7 @@ Screenshot `screenshots/043-ui-gameover.png`. Gate `docs/gates/11-ui-gameover.md
 ## PHASE juice (VFX + Audio + Game Feel)
 
 Tu fai SOLO VFX, SFX CC0, hit-stop/shake. Leggi `vfx.md`, `audio-pipeline.md`, `juice.md`.
-1. `execute_code`: `return GDS.VFX.CreateAll();` (+ Cartoon FX Free se `assetStore: yes`).
+1. `unity command gds_vfx` (+ Cartoon FX Free se `assetStore: yes`).
 2. Collega: dust ai passi, pickup all'interact, hit al danno + hit-stop 3 frame + `CinemachineImpulseSource`, sparkle al win.
 3. `fetch-cc0-audio.ps1 -ProjectPath PROJECT`; `AudioManager.cs` compilato 0 errori; istanza in `MainGame.unity`; passi/porte/UI click collegati.
 4. Lint 0. Screenshot Play Mode durante un hit/pickup `screenshots/060-juice.png`.
@@ -271,8 +297,8 @@ Gate: `docs/gates/12-juice.md` + `Assets/_Game/Prefabs/VFX/` + `Assets/_Game/Aud
 ## PHASE playtest
 
 Tu fai SOLO QA. Leggi `playtest.md`, `scene-lint.md`.
-1. `GDS.SceneLint.RunJson()` → `issues: 0` (altrimenti FAIL, non fixare tu: elenca).
-2. Play Mode reale. WASD (MCP o TerminalMCP). Screenshot. Console 0 errori.
+1. `unity command gds_lint` → `issues: 0` (altrimenti FAIL, non fixare tu: elenca).
+2. Play Mode reale: `editor_play`, input da PlayMode test o TerminalMCP, `capture_game_view`, `console` 0 errori, `editor_stop`.
 FAIL se dallo screenshot non si capisce l'obiettivo (manca testo HUD / prompt / menu).
 FAIL se in Game View ci sono primitives Unity visibili (cubo/capsula default) o scena piatta senza Volume.
 Scrivi `docs/playtest.md` e `docs/gates/13-playtest.md`.

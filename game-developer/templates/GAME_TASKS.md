@@ -1,6 +1,6 @@
 # GAME_TASKS — Registro Task Atomici
 
-> **Regola Anti-Pigrizia:** Vietati task aggregati (es. "modelli 3D", "sistema interazioni"). Ogni singola mesh, importazione, prefab, collider, script, posizionamento coordinate, hook UI e test deve avere un proprio ID e una propria riga. Un task è `[x]` solo con evidenza fisica verificata su disco (file GLB >15KB, PNG viewport, C# compilato con 0 errori, test verde o screenshot Play Mode).
+> **Regola:** un task = un deliverable verificabile (un blueprint, un mondo, un batch di hero prop, un verbo con script + test + hook, una schermata UI). Target 60-80 task, max 90 ([task-decomposition.md](../references/task-decomposition.md)). Vietati task macro ("fai il villaggio") e task per click ("piazza muro 17"). Un task è `[x]` solo con evidenza su disco (JSON di build/lint, GLB > 15KB, PNG, test verde, console 0 errori).
 
 ## Stato Globale
 - **Totale Task:** 0

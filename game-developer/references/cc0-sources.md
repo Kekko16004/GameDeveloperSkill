@@ -2,7 +2,7 @@
 
 Only sources that are **$0, unlimited copies, commercial OK**. No daily caps. No personal-use-only licenses.
 
-**Not default (opt-in via GDD Q16 only):** Meshy, Tripo, Rodin/Hyper3D, local Hunyuan/TRELLIS (see [gen3d.md](gen3d.md)). **Banned:** Sloyd Guest, Quaternius Pro/Source paid zips, Unity Asset Store paid packs.
+**Not default (opt-in via GDD Q20 only):** Meshy, Tripo, Rodin/Hyper3D, local Hunyuan/TRELLIS (see [gen3d.md](gen3d.md)). **Banned:** Sloyd Guest, Quaternius Pro/Source paid zips, Unity Asset Store paid packs.
 
 Kenney **All-in-1** is $19.95 (itch). Use it **only** if already on disk (`config.paths.kenneyAllInOne`). Do not buy it in the pipeline. Per-pack zips on kenney.nl stay $0.
 
@@ -78,7 +78,7 @@ Itch $0 still needs the Download button (browser / logged-in itch). Worker kit-f
 
 Itch needs the Download button (browser). See [characters.md](characters.md) for the Unity setup.
 
-## 3c. Unity Asset Store — free, commercial (only if GDD Q17 = yes; needs a Unity account, not CC0)
+## 3c. Unity Asset Store — free, commercial (only if GDD Q21 = yes; needs a Unity account, not CC0)
 
 | Pack | Why |
 |---|---|

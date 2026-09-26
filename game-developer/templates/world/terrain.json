@@ -1,0 +1,22 @@
+{
+  "name": "Overworld",
+  "mode": "terrain",
+  "seed": 42,
+  "terrain": {
+    "size": 400, "height": 60, "resolution": 513,
+    "scale": 0.006, "octaves": 5, "warp": 1.5, "mountains": 0.45, "erosion": 20,
+    "seaLevel": 0.12,
+    "flat": [ { "x": 0, "z": 0, "r": 35, "village": "" } ]
+  },
+  "layers": [
+    { "name": "sand",  "color": "#D6C38E", "maxHeight": 0.15 },
+    { "name": "grass", "color": "#6B8E4E", "maxSlope": 28 },
+    { "name": "rock",  "color": "#7D7872", "minSlope": 28 },
+    { "name": "snow",  "color": "#EEF1F4", "minHeight": 0.82 }
+  ],
+  "scatter": [
+    { "file": "tree_pineRoundA", "count": 250, "minHeight": 0.16, "maxHeight": 0.7, "maxSlope": 25, "minDist": 5, "clusters": 0.5, "collider": "trunk" },
+    { "file": "tree_oak",        "count": 120, "minHeight": 0.14, "maxHeight": 0.45, "maxSlope": 20, "minDist": 6, "clusters": 0.3, "collider": "trunk" },
+    { "file": "rock_largeA",     "count": 60,  "minHeight": 0.2,  "maxHeight": 0.9,  "maxSlope": 45, "minDist": 8, "clusters": 0.0, "collider": "convex" }
+  ]
+}

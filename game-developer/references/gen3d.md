@@ -1,4 +1,4 @@
-# Generative 3D — optional tier, chosen ONCE in the GDD (Q16), hero props only
+# Generative 3D — optional tier, chosen ONCE in the GDD (Q20), hero props only
 
 Kits + Poly Pizza + Poly Haven cover 90 % of a slice. Generative 3D is for the 10 %: the unique relic, the boss, the weird machine. Never for walls, floors, crates, trees. Never more than `gen3d.maxAssets` per slice (default 5).
 
@@ -17,4 +17,4 @@ Kits + Poly Pizza + Poly Haven cover 90 % of a slice. Generative 3D is for the 1
 2. Prompt template: `"<object>, low poly stylized game asset, flat colors, single object centered, no floor, no background, front view"` + the GDD palette words. Image-to-3D beats text-to-3D: if the user gives a reference image, use it.
 3. Post-process is mandatory: Blender sanitize block (remove lights/cameras, pivot at base Y=0, `normalize_size` to the Geometra size, decimate > 15 k tris to ~5 k), export GLB to `art/exports/<id>.glb`, ledger `source: meshy|tripo|hyper3d|local-modly|hunyuan`.
 4. Style coherence: generated PBR next to flat Kenney = FAIL. Either convert the generated material to a flat palette color (`ApplyPalette` + assign) or use the generated prop only as the hero in its own spotlight.
-5. Interview Q16 is mandatory. If the user has no key and no GPU → `none`, and the agent never suggests buying credits mid-pipeline.
+5. Interview Q20 is mandatory. If the user has no key and no GPU → `none`, and the agent never suggests buying credits mid-pipeline.

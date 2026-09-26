@@ -1,0 +1,10 @@
+{
+  "name": "Isle",
+  "mode": "island",
+  "seed": 7,
+  "terrain": { "size": 300, "height": 45, "resolution": 513, "scale": 0.008, "warp": 2.0, "mountains": 0.35, "erosion": 15, "seaLevel": 0.14, "islandFalloff": 0.5,
+               "flat": [ { "x": 0, "z": -20, "r": 20 } ] },
+  "scatter": [
+    { "file": "tree_palm", "count": 90, "minHeight": 0.16, "maxHeight": 0.4, "maxSlope": 22, "minDist": 5, "clusters": 0.2, "collider": "trunk" }
+  ]
+}

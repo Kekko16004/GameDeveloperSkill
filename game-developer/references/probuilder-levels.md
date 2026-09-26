@@ -33,7 +33,7 @@ GDS.PB.Stairs(new Vector3(4,0,0), 2f, 3f, 4f, 10, 90f, mat);
 GDS.PB.Arch(new Vector3(6,0,0), 1.2f, 2.4f, 0.4f, 0f, mat);
 ```
 
-Doors/windows are legs + lintel/sill boxes (no CSG). Corridors = a room with `openings` on both ends. Multi-room = several blueprints sharing wall lines on the 4 m grid (PLAN.md decides).
+Doors/windows are legs + lintel/sill boxes (no CSG). Corridors = a room with `openings` on both ends. Multi-room = several blueprints sharing wall lines on the 4 m grid (PLAN.md decides): the builder builds each shared line **once** (owner = `wallOwner` / taller / name) with the doors/windows of both rooms, and clips overlapping floor/ceiling slabs — see "Shared walls & floors" in [level-builder.md](level-builder.md). Mark the corridor side `none` where the room has the door; lint must show `overlappingWalls: 0`, `overlappingFloors: 0`.
 
 ## Hard rules
 

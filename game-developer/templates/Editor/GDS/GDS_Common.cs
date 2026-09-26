@@ -9,6 +9,17 @@ using UnityEngine;
 
 namespace GDS
 {
+    /// <summary>GDS writes JSON with string interpolation: force '.' decimals whatever the Windows locale (it-IT prints 1,25).</summary>
+    [InitializeOnLoad]
+    static class InvariantCultureOnLoad
+    {
+        static InvariantCultureOnLoad()
+        {
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        }
+    }
+
     public static class Common
     {
         public const string ArtRoot = "Assets/_Game/Art";

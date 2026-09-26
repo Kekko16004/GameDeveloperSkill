@@ -7,10 +7,10 @@ AI `execute_blender_code` modelling is banned. It drifts, floats pivots, leaks l
 | Rank | Tool | Cost | Use for | Never for |
 |---|---|---|---|---|
 | **1** | **Blender building generator** (`gds-building.ps1`, spec JSON) | $0, seconds | Every exterior building that must look finished: houses, inns, tower-houses, shops, sheds | Curved towers (PB), furniture (kits) |
-| **1b** | **Kit family** (Kenney zips / KayKit / Quaternius Standard / Synty Starter if Q17) via blueprint `mode: kit` + `attach` | $0 | Buildings in the kit's own style, furniture, props, fences, lanterns, trees, rocks | Mixing families in one room |
+| **1b** | **Kit family** (Kenney zips / KayKit / Quaternius Standard / Synty Starter if Q21) via blueprint `mode: kit` + `attach` | $0 | Buildings in the kit's own style, furniture, props, fences, lanterns, trees, rocks | Mixing families in one room |
 | **2** | **ProBuilder** via `GDS.PB` / blueprint `mode: probuilder` + palette material | $0 | Rooms, corridors, towers, stairs, arches, collision shell when the kit has no walls | Hero props, characters |
 | **3** | **Poly Pizza / Poly Haven models / Sketchfab CC0** (Blender MCP, sanitize, export) | $0 | One missing prop/character; normalize to Geometra metres | Levels, dioramas, 50k scans next to Kenney |
-| **4** | **gen3d tier from GDD Q16** (Modly local / Meshy / Tripo / Hyper3D) | $0 local or credits | ≤ `gen3dMaxAssets` unique hero props | Modular pieces, anything a kit has |
+| **4** | **gen3d tier from GDD Q20** (Modly local / Meshy / Tripo / Hyper3D) | $0 local or credits | ≤ `gen3dMaxAssets` unique hero props | Modular pieces, anything a kit has |
 | **X** | bpy modelling, Sloyd, Blockbench, Dust3D, Unity primitives after greybox | — | — | Default path |
 
 ## Beta-ready checklist (enforced by SceneLint + LookDev, not by eye)
@@ -35,7 +35,7 @@ AI `execute_blender_code` modelling is banned. It drifts, floats pivots, leaks l
 | Pirate | Kenney Pirate (`pirate`) + Nature | Kenney Animated Retro | `stylized-sunset` |
 | Interior | Kenney Furniture (`interior`); KayKit Furniture Bits | — | `pastel-bright` / `dungeon-torch` |
 | Nature extra | Kenney Nature Kit (`nature`); Quaternius Stylized Nature Standard | — | — |
-| Any stylized (Q17 yes) | Synty POLYGON Starter Pack | Cartoon FX Free | any |
+| Any stylized (Q21 yes) | Synty POLYGON Starter Pack | Cartoon FX Free | any |
 
 Fetch: `scripts/fetch-cc0-kits.ps1`. If `paths.kenneyAllInOne` exists, copy from that folder instead of re-downloading zips.
 

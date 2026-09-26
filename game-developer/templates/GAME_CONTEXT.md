@@ -41,7 +41,7 @@
    - `Kit CC0:` Kenney/KayKit in `art/cc0/` (default art)
    - `Blender MCP:` Poly Pizza import se ledger source=polypizza; sanitize only
    - `TerminalMCP:` Attivo (OS, screenshot, input)
-   - `Blender MCP:` `uvx blender-mcp` stdio → TCP 9876 (non HTTP /mcp)
+   - `Blender MCP:` `uvx mcp-for-blender` stdio → TCP 9876 (non HTTP /mcp)
    - `Poly Pizza:` fill props se il kit manca il pezzo
    - `Sloyd / Hunyuan:` Vietati di default
 

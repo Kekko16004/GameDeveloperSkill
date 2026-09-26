@@ -7,7 +7,7 @@ Why: "one kit piece per worker" never finishes a house; per-face ProBuilder MCP 
 1. `GDS.KitCatalog.BuildJson(kitFolder)` → read `art/kit-catalog.json`. Pick files for roles `floor wall wallDoor wallWindow corner roof stair`. Check `suggestedModule` (Kenney castle/dungeon ≈ 1.0–4.0, KayKit ≈ 2–4). If `notes` says the kit is not metric → `SetImportScale` once.
 2. Write `art/blueprints/<name>.json` (schema below). One file per building / room / area.
 3. `return GDS.LevelBuilder.BuildFromFile("art/blueprints/<name>.json");` → read result: `pieces`, `missingRoles`, `warnings`.
-4. `GDS.SceneLint.RunJson(autoFix:true)` → then `RunJson()` must say `issues: 0`.
+4. `GDS.SceneLint.RunJson(autoFix:true)` → then `RunJson()` must say `issues: 0` (includes `overlappingWalls: 0`, `overlappingFloors: 0`).
 5. Screenshot `screenshots/02x-build-<name>.png`. Gate quotes both JSONs.
 
 ## Schema
@@ -66,6 +66,21 @@ Why: "one kit piece per worker" never finishes a house; per-face ProBuilder MCP 
 - `props.file`: file name or path; searched under `Assets/_Game/Art` (kits **and** `art/exports` imports). `snap` raycasts to the surface below (tables inside rooms land on the floor tile, not the slab). Coordinates are relative to `origin`.
 - `scatter`: seeded, min distance, keeps `avoidRadius` around the origin free, raycasts each instance to the ground — nothing floats.
 - `prefabOut`: optional, saves the assembled building as a prefab.
+- `wallOwner`: `auto` (default) | `self` | `neighbour` | `off` — who builds a wall line / slab shared with another blueprint (see below). `off` = legacy, builds everything (lint will flag duplicates).
+- `omit`: `["N", "v1:E", "W2", "floor", "roof"]` — wall runs (`[v<volume>:]<side>[<index>]`) or parts this blueprint never builds; the neighbour on that line owns it.
+- `neighbours`: optional explicit list of blueprint files to share with; default = every blueprint in the same folder with the same `group`.
+- `groundGap` (0.02): a plain ground (e.g. greybox `Ground` cube, top at Y=0) coplanar with this blueprint's floors is lowered by this much, so floors sit on it without z-fighting. 0 = off.
+
+## Shared walls & floors (one wall per line, one slab per spot)
+
+Adjacent rooms / corridors are separate blueprints on the same 4 m grid, so their walls fall on the same line. `BuildFromFile` reads the other blueprints of the same folder + group (JSON only, never the scene; other blueprints' objects are never touched) and:
+
+- **Walls** — a run collinear with a neighbour's (centre-lines closer than the mean thickness, same storey, overlap longer than a thickness) is built **once**. Owner: `omit` side loses → `wallOwner` self > auto > neighbour → taller `wallHeight` → blueprint `name` (ordinal, first wins). The owner cuts the openings of **both** sides into its wall (door > window) and takes the taller height; the other side skips that portion (splits a partial run) and keeps only its wainscot on its face. `none` = "no wall from me": facing the neighbour's door → that door; facing a plain wall → plain wall; `none` on both sides → gap. Corner/edge contacts ≤ thickness are normal.
+- **Floors / ceilings** — floor vs floor and roof vs roof on the same level: the owner (same rule) keeps its slab, the other clips its own (kit tiles dropped when ≥ 50 % covered). A roof under another blueprint's floor on the same level is dropped (that floor is the ceiling). Overlaps < 0.25 m (eaves) are kept.
+- **Order** — the result depends only on the JSONs, so build order does not matter. Only when you change openings / height / `wallOwner` / `omit` on a shared line, rebuild **both** blueprints of that line. After upgrading GDS, rebuild every blueprint once (old builds still carry full duplicate walls).
+- Result JSON adds `sharedOwned`, `sharedSkipped`, `omitted`, `slabsClipped`, `groundLowered`, `sharedWith[]`. Warning "built by X, which is not in the scene yet" = build X.
+- `rotY` not a multiple of 90 → no sharing (warning); lint reports the duplicates.
+- Gate: `gds_lint` → `overlappingWalls: 0`, `overlappingFloors: 0`.
 
 Result JSON: `{ status, pieces, props, scattered, boundsX/Y/Z, missingRoles[], warnings[] }`. `missingRoles` non-empty for `floor`/`wall` = FAIL → fix the roles, do **not** fall back to cubes.
 

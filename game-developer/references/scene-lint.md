@@ -5,6 +5,7 @@
 ```json
 { "scene": "Slice", "checkedObjects": 143, "issues": 0,
   "buried": 0, "floating": 0, "noGround": 0, "noCollider": 0, "pinkMaterial": 0, "nonUrpShader": 0, "emptyMesh": 0, "outOfBounds": 0,
+  "overlappingWalls": 0, "overlappingFloors": 0,
   "list": [ { "type": "buried", "obj": "Level/Props/prop_barrel_3", "value": -0.12, "fix": "raise by 0.120 m (surface: floor_1_0)", "isFixed": false } ] }
 ```
 
@@ -18,6 +19,8 @@
 | `nonUrpShader` | Standard / Legacy shader on a URP project | no — `Window > Rendering > Render Pipeline Converter` or `manage_material` |
 | `emptyMesh` | MeshFilter with no mesh | no — delete or reimport |
 | `outOfBounds` | > 500 m from origin | no |
+| `overlappingWalls` | two parallel wall pieces interpenetrating in thickness (centre-lines closer than mean thickness), overlapping > 50 % of the shorter length and > 50 % of the lower height = same wall built twice (z-fighting, doors to align twice). Corner contacts and wainscots ignored | no — fix the blueprint (`omit` / `wallOwner`) and rebuild both blueprints; hand-made walls: delete one |
+| `overlappingFloors` | two horizontal slabs (slab_/floor_/ground/roof/ceiling/terrain/lawn/plaza/road) with coplanar top or bottom faces (±5 mm) overlapping > 50 % of the smaller = doubled floor / ceiling, or ground coplanar with a room floor | no — rebuild the blueprints (builder clips slabs, lowers a plain ground by `groundGap`) or lower the ground 2 cm |
 
 Environment shells (names matching ground/floor/wall/room/roof/stair/pb_/env_… or big static colliders) skip the ground test. Player / camera / lights / UI are skipped.
 

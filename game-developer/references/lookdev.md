@@ -5,7 +5,7 @@ A CC0 kit with default lighting, no fog, no tonemapping and no AO **is** a proto
 ## One call
 
 ```
-return GDS.LookDev.Apply("stylized-day");
+unity command gds_lookdev --preset stylized-day        # = eval "return GDS.LookDev.Apply(\"stylized-day\");"
 ```
 
 | Preset | Use |
@@ -16,10 +16,15 @@ return GDS.LookDev.Apply("stylized-day");
 | `night-moon` | horror / stealth |
 | `pastel-bright` | playful, cozy, casual |
 | `scifi-cold` | station, lab, space base |
+| `toon-bright` | toon style: soft shadows, high saturation, no SSAO (pair with toon + outline packages) |
+| `realistic-overcast` | stylized-realistic in Unity, soft diffuse light |
+| `realistic-golden` | low warm sun, long shadows, atmospheric |
 
 Optional HDRI sky (Poly Haven, CC0, allowed **for sky and ambient**): `Apply("stylized-day", hdriPath:"Assets/_Game/Art/HDRI/<name>_2k.hdr")`. Fetch via Blender MCP `download_polyhaven_asset(asset_type="hdris")` or `scripts/polyhaven.mjs`. Never put an HDRI *on* a prop material.
 
-What it sets: Directional light (angle, color, soft shadows), `RenderSettings` tri-light ambient + exp² fog, Skybox/Procedural or Panoramic material, `Global_Volume` (Bloom, ACES Tonemapping, Color Adjustments, White Balance, Vignette) saved in `Assets/_Game/Settings/`, camera post-processing + SMAA, URP asset (HDR, MSAA 4x, 4 cascades, 80 m shadows, depth/opaque textures) and the SSAO renderer feature.
+What it sets: Directional light (angle, color, soft shadows), `RenderSettings` tri-light ambient + exp² fog, `GDS/SkyGradient` skybox (top = sky tint, horizon = fog colour, sun disc from the light) or Panoramic HDRI, `Global_Volume` (Bloom, ACES Tonemapping, Color Adjustments, White Balance, Vignette) saved in `Assets/_Game/Settings/`, camera post-processing + SMAA, URP asset (HDR, MSAA 4x, 4 cascades, 80 m shadows, depth/opaque textures) and the SSAO renderer feature. Fog density is thinned automatically on terrains larger than 150 m.
+
+Kit colours off-palette (e.g. Kenney nature leaves are teal #29C9AB): `unity command gds_recolor --folder <kit> --material leafsGreen --hex "#5E9E3A"` for each material listed in `art/kit-catalog.json → materials`. Remap at import, source files untouched, every instance updates.
 
 Then, from the GDD palette: `return GDS.LookDev.ApplyPalette(new[]{"#8C5A3C","#B8B0A0","#5A6B4A","#C9A227"});` → `Mat_Palette_1..4` for ProBuilder shells and recolors.
 

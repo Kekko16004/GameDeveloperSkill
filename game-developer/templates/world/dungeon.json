@@ -1,0 +1,13 @@
+{
+  "name": "Crypt",
+  "mode": "dungeon",
+  "seed": 3,
+  "grid": {
+    "cell": 4, "wallHeight": 4, "width": 26, "depth": 26,
+    "rooms": 9, "minRoom": 3, "maxRoom": 6, "corridorWidth": 1,
+    "floorFile": "", "wallFile": "",
+    "floorColor": "#4E4945", "wallColor": "#6A635C", "ceiling": false,
+    "wallProps": [ { "file": "torch_wall", "every": 5 } ],
+    "roomProps": [ { "file": "chest", "perRoom": 1, "collider": "box" } ]
+  }
+}

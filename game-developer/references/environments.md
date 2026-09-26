@@ -4,13 +4,16 @@
 
 | GDD setting | World phase | Kit genre (`fetch-cc0-kits.ps1 -Genre`) | LookDev preset | Notes |
 |---|---|---|---|---|
-| Hamlet, town, settlement | `village` | medieval + nature | stylized-day / stylized-sunset | `GDS.Village` — the only case for it |
-| Cave, grotto, mine | `level-build` (`mode: probuilder`) | nature (rocks) | dungeon-torch | No modular cave kit exists CC0 — see below |
-| Dungeon, crypt, ruins interior | `level-build` (`mode: kit`) | dungeon | dungeon-torch | Kenney modular dungeon / KayKit dungeon / Quaternius modular dungeon |
-| House / castle interior | `level-build` (`mode: kit` or `probuilder`) | interior | dungeon-torch or stylized-day | `terrain.enabled` false; no village |
+| Open nature, mountains, survival | `world-gen` mode `terrain` | nature | stylized-day / toon-bright | scatter from the nature kit; buildings later by blueprint on `flat` spots |
+| Island, coast | `world-gen` mode `island` | nature (+ pirate) | stylized-day / stylized-sunset | water + beach layer automatic |
+| Hamlet, town, settlement | `world-gen` `terrain` + `flat[].village`, or `village` alone on flat ground | medieval + nature | stylized-day / stylized-sunset | `GDS.Village` — the only case for it |
+| Cave, grotto, mine | `world-gen` mode `cave` (+ `level-build` for hand-made chambers) | nature (rocks) | dungeon-torch | torches mandatory — see below |
+| Dungeon, crypt, roguelite floors | `world-gen` mode `dungeon` with kit `floorFile`/`wallFile`, or `level-build` per room | dungeon | dungeon-torch | `layout.json` gives room centres for enemies/loot |
+| Voxel / sandbox | `world-gen` mode `voxel` | — | stylized-day / night-moon | runtime streaming + dig/place |
+| House / castle interior | `level-build` (`mode: kit` or `probuilder`) | interior | dungeon-torch or stylized-day | no terrain |
 | City, streets | `level-build` per block | city | stylized-day | Quaternius Downtown City |
-| Space station, sci-fi base | `level-build` (`mode: kit`) | scifi | scifi-cold | Kenney space kit / KayKit space base |
-| Forest, open nature, no buildings | scatter only (blueprint `scatter`) | nature | stylized-day | No buildings required; slice gate adapts (gates.md) |
+| Space station, sci-fi base | `level-build` (`mode: kit`) or `dungeon` with the sci-fi kit | scifi | scifi-cold | Kenney space kit / KayKit space base |
+| Realistic anything | Unreal: Landscape + PCG ([unreal-loop.md](unreal-loop.md)) | Megascans / Fab | realistic-* | not GDS.World |
 
 ## Caves — the gap and the recipe
 

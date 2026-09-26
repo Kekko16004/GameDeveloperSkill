@@ -1,78 +1,47 @@
-# Installazione Game Developer Skill
+# Installazione
 
-Wizard come DesignerSkill: copia la skill, inietta MCP, verifica i tool, stampa cosa manca.
-
-```
-game-developer\install.bat
-```
-
-Non-interattivo:
-
-```
-install.bat -Quiet
-install.bat -All
-install.bat -Hosts kilo,claude -SkipModules godotMcp,terminalMcp
+```bat
+install.bat            :: interattivo: host rilevati e moduli consigliati già selezionati
+install.bat -Quiet     :: host rilevati + moduli consigliati, nessuna domanda
+install.bat -All       :: tutto
+install.bat -Hosts claude,kilo -SkipModules voxelMcp
+install.bat -Copy      :: copia la skill in ogni host invece di collegarla (host che non seguono le junction)
 ```
 
-Poi chiudi e riapri i client.
+## Cosa fa
 
-## Cosa viene scritto
+1. **Rileva** (cerca, niente percorsi fissi): host installati (`.claude`, `.config/kilo`, `.codex`, `.gemini`, `.cursor`, ...), Unity CLI ed Editor, Unreal (Launcher + cartelle `UE_*`), Blender più recente, FabCLI, uvx, VoxelAI, TerminalMCP, le skill `real-world-design` e `unity-cli` ovunque siano (cartelle skill degli host, Desktop/Documents fino a 3 livelli).
+2. **Installa una volta** in `%USERPROFILE%\.agents\skills\game-developer` e crea una **junction** da ogni host a quella cartella (niente admin, niente copie che divergono: un aggiornamento arriva ovunque).
+3. **Config**: `config.json` = default + percorsi rilevati + valori che avevi già (i tuoi vincono sempre, anche da vecchie copie negli host).
+4. Comandi `/game /gdd /playtest /resumegame` negli host che li supportano, MCP Blender / VoxelAI / TerminalMCP senza toccare gli altri server, skill ufficiali Unity (`npx skills add Unity-Technologies/skills`), addon Blender, `doctor`.
 
-| Host | Skill |
-|---|---|
-| Kilo | `%USERPROFILE%\.config\kilo\skills\game-developer\` |
-| Claude Code | `%USERPROFILE%\.claude\skills\game-developer\` |
-| Codex | `%USERPROFILE%\.codex\skills\` e `\.agents\skills\` |
-| Antigravity | `%USERPROFILE%\.gemini\antigravity\skills\` |
-| Cursor / OpenCode / Copilot / Windsurf | solo se li selezioni |
+## Una volta a mano
 
-Comandi Kilo: `%USERPROFILE%\.config\kilo\command\game.md` (+ `gdd.md`, `playtest.md`).
+- Unity CLI (se manca): `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex`, poi `unity auth login`.
+- Blender (solo per edifici/hero prop): pannello N → MCP → Start MCP Server.
+- Realistico: Unreal **5.8+** dal Launcher; in Claude Code `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`; nel progetto abilita Unreal MCP + All Toolsets ([unreal-loop.md](game-developer/references/unreal-loop.md)).
 
-## MCP (nessun segreto)
+## Per ogni progetto Unity
 
-L'installer aggiunge, senza toccare Playwright / 21st / Originkit:
-
-- **blender** — `cmd /c uvx blender-mcp` + `BLENDER_PORT=9876`. Non `serverUrl http://localhost:9876/mcp` (quel porto è TCP JSON, non HTTP MCP)
-- **voxelai** — `python "<VoxelAIArtist>\mcp_server"` (niente `--workdir` globale)
-- **terminal** — TerminalMCP con `--tools all`: shell, jobs, browser, screen, input, il pc intero. Solo stdio locale, mai `--http`
-
-Se TerminalMCP non è sul disco, l'installer lo clona da https://github.com/Fonlogen/TerminalMCP in `Desktop\Dev Things\TerminalMCP`.
-
-Unity MCP non sta nel json globale: si configura dal package CoplayDev nel progetto (`Window → MCP for Unity → Configure All Detected Clients`).
-
-## Tool che l'installer monta o indica
-
-1. Node ≥ 18, Python ≥ 3.10
-2. **uv** — https://docs.astral.sh/uv/getting-started/installation/  
-   Windows: `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-3. **Unity CLI** (beta) — create/open/auth, non scarica l'Editor da solo  
-   `winget install Unity.CLI`  
-   oppure `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex`  
-   Poi: `unity auth login` → `unity license activate` → se manca l'Editor `unity install lts --yes --accept-eula`
-4. **Blender** 4.2+ sul PATH o in Program Files. Addon: `uvx blender-mcp install-addon`. In Blender: Add-ons → MCP for Blender → viewport **N** → Start MCP Server
-5. **VoxelAI** default `C:\Users\FRANCY\Desktop\Dev Things\VoxelAIArtist`
-6. **real-world-design** già installata (DesignerSkill). Se manca, installala prima
-7. Opzionale: `npx skills add Unity-Technologies/skills -g -y` (unity-cli + ui-uitk)
-
-L'installer **non** scarica Unity Editor (GB) e **non** avvia Blender. `scripts\doctor.ps1` dice cosa manca.
-
-## Dopo il primo progetto Unity
-
-Package Manager → Add from git URL:
+Lo fa il worker `project`:
 
 ```
-https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity
+powershell -File game-developer\scripts\install-gds-editor.ps1 -ProjectPath <progetto> [-WithToonShader] [-WithOutline]
 ```
 
-`Window → MCP for Unity → Configure All Detected Clients`. Attendi compile + `ready_for_tools`. Abilita il gruppo tool `scripting_ext` (`execute_code`): è quello che chiama `GDS.*`.
+Copia GDS Editor + Runtime, esempi `art/world/`, aggiunge ProBuilder / glTFast / Input System / AI Navigation con le versioni consigliate dall'Editor del progetto e installa `com.unity.pipeline` (`unity pipeline install`). Verifica: `unity command gds_ping`.
 
-Script Editor GDS nel progetto: `powershell -File game-developer/scripts/install-gds-editor.ps1 -ProjectPath <progetto> [-WithToonShader] [-WithOutline]` (il worker *project* lo fa da solo).
+CoplayDev unity-mcp è opzionale (fallback): `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity`.
+
+## Controllo
+
+`game-developer\scripts\doctor.ps1 [-ProjectPath <progetto>]` → righe `PASS | WARN | FAIL` con il fix.
 
 ## Vietato
 
-- Sloyd Guest (1 gen/giorno + licenza personale); Meshy / Tripo / Rodin / Modly **solo** come tier `gen3d` scelto nell'intervista (Q16) con budget crediti, per hero prop
-- Mix Kenney + KayKit nello stesso slice
-- HDRI / luci studio sui materiali dei prop (HDRI come skybox via LookDev è ok)
-- Piazzare muri/pavimenti uno a uno con `manage_gameobject` (si scrive il blueprint JSON)
-- TerminalMCP `--http` su `0.0.0.0`
-- Aprire Blender/Voxel/scena prima del GDD lock
+- Sloyd; gen3d (Meshy / Tripo / Rodin / Modly) fuori dal tier e dal budget scelti nell'intervista
+- Mischiare famiglie di asset nello stesso gioco (riga di `styles.md`)
+- HDRI sui materiali dei prop (come skybox va bene)
+- Piazzare muri / alberi uno a uno: si scrive la spec
+- TerminalMCP `--http`
+- Aprire Unity / Blender / Unreal prima del lock del GDD

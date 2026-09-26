@@ -39,7 +39,7 @@
       "cmd",
       "/c",
       "uvx",
-      "blender-mcp"
+      "mcp-for-blender"
     ],
     "blenderEnv": {
       "BLENDER_HOST": "localhost",

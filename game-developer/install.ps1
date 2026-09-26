@@ -1,384 +1,304 @@
 param(
-  [switch]$All,
-  [switch]$Quiet,
-  [string[]]$Hosts,
-  [string[]]$SkipModules
+  [switch]$All,          # every detected host + every module, no questions
+  [switch]$Quiet,        # detected hosts + recommended modules, no questions
+  [string[]]$Hosts,      # force a host list: kilo,claude,codex,antigravity,cursor,opencode,windsurf,copilot
+  [string[]]$SkipModules,
+  [switch]$Copy          # copy into every host instead of linking (for hosts that do not follow junctions)
 )
+# Game Developer installer.
+# 1. Detects which agent hosts exist on this PC and which tools/skills are already installed (search, not hardcoded paths).
+# 2. Installs the skill ONCE in the canonical folder %USERPROFILE%\.agents\skills\game-developer and links every host
+#    folder to it with a directory junction (no admin, no drift: one update reaches every host).
+# 3. Merges config.json: values the user already set win, detected paths fill the blanks, defaults fill the rest.
+# 4. Injects MCP entries (Blender, VoxelAI, TerminalMCP), installs Unity's official skills, runs doctor.
 
 $ErrorActionPreference = "Stop"
 $SkillSrc = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Root = Split-Path -Parent $SkillSrc
 $User = $env:USERPROFILE
 $McpScript = Join-Path $SkillSrc "install-mcp.ps1"
-$DefaultsPath = Join-Path $SkillSrc "config\defaults.json"
+$Canon = Join-Path $User ".agents\skills\game-developer"
 
-if (-not (Test-Path -LiteralPath (Join-Path $SkillSrc "SKILL.md"))) {
-  Write-Host "FAIL: SKILL.md missing in $SkillSrc"
-  exit 1
-}
+if (-not (Test-Path -LiteralPath (Join-Path $SkillSrc "SKILL.md"))) { Write-Host "FAIL: SKILL.md missing in $SkillSrc"; exit 1 }
 
-$defaults = Get-Content -LiteralPath $DefaultsPath -Raw | ConvertFrom-Json
-$voxelDefault = [string]$defaults.paths.voxelai
-$terminalDefault = [string]$defaults.paths.terminalmcp
-if (-not $terminalDefault) { $terminalDefault = "$User\Desktop\Dev Things\TerminalMCP" }
-
+# ------------------------------------------------------------------ hosts
 $hostCatalog = [ordered]@{
-  kilo         = @{ Label = "Kilo Code";           Recommended = $true;  Paths = @("$User\.config\kilo\skills\game-developer", "$User\.kilo\skills\game-developer", "$User\.kilocode\skills\game-developer"); Cmd = @("$User\.config\kilo\command", "$User\.config\kilo\commands", "$User\.kilo\command", "$User\.kilo\commands"); Mcp = "kilo" }
-  claude       = @{ Label = "Claude Code";         Recommended = $true;  Paths = @("$User\.claude\skills\game-developer"); Cmd = @("$User\.claude\commands"); Mcp = "claude" }
-  codex        = @{ Label = "Codex / agents";      Recommended = $true;  Paths = @("$User\.codex\skills\game-developer", "$User\.agents\skills\game-developer"); Cmd = $null; Mcp = "codex" }
-  antigravity  = @{ Label = "Antigravity IDE";     Recommended = $true;  Paths = @("$User\.gemini\config\skills\game-developer", "$User\.gemini\antigravity\skills\game-developer", "$User\.antigravity\skills\game-developer"); Cmd = @("$User\.gemini\config\global_workflows"); Mcp = "antigravity" }
-  cursor       = @{ Label = "Cursor";              Recommended = $false; Paths = @("$User\.cursor\skills\game-developer"); Cmd = $null; Mcp = "cursor" }
-  opencode     = @{ Label = "OpenCode";            Recommended = $false; Paths = @("$User\.config\opencode\skills\game-developer"); Cmd = $null; Mcp = $null }
-  github       = @{ Label = "GitHub Copilot";      Recommended = $false; Paths = @("$User\.github\skills\game-developer"); Cmd = $null; Mcp = $null }
-  windsurf     = @{ Label = "Windsurf";            Recommended = $false; Paths = @("$User\.codeium\windsurf\skills\game-developer"); Cmd = $null; Mcp = $null }
+  kilo        = @{ Label = "Kilo Code";      Detect = @("$User\.config\kilo", "$User\.kilocode", "$User\.kilo");   Paths = @("$User\.config\kilo\skills\game-developer", "$User\.kilo\skills\game-developer", "$User\.kilocode\skills\game-developer"); Cmd = @("$User\.config\kilo\command"); Mcp = "kilo" }
+  claude      = @{ Label = "Claude Code";    Detect = @("$User\.claude");                                          Paths = @("$User\.claude\skills\game-developer"); Cmd = @("$User\.claude\commands"); Mcp = "claude" }
+  codex       = @{ Label = "Codex";          Detect = @("$User\.codex");                                           Paths = @("$User\.codex\skills\game-developer"); Cmd = $null; Mcp = "codex" }
+  antigravity = @{ Label = "Antigravity";    Detect = @("$User\.gemini", "$User\.antigravity");                    Paths = @("$User\.gemini\config\skills\game-developer", "$User\.gemini\antigravity\skills\game-developer", "$User\.antigravity\skills\game-developer"); Cmd = @("$User\.gemini\config\global_workflows"); Mcp = "antigravity" }
+  cursor      = @{ Label = "Cursor";         Detect = @("$User\.cursor");                                          Paths = @("$User\.cursor\skills\game-developer"); Cmd = $null; Mcp = "cursor" }
+  opencode    = @{ Label = "OpenCode";       Detect = @("$User\.config\opencode");                                 Paths = @("$User\.config\opencode\skills\game-developer"); Cmd = $null; Mcp = $null }
+  windsurf    = @{ Label = "Windsurf";       Detect = @("$User\.codeium\windsurf");                                Paths = @("$User\.codeium\windsurf\skills\game-developer"); Cmd = $null; Mcp = $null }
+  copilot     = @{ Label = "GitHub Copilot"; Detect = @("$User\.copilot");                                         Paths = @("$User\.copilot\skills\game-developer"); Cmd = $null; Mcp = $null }
+}
+foreach ($k in $hostCatalog.Keys) {
+  $h = $hostCatalog[$k]
+  $h.Found = [bool]($h.Detect | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1)
 }
 
 $moduleCatalog = [ordered]@{
-  skillFiles           = @{ Label = "Skill files"; Recommended = $true }
-  gameCommand          = @{ Label = "/game command"; Recommended = $true }
-  resumegameCommand    = @{ Label = "/resumegame command (context resume)"; Recommended = $true }
-  gddCommand           = @{ Label = "/gdd command"; Recommended = $true }
-  playtestCommand      = @{ Label = "/playtest command"; Recommended = $true }
-  unityCli             = @{ Label = "Unity CLI (create/open/auth)"; Recommended = $true }
-  unityMcp             = @{ Label = "CoplayDev Unity MCP notes + kilo inject skip (per-project)"; Recommended = $true }
-  blenderMcp           = @{ Label = "Blender MCP (uvx blender-mcp)"; Recommended = $true }
-  voxelMcp             = @{ Label = "VoxelAI MCP"; Recommended = $true }
-  cc0Fetch             = @{ Label = "CC0 Kenney / Poly Haven scripts"; Recommended = $true }
-  designSkillCheck     = @{ Label = "Check real-world-design is installed"; Recommended = $true }
-  godotMcp             = @{ Label = "Godot AI MCP (optional)"; Recommended = $false }
-  terminalMcp          = @{ Label = "TerminalMCP - full PC control (screen/input/browser, stdio local)"; Recommended = $true }
-  unityOfficialSkills  = @{ Label = "npx skills add Unity-Technologies/skills"; Recommended = $true }
+  skillFiles          = @{ Label = "Skill files (canonical + host links)"; Recommended = $true }
+  commands            = @{ Label = "/game /gdd /playtest /resumegame commands"; Recommended = $true }
+  unityCli            = @{ Label = "Unity CLI check (+ install hint)"; Recommended = $true }
+  unityOfficialSkills = @{ Label = "Unity official skills (npx skills add Unity-Technologies/skills)"; Recommended = $true }
+  blenderMcp          = @{ Label = "Blender MCP (uvx mcp-for-blender)"; Recommended = $true }
+  voxelMcp            = @{ Label = "VoxelAI MCP"; Recommended = $true }
+  terminalMcp         = @{ Label = "TerminalMCP (screen/input/browser, stdio)"; Recommended = $true }
+  designSkill         = @{ Label = "real-world-design (DesignerSkill) link"; Recommended = $true }
 }
 
-function Read-Pick {
-  param(
-    [string]$Title,
-    [System.Collections.Specialized.OrderedDictionary]$Catalog,
-    [string[]]$DefaultIds,
-    [switch]$AllowEmpty
-  )
+function Read-Pick([string]$Title, $Catalog, [string[]]$DefaultIds, [scriptblock]$Label) {
   $ids = @($Catalog.Keys)
-  Write-Host ""
-  Write-Host $Title
-  Write-Host "  numbers + Enter  |  all  |  none  |  Enter = recommended"
+  Write-Host ""; Write-Host $Title; Write-Host "  numbers + Enter  |  all  |  Enter = [*]"
   for ($i = 0; $i -lt $ids.Count; $i++) {
-    $id = $ids[$i]
-    $mark = if ($Catalog[$id].Recommended) { "*" } else { " " }
-    Write-Host ("  [{0}]{1} {2}" -f ($i + 1), $mark, $Catalog[$id].Label)
+    $mark = if ($DefaultIds -contains $ids[$i]) { "*" } else { " " }
+    Write-Host ("  [{0}]{1} {2}" -f ($i + 1), $mark, (& $Label $ids[$i]))
   }
   $raw = Read-Host "Select"
   if ([string]::IsNullOrWhiteSpace($raw)) { return @($DefaultIds) }
-  $t = $raw.Trim().ToLowerInvariant()
-  if ($t -eq "all") { return @($ids) }
-  if ($t -eq "none") {
-    if ($AllowEmpty) { return @() }
-    Write-Host "Need at least one. Using recommended."
-    return @($DefaultIds)
-  }
-  $picked = New-Object System.Collections.Generic.List[string]
+  if ($raw.Trim() -eq "all") { return $ids }
+  $picked = @()
   foreach ($tok in ($raw -split '[,\s]+' | Where-Object { $_ })) {
     $n = 0
-    if ([int]::TryParse($tok, [ref]$n) -and $n -ge 1 -and $n -le $ids.Count) {
-      $picked.Add($ids[$n - 1]) | Out-Null
-    } elseif ($Catalog.Contains($tok)) {
-      $picked.Add($tok) | Out-Null
-    }
+    if ([int]::TryParse($tok, [ref]$n) -and $n -ge 1 -and $n -le $ids.Count) { $picked += $ids[$n - 1] }
+    elseif ($Catalog.Contains($tok)) { $picked += $tok }
   }
-  $uniq = @($picked | Select-Object -Unique)
-  if ($uniq.Count -eq 0) {
-    Write-Host "Nothing matched. Using recommended."
-    return @($DefaultIds)
+  if ($picked.Count -eq 0) { return @($DefaultIds) }
+  return @($picked | Select-Object -Unique)
+}
+
+# ------------------------------------------------------------------ detection (search, not hardcoded)
+function Find-First([string[]]$candidates) { foreach ($c in $candidates) { if ($c -and (Test-Path -LiteralPath $c)) { return (Resolve-Path -LiteralPath $c).Path } }; return "" }
+
+function Find-SkillDir([string]$name) {
+  # installed anywhere an agent looks, then a source checkout on Desktop/Documents (depth 3)
+  $roots = @("$User\.agents\skills", "$User\.claude\skills", "$User\.config\kilo\skills", "$User\.codex\skills", "$User\.gemini\config\skills", "$User\.cursor\skills")
+  foreach ($r in $roots) { $p = Join-Path $r "$name\SKILL.md"; if (Test-Path -LiteralPath $p) { return (Split-Path -Parent (Resolve-Path -LiteralPath $p).Path) } }
+  foreach ($base in @("$User\Desktop", "$User\Documents", "$User\source", "$User\Projects")) {
+    if (-not (Test-Path -LiteralPath $base)) { continue }
+    $hit = Get-ChildItem -LiteralPath $base -Directory -Recurse -Depth 3 -Filter $name -ErrorAction SilentlyContinue |
+      Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "SKILL.md") } | Select-Object -First 1
+    if ($hit) { return $hit.FullName }
   }
-  return $uniq
+  return ""
 }
 
-function Copy-SkillTo([string]$Dest) {
-  New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-  Copy-Item -Path (Join-Path $SkillSrc "*") -Destination $Dest -Recurse -Force
-  Write-Host "OK skill  $Dest"
+function Find-Blender {
+  $cmd = Get-Command blender -ErrorAction SilentlyContinue; if ($cmd) { return $cmd.Source }
+  $all = @()
+  foreach ($root in @("$env:ProgramFiles\Blender Foundation", "${env:ProgramFiles(x86)}\Steam\steamapps\common\Blender", "$env:LOCALAPPDATA\Programs\Blender Foundation")) {
+    if (Test-Path -LiteralPath $root) { $all += Get-ChildItem -LiteralPath $root -Recurse -Depth 2 -Filter blender.exe -ErrorAction SilentlyContinue }
+  }
+  # newest version folder wins (Blender 5.1 over 4.2)
+  $best = $all | Sort-Object { $m = [regex]::Match($_.Directory.Name, '\d+(\.\d+)+'); if ($m.Success) { [version]$m.Value } else { [version]"0.0" } } -Descending | Select-Object -First 1
+  if ($best) { return $best.FullName } ; return ""
 }
 
-function Copy-Cmd([string]$Dest, [string]$Name) {
-  $src = Join-Path $SkillSrc "command\$Name.md"
-  if (-not (Test-Path -LiteralPath $src)) { $src = Join-Path $Root "command\$Name.md" }
-  if (-not (Test-Path -LiteralPath $src)) { return }
-  New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-  Copy-Item -LiteralPath $src -Destination (Join-Path $Dest "$Name.md") -Force
-  Write-Host "OK cmd    $(Join-Path $Dest "$Name.md")"
+function Find-Unreal {
+  $found = @()
+  $dat = "$env:ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat"
+  if (Test-Path -LiteralPath $dat) {
+    try { (Get-Content -LiteralPath $dat -Raw | ConvertFrom-Json).InstallationList | Where-Object { $_.AppName -match '^UE_\d' } | ForEach-Object { $found += $_.InstallLocation } } catch {}
+  }
+  foreach ($root in @("$env:ProgramFiles\Epic Games", "C:\Games", "D:\Games", "D:\Epic Games")) {
+    if (Test-Path -LiteralPath $root) { Get-ChildItem -LiteralPath $root -Directory -Filter "UE_*" -ErrorAction SilentlyContinue | ForEach-Object { $found += $_.FullName } }
+  }
+  return @($found | Where-Object { Test-Path -LiteralPath (Join-Path $_ "Engine\Binaries\Win64\UnrealEditor.exe") } | Select-Object -Unique)
 }
-
-function Write-Config([string]$Dest, $cfg) {
-  $json = $cfg | ConvertTo-Json -Depth 8
-  $utf8 = New-Object System.Text.UTF8Encoding $false
-  [System.IO.File]::WriteAllText((Join-Path $Dest "config.json"), $json.TrimEnd() + "`n", $utf8)
-}
-
-function Invoke-GameMcp {
-  param([string]$Target, [string]$Mode, [switch]$Create, [bool]$DoBlender, [bool]$DoVoxel, [string]$VoxelPath, [string]$TerminalPath)
-  $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $McpScript, "-Target", $Target, "-VoxelPath", $VoxelPath)
-  if ($Create) { $args += "-Create" }
-  if ($Mode -eq "claude") { $args += "-Claude" }
-  if ($Mode -eq "generic") { $args += "-Generic" }
-  if ($Mode -eq "codex") { $args += "-Codex" }
-  if (-not $DoBlender) { $args += "-SkipBlender" }
-  if (-not $DoVoxel) { $args += "-SkipVoxel" }
-  if ($TerminalPath) { $args += "-TerminalPath"; $args += $TerminalPath }
-  & powershell @args
-}
-
-$recommendedHosts = @($hostCatalog.Keys | Where-Object { $hostCatalog[$_].Recommended })
-$recommendedModules = @($moduleCatalog.Keys | Where-Object { $moduleCatalog[$_].Recommended })
 
 Write-Host ""
 Write-Host "=== Game Developer installer ==="
-Write-Host "Source: $SkillSrc"
-
-if ($All) {
-  $pickedHosts = @($hostCatalog.Keys)
-  $pickedModules = @($moduleCatalog.Keys)
-} elseif ($Quiet -or $Hosts) {
-  $split = { param($arr) @($arr | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
-  $pickedHosts = if ($Hosts) { & $split $Hosts } else { @($recommendedHosts) }
-  $pickedModules = @($recommendedModules)
-  if ($SkipModules) {
-    $skipM = & $split $SkipModules
-    $pickedModules = @($pickedModules | Where-Object { $skipM -notcontains $_ })
-  }
-} else {
-  $pickedHosts = Read-Pick "Hosts (where to install the skill)" $hostCatalog $recommendedHosts
-  $pickedModules = Read-Pick "Modules" $moduleCatalog $recommendedModules -AllowEmpty
+Write-Host "Source:    $SkillSrc"
+Write-Host "Canonical: $Canon"
+Write-Host ""
+Write-Host "--- detection ---"
+$det = [ordered]@{}
+$det.unityCli = (Get-Command unity -ErrorAction SilentlyContinue).Source
+$det.unityEditors = @()
+if ($det.unityCli) { try { $det.unityEditors = @((& unity editors --installed --format json --no-banner 2>$null | ConvertFrom-Json).data | ForEach-Object { $_.version }) } catch {} }
+$det.unreal = Find-Unreal
+$det.blender = Find-Blender
+$det.fabcli = Find-First @((Get-Command fabcli -ErrorAction SilentlyContinue).Source, "C:\Tools\fabcli\fabcli.exe", "$User\Tools\fabcli\fabcli.exe")
+$det.uvx = Find-First @((Get-Command uvx -ErrorAction SilentlyContinue).Source, "$User\.local\bin\uvx.exe")
+$det.designerSkill = Find-SkillDir "real-world-design"
+$det.unitySkills = Find-SkillDir "unity-cli"
+$det.voxelai = Find-First @("$User\Desktop\Dev Things\VoxelAIArtist", "$User\Desktop\VoxelAIArtist", "$User\Documents\VoxelAIArtist")
+$det.terminalmcp = Find-First @("$User\Desktop\Dev Things\TerminalMCP", "$User\Desktop\TerminalMCP", "$User\Documents\TerminalMCP")
+foreach ($k in $det.Keys) {
+  $v = $det[$k]; $s = if ($v -is [array]) { ($v -join ", ") } else { [string]$v }
+  Write-Host ("  {0,-14} {1}" -f $k, $(if ($s) { $s } else { "-" }))
 }
+foreach ($k in $hostCatalog.Keys) { if ($hostCatalog[$k].Found) { Write-Host ("  host           {0}" -f $hostCatalog[$k].Label) } }
 
+# ------------------------------------------------------------------ choices
+$detectedHosts = @($hostCatalog.Keys | Where-Object { $hostCatalog[$_].Found })
+if ($detectedHosts.Count -eq 0) { $detectedHosts = @("claude") }
+$recModules = @($moduleCatalog.Keys | Where-Object { $moduleCatalog[$_].Recommended })
+$split = { param($arr) @($arr | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+
+if ($All) { $pickedHosts = $detectedHosts; $pickedModules = @($moduleCatalog.Keys) }
+elseif ($Quiet -or $Hosts) { $pickedHosts = if ($Hosts) { & $split $Hosts } else { $detectedHosts }; $pickedModules = $recModules }
+else {
+  $pickedHosts = Read-Pick "Hosts (detected = *)" $hostCatalog $detectedHosts { param($id) $hostCatalog[$id].Label + $(if ($hostCatalog[$id].Found) { "" } else { "  (not found)" }) }
+  $pickedModules = Read-Pick "Modules" $moduleCatalog $recModules { param($id) $moduleCatalog[$id].Label }
+}
+if ($SkipModules) { $skip = & $split $SkipModules; $pickedModules = @($pickedModules | Where-Object { $skip -notcontains $_ }) }
 $pickedHosts = @($pickedHosts | Where-Object { $hostCatalog.Contains($_) } | Select-Object -Unique)
-if ($pickedHosts.Count -eq 0) {
-  Write-Host "No hosts selected. Abort."
-  exit 1
+$mod = @{}; foreach ($k in $moduleCatalog.Keys) { $mod[$k] = $pickedModules -contains $k }
+
+# ------------------------------------------------------------------ config merge (user values win)
+function Merge-Obj($base, $over) {
+  # returns base with every non-empty value from over applied, recursively (hashtables from ConvertFrom-Json objects)
+  foreach ($p in $over.PSObject.Properties) {
+    $b = $base.PSObject.Properties[$p.Name]
+    if ($null -eq $b) { $base | Add-Member -NotePropertyName $p.Name -NotePropertyValue $p.Value; continue }
+    if ($p.Value -is [System.Management.Automation.PSCustomObject] -and $b.Value -is [System.Management.Automation.PSCustomObject]) { Merge-Obj $b.Value $p.Value | Out-Null }
+    elseif ($null -ne $p.Value -and "$($p.Value)" -ne "") { $base.$($p.Name) = $p.Value }
+  }
+  return $base
+}
+$cfg = Get-Content -LiteralPath (Join-Path $SkillSrc "config\defaults.json") -Raw | ConvertFrom-Json
+# existing user configs: canonical first, then any old host copy, then the repo-local one
+$existing = @((Join-Path $Canon "config.json")) + @($hostCatalog.Values | ForEach-Object { $_.Paths } | ForEach-Object { Join-Path $_ "config.json" }) + @((Join-Path $SkillSrc "config.json"))
+$userCfg = $null
+foreach ($c in ($existing | Select-Object -Unique)) {
+  if (Test-Path -LiteralPath $c) { try { $userCfg = Get-Content -LiteralPath $c -Raw | ConvertFrom-Json; Write-Host "  config         keeping user values from $c"; break } catch {} }
+}
+# detected values fill blanks only
+$detCfg = [pscustomobject]@{
+  hosts = $pickedHosts
+  paths = [pscustomobject]@{ blender = $det.blender; unityCli = $det.unityCli; designerSkill = $(if ($det.designerSkill) { Split-Path -Parent $det.designerSkill } else { "" }); voxelai = $det.voxelai; terminalmcp = $det.terminalmcp; unreal = $(if ($det.unreal) { $det.unreal[-1] } else { "" }) }
+  fab = [pscustomobject]@{ cli = $det.fabcli }
+}
+$cfg = Merge-Obj $cfg $detCfg
+if ($userCfg) { $cfg = Merge-Obj $cfg $userCfg }
+
+# ------------------------------------------------------------------ install: canonical copy + junctions
+function Remove-HostFolder([string]$p) {
+  $it = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+  if (-not $it) { return }
+  if ($it.LinkType -in @("Junction", "SymbolicLink")) { cmd /c rmdir "$p" | Out-Null }   # removes the link, never the target
+  else { Remove-Item -LiteralPath $p -Recurse -Force }
+}
+function Write-Config([string]$dest) {
+  $json = $cfg | ConvertTo-Json -Depth 10
+  [System.IO.File]::WriteAllText((Join-Path $dest "config.json"), $json.TrimEnd() + "`n", (New-Object System.Text.UTF8Encoding $false))
 }
 
-$mod = @{}
-foreach ($k in $moduleCatalog.Keys) { $mod[$k] = $pickedModules -contains $k }
-
-$voxelPath = $voxelDefault
-if ($mod["voxelMcp"] -and -not $Quiet -and -not $All -and -not $Hosts) {
-  $ask = Read-Host "VoxelAI path [$voxelDefault]"
-  if (-not [string]::IsNullOrWhiteSpace($ask)) { $voxelPath = $ask.Trim() }
-}
-
-$terminalPath = ""
-if ($mod["terminalMcp"]) {
-  $terminalPath = $terminalDefault
-  if (-not (Test-Path -LiteralPath (Join-Path $terminalPath "bin\terminalmcp.js"))) {
-    if (-not $Quiet -and -not $All) {
-      $ask = Read-Host "TerminalMCP not found at [$terminalDefault]. Clone from GitHub into this path? (Enter = yes, other path, or 'skip')"
-      if ($ask -match '^\s*skip\s*$') { $terminalPath = "" }
-      elseif (-not [string]::IsNullOrWhiteSpace($ask)) { $terminalPath = $ask.Trim() }
-    }
-    if ($terminalPath -and -not (Test-Path -LiteralPath $terminalPath)) {
-      Write-Host "Cloning TerminalMCP -> $terminalPath"
-      try {
-        git clone --depth 1 https://github.com/Fonlogen/TerminalMCP $terminalPath 2>&1 | Out-Null
-      } catch { Write-Host "WARN git clone failed: $_" }
-    }
-    if ($terminalPath -and -not (Test-Path -LiteralPath (Join-Path $terminalPath "bin\terminalmcp.js"))) {
-      Write-Host "WARN TerminalMCP incomplete at $terminalPath (bin\terminalmcp.js missing). MCP inject skipped."
-      $terminalPath = ""
-    }
+if ($mod.skillFiles) {
+  Write-Host ""; Write-Host "--- skill ---"
+  if ((Resolve-Path -LiteralPath $SkillSrc).Path -ne $Canon) {
+    Remove-HostFolder $Canon
+    New-Item -ItemType Directory -Force -Path $Canon | Out-Null
+    Copy-Item -Path (Join-Path $SkillSrc "*") -Destination $Canon -Recurse -Force
   }
-}
-
-$cfg = [ordered]@{
-  version = 1
-  hosts   = @($pickedHosts)
-  paths   = [ordered]@{
-    voxelai     = $voxelPath
-    blender     = ""
-    terminalmcp = $terminalPath
-    unityCli    = ""
-    godot       = ""
-  }
-  engines = [ordered]@{
-    default       = "unity"
-    godotEnabled  = [bool]$mod["godotMcp"]
-  }
-  modules = [ordered]@{
-    skillFiles          = [bool]$mod["skillFiles"]
-    gameCommand         = [bool]$mod["gameCommand"]
-    resumegameCommand   = [bool]$mod["resumegameCommand"]
-    gddCommand          = [bool]$mod["gddCommand"]
-    playtestCommand     = [bool]$mod["playtestCommand"]
-    unityCli            = [bool]$mod["unityCli"]
-    unityMcp            = [bool]$mod["unityMcp"]
-    blenderMcp          = [bool]$mod["blenderMcp"]
-    voxelMcp            = [bool]$mod["voxelMcp"]
-    cc0Fetch            = [bool]$mod["cc0Fetch"]
-    designSkillCheck    = [bool]$mod["designSkillCheck"]
-    godotMcp            = [bool]$mod["godotMcp"]
-    terminalMcp         = [bool]$mod["terminalMcp"]
-    unityOfficialSkills = [bool]$mod["unityOfficialSkills"]
-  }
-  mcp = [ordered]@{
-    blenderCommand      = @("cmd", "/c", "uvx", "blender-mcp")
-    blenderEnv          = [ordered]@{ BLENDER_HOST = "localhost"; BLENDER_PORT = "9876" }
-    voxelaiWorkdirMode  = "per-project"
-    terminalHttp        = $false
-  }
-  unity = [ordered]@{
-    templatePreference = @("urp-3d", "com.unity.template.3d-urp", "com.unity.template.3d")
-    coplayGitUrl       = "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity"
-  }
-  art = [ordered]@{
-    scale                   = "1u=1m"
-    forbidPaid3dApis        = $true
-    forbidHdriOnGameAssets  = $true
-    forbidSloydDefault      = $true
-    preferKits              = @("kenney", "kaykit", "quaternius-standard")
-    forbidBpyModelling      = $true
-    polyhavenUserAgent      = "GameDeveloperSkill/1.0"
-  }
-}
-
-Write-Host ""
-Write-Host "Installing to: $($pickedHosts -join ', ')"
-Write-Host "Modules:      $($pickedModules -join ', ')"
-Write-Host ""
-
-foreach ($h in $pickedHosts) {
-  $info = $hostCatalog[$h]
-  foreach ($p in $info.Paths) {
-    Copy-SkillTo $p
-    Write-Config $p $cfg
-  }
-  if ($info.Cmd) {
-    foreach ($c in @($info.Cmd)) {
-      if ($mod["gameCommand"]) { Copy-Cmd $c "game" }
-      if ($mod["resumegameCommand"]) { Copy-Cmd $c "resumegame" }
-      if ($mod["gddCommand"]) { Copy-Cmd $c "gdd" }
-      if ($mod["playtestCommand"]) { Copy-Cmd $c "playtest" }
+  Write-Config $Canon
+  Write-Host "OK canonical  $Canon"
+  foreach ($h in $pickedHosts) {
+    foreach ($p in $hostCatalog[$h].Paths) {
+      if ($p -eq $Canon) { continue }
+      $parent = Split-Path -Parent $p
+      # secondary paths (Kilo/Antigravity have several) only when their root folder already exists
+      $rootDir = Join-Path $User (($p.Substring($User.Length + 1)).Split('')[0])
+      if ($p -ne $hostCatalog[$h].Paths[0] -and -not (Test-Path -LiteralPath $rootDir)) { continue }
+      New-Item -ItemType Directory -Force -Path $parent | Out-Null
+      Remove-HostFolder $p
+      if ($Copy) { New-Item -ItemType Directory -Force -Path $p | Out-Null; Copy-Item -Path (Join-Path $Canon "*") -Destination $p -Recurse -Force; Write-Host "OK copy      $p" }
+      else { New-Item -ItemType Junction -Path $p -Target $Canon | Out-Null; Write-Host "OK link      $p -> canonical" }
     }
   }
 }
 
-$doBlender = [bool]$mod["blenderMcp"]
-$doVoxel = [bool]$mod["voxelMcp"]
+if ($mod.commands) {
+  foreach ($h in $pickedHosts) {
+    foreach ($c in @($hostCatalog[$h].Cmd)) {
+      if (-not $c) { continue }
+      New-Item -ItemType Directory -Force -Path $c | Out-Null
+      foreach ($n in @("game", "gdd", "playtest", "resumegame")) {
+        $src = Join-Path $SkillSrc "command\$n.md"
+        if (Test-Path -LiteralPath $src) { Copy-Item -LiteralPath $src -Destination (Join-Path $c "$n.md") -Force }
+      }
+      Write-Host "OK commands  $c"
+    }
+  }
+}
+
+# ------------------------------------------------------------------ DesignerSkill: link where missing
+if ($mod.designSkill) {
+  if ($det.designerSkill) {
+    foreach ($root in @("$User\.agents\skills", "$User\.claude\skills", "$User\.config\kilo\skills", "$User\.gemini\config\skills")) {
+      $dst = Join-Path $root "real-world-design"
+      if ((Test-Path -LiteralPath (Join-Path $dst "SKILL.md")) -or -not (Test-Path -LiteralPath (Split-Path -Parent $root))) { continue }
+      New-Item -ItemType Directory -Force -Path $root | Out-Null
+      New-Item -ItemType Junction -Path $dst -Target $det.designerSkill | Out-Null
+      Write-Host "OK link      $dst -> $($det.designerSkill)"
+    }
+  } else { Write-Host "WARN real-world-design not found anywhere: UI phases will stop until it is installed" }
+}
+
+# ------------------------------------------------------------------ MCP
+$doBlender = [bool]$mod.blenderMcp; $doVoxel = [bool]($mod.voxelMcp -and $cfg.paths.voxelai); $terminalPath = if ($mod.terminalMcp) { [string]$cfg.paths.terminalmcp } else { "" }
+if ($terminalPath -and -not (Test-Path -LiteralPath (Join-Path $terminalPath "bin\terminalmcp.js"))) { Write-Host "WARN TerminalMCP incomplete at $terminalPath (bin\terminalmcp.js missing): skipped"; $terminalPath = "" }
+function Invoke-GameMcp([string]$Target, [string]$Mode, [switch]$Create) {
+  $a = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $McpScript, "-Target", $Target, "-VoxelPath", [string]$cfg.paths.voxelai)
+  if ($Create) { $a += "-Create" }
+  if ($Mode -eq "claude") { $a += "-Claude" } elseif ($Mode -eq "generic") { $a += "-Generic" } elseif ($Mode -eq "codex") { $a += "-Codex" }
+  if (-not $doBlender) { $a += "-SkipBlender" }
+  if (-not $doVoxel) { $a += "-SkipVoxel" }
+  if ($terminalPath) { $a += "-TerminalPath"; $a += $terminalPath }
+  & powershell @a
+}
 if ($doBlender -or $doVoxel -or $terminalPath) {
-  Write-Host ""
-  Write-Host "--- MCP (blender / voxelai; will not remove playwright/21st/originkit) ---"
+  Write-Host ""; Write-Host "--- MCP (keeps every other server) ---"
   foreach ($h in $pickedHosts) {
     switch ($hostCatalog[$h].Mcp) {
       "kilo" {
-        $kj = "$User\.config\kilo\kilo.json"
-        $kjc = "$User\.config\kilo\kilo.jsonc"
-        if (Test-Path -LiteralPath $kj) { Invoke-GameMcp -Target $kj -Mode "kilo" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath }
-        if (Test-Path -LiteralPath $kjc) { Invoke-GameMcp -Target $kjc -Mode "kilo" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath }
-        if (-not (Test-Path -LiteralPath $kj) -and -not (Test-Path -LiteralPath $kjc)) {
-          New-Item -ItemType Directory -Force -Path "$User\.config\kilo" | Out-Null
-          Invoke-GameMcp -Target $kj -Mode "kilo" -Create -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        }
-        Write-Host "OK MCP    Kilo"
+        $kj = "$User\.config\kilo\kilo.json"; $kjc = "$User\.config\kilo\kilo.jsonc"
+        if (Test-Path -LiteralPath $kjc) { Invoke-GameMcp $kjc "kilo" } elseif (Test-Path -LiteralPath $kj) { Invoke-GameMcp $kj "kilo" } else { New-Item -ItemType Directory -Force -Path "$User\.config\kilo" | Out-Null; Invoke-GameMcp $kj "kilo" -Create }
+        Write-Host "OK MCP       Kilo"
       }
-      "claude" {
-        Invoke-GameMcp -Target "$User\.claude.json" -Mode "claude" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        Write-Host "OK MCP    Claude ~/.claude.json"
-      }
-      "cursor" {
-        New-Item -ItemType Directory -Force -Path "$User\.cursor" | Out-Null
-        Invoke-GameMcp -Target "$User\.cursor\mcp.json" -Mode "generic" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        Write-Host "OK MCP    Cursor"
-      }
+      "claude" { Invoke-GameMcp "$User\.claude.json" "claude"; Write-Host "OK MCP       Claude" }
+      "cursor" { Invoke-GameMcp "$User\.cursor\mcp.json" "generic"; Write-Host "OK MCP       Cursor" }
       "antigravity" {
-        New-Item -ItemType Directory -Force -Path "$User\.gemini\config" | Out-Null
-        Invoke-GameMcp -Target "$User\.gemini\config\mcp_config.json" -Mode "generic" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        New-Item -ItemType Directory -Force -Path "$User\.gemini\antigravity" | Out-Null
-        Invoke-GameMcp -Target "$User\.gemini\antigravity\mcp.json" -Mode "generic" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        New-Item -ItemType Directory -Force -Path "$User\.antigravity" | Out-Null
-        Invoke-GameMcp -Target "$User\.antigravity\mcp_config.json" -Mode "generic" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-        Write-Host "OK MCP    Antigravity"
-      }
-      "codex" {
-        $ct = "$User\.codex\config.toml"
-        if (Test-Path -LiteralPath $ct) {
-          Invoke-GameMcp -Target $ct -Mode "codex" -DoBlender $doBlender -DoVoxel $doVoxel -VoxelPath $voxelPath -TerminalPath $terminalPath
-          Write-Host "OK MCP    Codex config.toml"
-        } else {
-          Write-Host "SKIP MCP  Codex (no $ct)"
+        foreach ($t in @("$User\.gemini\config\mcp_config.json", "$User\.gemini\antigravity\mcp.json")) {
+          if (Test-Path -LiteralPath (Split-Path -Parent $t)) { Invoke-GameMcp $t "generic" }
         }
+        Write-Host "OK MCP       Antigravity"
       }
+      "codex" { $ct = "$User\.codex\config.toml"; if (Test-Path -LiteralPath $ct) { Invoke-GameMcp $ct "codex"; Write-Host "OK MCP       Codex" } }
     }
   }
 }
 
-if ($mod["unityCli"] -and -not (Get-Command unity -ErrorAction SilentlyContinue)) {
-  Write-Host ""
-  Write-Host "--- Unity CLI missing ---"
-  if ($All) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\install-unity-cli.ps1")
+# ------------------------------------------------------------------ Unity CLI + official skills
+if ($mod.unityCli) {
+  Write-Host ""; Write-Host "--- Unity CLI ---"
+  if (-not $det.unityCli) {
+    Write-Host "MISSING. Install (no admin):  `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex"
   } else {
-    Write-Host "Install when ready:"
-    Write-Host '  winget install Unity.CLI'
-    Write-Host "  or  game-developer\scripts\install-unity-cli.ps1"
+    Write-Host "OK $(& unity --version 2>$null)  editors: $($det.unityEditors -join ', ')"
+    try { $auth = (& unity auth status --format json --no-banner 2>$null | ConvertFrom-Json).data; if (-not $auth.loggedIn) { Write-Host "RUN: unity auth login" } } catch {}
+    Write-Host "Per project the pipeline package is added by scripts\install-gds-editor.ps1 (unity pipeline install)."
   }
 }
-
-if ($mod["blenderMcp"] -and (Get-Command uvx -ErrorAction SilentlyContinue)) {
-  Write-Host ""
-  Write-Host "--- Blender addon (best-effort) ---"
-  try { & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\install-blender-mcp.ps1") }
-  catch { Write-Host "WARN blender addon: $_" }
+if ($mod.unityOfficialSkills) {
+  if ($det.unitySkills) { Write-Host "OK Unity official skills  $($det.unitySkills)" }
+  elseif (Get-Command npx -ErrorAction SilentlyContinue) { try { & npx --yes skills add Unity-Technologies/skills -g -y } catch { Write-Host "WARN npx skills: $_" } }
+  else { Write-Host "Later: npx skills add Unity-Technologies/skills -g -y" }
 }
 
-if ($mod["unityOfficialSkills"]) {
-  Write-Host ""
-  Write-Host "--- Unity-Technologies/skills ---"
-  $npx = Get-Command npx -ErrorAction SilentlyContinue
-  if (-not $npx) {
-    Write-Host "npx not found. Later: npx skills add Unity-Technologies/skills -g -y"
-  } else {
-    try { & npx --yes skills add Unity-Technologies/skills -g -y }
-    catch { Write-Host "WARN official unity skills: $_" }
-  }
+# ------------------------------------------------------------------ Blender addon
+if ($mod.blenderMcp -and $det.uvx) {
+  try { & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\install-blender-mcp.ps1") } catch { Write-Host "WARN blender addon: $_" }
 }
 
-if ($mod["designSkillCheck"]) {
-  $dsSrc = Join-Path $User "Desktop\DesignerSkill\real-world-design"
-  if (Test-Path -LiteralPath (Join-Path $dsSrc "SKILL.md")) {
-    $dsTargets = @(
-      "$User\.gemini\config\skills\real-world-design",
-      "$User\.config\kilo\skills\real-world-design",
-      "$User\.agents\skills\real-world-design",
-      "$User\.claude\skills\real-world-design"
-    )
-    foreach ($dst in $dsTargets) {
-      if (-not (Test-Path -LiteralPath (Join-Path $dst "SKILL.md"))) {
-        New-Item -ItemType Directory -Force -Path $dst | Out-Null
-        Copy-Item -Path (Join-Path $dsSrc "*") -Destination $dst -Recurse -Force
-      }
-    }
-    Write-Host "OK design-skill  installed from $dsSrc to all hosts"
-  } else {
-    $ds = Join-Path $User ".config\kilo\skills\real-world-design\SKILL.md"
-    if (Test-Path -LiteralPath $ds) { Write-Host "OK design-skill  $ds" }
-    else { Write-Host "WARN DesignerSkill (real-world-design) not found on Desktop - HUD phase will skip" }
-  }
-}
+Write-Host ""; Write-Host "--- doctor ---"
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\doctor.ps1") | ForEach-Object { Write-Host $_ }
 
 Write-Host ""
-Write-Host "--- doctor ---"
-$doctor = Join-Path $SkillSrc "scripts\doctor.ps1"
-$report = & powershell -NoProfile -ExecutionPolicy Bypass -File $doctor
-$report | ForEach-Object { Write-Host $_ }
-$destDoctor = Join-Path $User ".config\kilo\skills\game-developer\last-doctor.txt"
-if (Test-Path -LiteralPath (Split-Path $destDoctor)) {
-  $report | Set-Content -LiteralPath $destDoctor -Encoding utf8
-}
-
-Write-Host ""
-Write-Host "=== Next (human clicks) ==="
-Write-Host "1. Restart Kilo / Claude / Cursor"
-Write-Host "2. unity auth login   then   unity license activate"
-Write-Host "3. If no Editor:  unity install lts --yes --accept-eula"
-Write-Host "4. Blender: enable MCP addon, N-panel -> Start MCP Server"
-Write-Host "5. After you create/open a Unity project: Package Manager git"
-Write-Host "   https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity"
-Write-Host "   Window -> MCP for Unity -> Configure All Detected Clients"
-Write-Host "6. Voxel workdir is PER GAME: art/voxel  (do not pin a global folder)"
-Write-Host "Then: /game your-idea"
+Write-Host "=== Next ==="
+Write-Host "1. Restart the agent clients (Kilo / Claude Code / Codex / Antigravity)."
+if ($pickedHosts -contains "claude") { Write-Host "2. Claude Code, realistic games: /plugin install unreal-engine-skills-for-claude-code@claude-plugins-official" }
+if ($det.unreal.Count -gt 0 -and -not ($det.unreal | Where-Object { $_ -match 'UE_5\.(8|9)|UE_[6-9]' })) { Write-Host "3. Unreal found ($($det.unreal -join ', ')) but the official MCP needs UE 5.8+: install it from the Epic Launcher for style=realistic." }
+Write-Host "4. Blender: N panel -> MCP -> Start MCP Server (only for hero props / buildings)."
+Write-Host "Then: /game <your idea>"

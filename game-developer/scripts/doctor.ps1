@@ -26,7 +26,7 @@ if (Test-Path -LiteralPath $ConfigPath) {
   try { $cfg = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json } catch { }
 }
 
-$voxelDefault = "C:\Users\FRANCY\Desktop\Dev Things\VoxelAIArtist"
+$voxelDefault = Join-Path $env:USERPROFILE "Desktop\Dev Things\VoxelAIArtist"
 if ($cfg -and $cfg.paths -and $cfg.paths.voxelai) { $voxelDefault = [string]$cfg.paths.voxelai }
 
 $node = Get-Cmd "node"
@@ -78,20 +78,22 @@ if ($unity) {
     else { Row "WARN" "unity-editor" "unity install lts --yes --accept-eula" }
   } catch { Row "WARN" "unity-editor" "unity install lts --yes --accept-eula" }
   try {
-    $au = & $unity auth status --format json --no-banner --non-interactive 2>$null
-    if ($au -match '"loggedIn"\s*:\s*true' -or $au -match '"signedIn"\s*:\s*true' -or $au -match 'logged in') {
+    $au = (& $unity auth status --format json --no-banner --non-interactive 2>$null) -join "`n"
+    $aj = $null; try { $aj = $au | ConvertFrom-Json } catch { }
+    if (($aj -and $aj.data -and $aj.data.loggedIn) -or $au -match '"loggedIn"\s*:\s*true') {
       Row "PASS" "unity-auth" "signed in"
     } else { Row "WARN" "unity-auth" "unity auth login" }
   } catch { Row "WARN" "unity-auth" "unity auth login" }
 } else { Row "FAIL" "unity-cli" "winget install Unity.CLI   OR   `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex" }
 
-$blender = Get-Cmd "blender"
+$blender = if ($cfg -and $cfg.paths -and $cfg.paths.blender -and (Test-Path -LiteralPath $cfg.paths.blender)) { [string]$cfg.paths.blender } else { Get-Cmd "blender" }
 if (-not $blender) {
-  $bf = Get-ChildItem -LiteralPath "C:\Program Files\Blender Foundation" -Filter "blender.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+  $bf = Get-ChildItem -LiteralPath "C:\Program Files\Blender Foundation" -Filter "blender.exe" -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object { $m = [regex]::Match($_.Directory.Name, '\d+(\.\d+)+'); if ($m.Success) { [version]$m.Value } else { [version]"0.0" } } -Descending | Select-Object -First 1
   if ($bf) { $blender = $bf.FullName }
 }
 if ($blender) { Row "PASS" "blender-exe" $blender }
-else { Row "FAIL" "blender-exe" "Install Blender 4.2+ then uvx blender-mcp install-addon" }
+else { Row "FAIL" "blender-exe" "Install Blender 4.2+ then uvx mcp-for-blender install-addon" }
 
 $tcp = $false
 try {
@@ -106,6 +108,7 @@ if (Test-Path -LiteralPath (Join-Path $voxelDefault "mcp_server")) {
 } else { Row "FAIL" "voxelai" "Set paths.voxelai in config.json (folder with mcp_server)" }
 
 $designCandidates = @(
+  (Join-Path $env:USERPROFILE ".claude\skills\real-world-design\SKILL.md"),
   (Join-Path $env:USERPROFILE ".gemini\config\skills\real-world-design\SKILL.md"),
   (Join-Path $env:USERPROFILE ".config\kilo\skills\real-world-design\SKILL.md"),
   (Join-Path $env:USERPROFILE ".agents\skills\real-world-design\SKILL.md")
@@ -137,7 +140,7 @@ if ($ProjectPath -and (Test-Path -LiteralPath $ProjectPath)) {
 
 $tmPath = ""
 if ($cfg -and $cfg.paths -and $cfg.paths.terminalmcp) { $tmPath = [string]$cfg.paths.terminalmcp }
-if (-not $tmPath) { $tmPath = "C:\Users\FRANCY\Desktop\Dev Things\TerminalMCP" }
+if (-not $tmPath) { $tmPath = Join-Path $env:USERPROFILE "Desktop\Dev Things\TerminalMCP" }
 if (Test-Path -LiteralPath (Join-Path $tmPath "bin\terminalmcp.js")) {
   Row "PASS" "terminalmcp" $tmPath
 } else {
@@ -156,3 +159,22 @@ else { Row "FAIL" "gds-editor" "templates/Editor/GDS missing: re-run install.ps1
 if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Assets\_Game\Editor\GDS\GDS.Editor.asmdef"))) { Row "PASS" "gds-project" "GDS scripts installed in project" }
 elseif ($ProjectPath) { Row "WARN" "gds-project" "powershell -File scripts/install-gds-editor.ps1 -ProjectPath $ProjectPath" }
 
+
+# Unity official skills (unity-cli skill documents the live-Editor commands)
+if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".agents\skills\unity-cli\SKILL.md")) { Row "PASS" "unity-skills" "Unity-Technologies/skills installed" }
+else { Row "WARN" "unity-skills" "npx skills add Unity-Technologies/skills -g -y" }
+
+# Unity CLI pipeline package in the project (live eval + gds_* commands)
+if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Packages\manifest.json"))) {
+  if ((Get-Content -LiteralPath (Join-Path $ProjectPath "Packages\manifest.json") -Raw) -match '"com\.unity\.pipeline"') { Row "PASS" "unity-pipeline" "com.unity.pipeline in manifest" }
+  else { Row "WARN" "unity-pipeline" "unity pipeline install --project-path `"$ProjectPath`"" }
+}
+
+# Unreal (style realistic only): the official MCP needs 5.8+
+$ue = @()
+foreach ($root in @("$env:ProgramFiles\Epic Games", "C:\Games", "D:\Games")) {
+  if (Test-Path -LiteralPath $root) { $ue += Get-ChildItem -LiteralPath $root -Directory -Filter "UE_*" -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } }
+}
+if ($ue | Where-Object { $_ -match '^UE_(5\.(8|9|\d{2})|[6-9]\.)' }) { Row "PASS" "unreal" ($ue -join ", ") }
+elseif ($ue.Count -gt 0) { Row "WARN" "unreal" (($ue -join ", ") + " found; style realistic needs UE 5.8+ (Epic Launcher)") }
+else { Row "WARN" "unreal" "not installed (only needed for style realistic)" }
