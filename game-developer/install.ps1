@@ -172,14 +172,20 @@ $detCfg = [pscustomobject]@{
 }
 $cfg = Merge-Obj $cfg $detCfg
 if ($userCfg) {
-  # saved absolute paths that do not exist on this PC (e.g. copied from another machine) are dropped, so detection wins
+  # saved paths that do not exist on this PC (e.g. copied from another machine) are dropped, so detection wins
   if ($userCfg.paths) {
     foreach ($pp in @($userCfg.paths.PSObject.Properties)) {
       $v = [string]$pp.Value
-      if ($v -and [System.IO.Path]::IsPathRooted($v) -and -not (Test-Path -LiteralPath $v)) { $userCfg.paths.$($pp.Name) = "" }
+      if ($v -and -not (Test-Path -LiteralPath $v)) { $userCfg.paths.$($pp.Name) = "" }
     }
   }
   $cfg = Merge-Obj $cfg $userCfg
+}
+# modules skipped on the command line stay off in config.json, so doctor and the skill know they are not wanted
+if ($SkipModules) {
+  foreach ($k in (& $split $SkipModules)) {
+    if ($cfg.modules.PSObject.Properties[$k]) { $cfg.modules.$k = $false } else { $cfg.modules | Add-Member -NotePropertyName $k -NotePropertyValue $false }
+  }
 }
 
 # ------------------------------------------------------------------ install: canonical copy + junctions
@@ -249,7 +255,8 @@ if ($mod.designSkill) {
 $doBlender = [bool]$mod.blenderMcp; $doVoxel = [bool]($mod.voxelMcp -and $cfg.paths.voxelai); $terminalPath = if ($mod.terminalMcp) { [string]$cfg.paths.terminalmcp } else { "" }
 if ($terminalPath -and -not (Test-Path -LiteralPath (Join-Path $terminalPath "bin\terminalmcp.js"))) { Write-Host "WARN TerminalMCP incomplete at $terminalPath (bin\terminalmcp.js missing): skipped"; $terminalPath = "" }
 function Invoke-GameMcp([string]$Target, [string]$Mode, [switch]$Create) {
-  $a = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $McpScript, "-Target", $Target, "-VoxelPath", [string]$cfg.paths.voxelai)
+  $a = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $McpScript, "-Target", $Target)
+  if ($cfg.paths.voxelai) { $a += "-VoxelPath"; $a += [string]$cfg.paths.voxelai }
   if ($Create) { $a += "-Create" }
   if ($Mode -eq "claude") { $a += "-Claude" } elseif ($Mode -eq "generic") { $a += "-Generic" } elseif ($Mode -eq "codex") { $a += "-Codex" }
   if (-not $doBlender) { $a += "-SkipBlender" }
@@ -302,7 +309,7 @@ if ($mod.blenderMcp -and $det.uvx) {
 }
 
 Write-Host ""; Write-Host "--- doctor ---"
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\doctor.ps1") | ForEach-Object { Write-Host $_ }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SkillSrc "scripts\doctor.ps1") -ConfigPath (Join-Path $Canon "config.json") | ForEach-Object { Write-Host $_ }
 
 Write-Host ""
 Write-Host "=== Next ==="

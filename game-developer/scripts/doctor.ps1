@@ -145,6 +145,8 @@ if ($cfg -and $cfg.paths -and $cfg.paths.terminalmcp) { $tmPath = [string]$cfg.p
 if (-not $tmPath) { $tmPath = Join-Path $env:USERPROFILE "Desktop\Dev Things\TerminalMCP" }
 if (Test-Path -LiteralPath (Join-Path $tmPath "bin\terminalmcp.js")) {
   Row "PASS" "terminalmcp" $tmPath
+} elseif ($cfg -and $cfg.modules -and $cfg.modules.terminalMcp -eq $false) {
+  Row "SKIP" "terminalmcp" "modules.terminalMcp = false"
 } else {
   Row "WARN" "terminalmcp" "git clone https://github.com/Fonlogen/TerminalMCP `"$tmPath`""
 }
