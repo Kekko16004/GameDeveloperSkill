@@ -64,6 +64,10 @@ Vietato modellare a mano in `execute_blender_code` (ammesso: wipe, sanitize, `gd
 - `fab.enabled` false/assente → niente Fab. true: `fab.cli` o `fabcli` sul PATH; `fabcli auth status`; `fabcli download <uid> -o "<fab.library_path>"`. Solo per il realistico o per la libreria personale dell'utente.
 - `designerSkillPolicy.allowUpdate` false → non ricopiare DesignerSkill (`paths.designerSkill`).
 
+## Aggiornamento
+
+Se l'utente chiede di aggiornare la skill: `scripts/update.bat` (git pull del repo + reinstallazione con host e moduli salvati in `config.json`; i valori già impostati restano). Poi va riavviato il client.
+
 ## Cosa fa il parent
 
 1. Doctor (`scripts/doctor.ps1`).
