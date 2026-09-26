@@ -84,7 +84,8 @@ if ($unity) {
       Row "PASS" "unity-auth" "signed in"
     } else { Row "WARN" "unity-auth" "unity auth login" }
   } catch { Row "WARN" "unity-auth" "unity auth login" }
-} else { Row "FAIL" "unity-cli" "winget install Unity.CLI   OR   `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex" }
+} elseif ($cfg -and $cfg.modules -and $cfg.modules.unityCli -eq $false) { Row "SKIP" "unity-cli" "modules.unityCli = false" }
+else { Row "FAIL" "unity-cli" "winget install Unity.CLI   OR   `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex" }
 
 $blender = if ($cfg -and $cfg.paths -and $cfg.paths.blender -and (Test-Path -LiteralPath $cfg.paths.blender)) { [string]$cfg.paths.blender } else { Get-Cmd "blender" }
 if (-not $blender) {
@@ -105,7 +106,8 @@ else { Row "WARN" "blender-socket" "Open Blender -> N -> MCP for Blender -> Star
 
 if (Test-Path -LiteralPath (Join-Path $voxelDefault "mcp_server")) {
   Row "PASS" "voxelai" $voxelDefault
-} else { Row "FAIL" "voxelai" "Set paths.voxelai in config.json (folder with mcp_server)" }
+} elseif ($cfg -and $cfg.modules -and $cfg.modules.voxelMcp -eq $false) { Row "SKIP" "voxelai" "modules.voxelMcp = false" }
+else { Row "FAIL" "voxelai" "Set paths.voxelai in config.json (folder with mcp_server)" }
 
 $designCandidates = @(
   (Join-Path $env:USERPROFILE ".claude\skills\real-world-design\SKILL.md"),
@@ -143,6 +145,8 @@ if ($cfg -and $cfg.paths -and $cfg.paths.terminalmcp) { $tmPath = [string]$cfg.p
 if (-not $tmPath) { $tmPath = Join-Path $env:USERPROFILE "Desktop\Dev Things\TerminalMCP" }
 if (Test-Path -LiteralPath (Join-Path $tmPath "bin\terminalmcp.js")) {
   Row "PASS" "terminalmcp" $tmPath
+} elseif ($cfg -and $cfg.modules -and $cfg.modules.terminalMcp -eq $false) {
+  Row "SKIP" "terminalmcp" "modules.terminalMcp = false"
 } else {
   Row "WARN" "terminalmcp" "git clone https://github.com/Fonlogen/TerminalMCP `"$tmPath`""
 }

@@ -11,6 +11,7 @@ Skill multi-host (Claude Code, Kilo, Codex, Antigravity, Cursor...) che porta un
 
 ```bat
 install.bat            :: rileva host e tool, installa la skill una volta e la collega a ogni host
+update.bat             :: git pull + reinstalla con host e moduli salvati (anche game-developer\scripts\update.bat)
 start-dashboard.bat    :: console: progetto, FabCLI, DesignerSkill
 ```
 

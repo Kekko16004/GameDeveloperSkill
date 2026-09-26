@@ -1,6 +1,6 @@
 # VoxelAI
 
-Path default: `C:\Users\FRANCY\Desktop\Dev Things\VoxelAIArtist`
+Path: `paths.voxelai` in `config.json` (rilevato dall'installer in `%USERPROFILE%\Desktop\Dev Things\VoxelAIArtist`, `%USERPROFILE%\Desktop\VoxelAIArtist` o `%USERPROFILE%\Documents\VoxelAIArtist`)
 
 ## MCP
 
