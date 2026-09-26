@@ -17,6 +17,7 @@ install.bat -Copy      :: copia la skill in ogni host invece di collegarla (host
 
 ## Una volta a mano
 
+- FabCLI (solo realistico): estrai lo zip delle [release](https://github.com/zirklerite/FabCLI/releases) in `%LOCALAPPDATA%\fabcli\` e aggiungi la cartella al PATH utente; l'installer lo rileva lì o sul PATH.
 - Unity CLI (se manca): `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex`, poi `unity auth login`.
 - Blender (solo per edifici/hero prop): pannello N → MCP → Start MCP Server.
 - Realistico: Unreal **5.8+** dal Launcher; in Claude Code `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`; nel progetto abilita Unreal MCP + All Toolsets ([unreal-loop.md](game-developer/references/unreal-loop.md)).

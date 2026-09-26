@@ -118,7 +118,7 @@ $det.unityEditors = @()
 if ($det.unityCli) { try { $det.unityEditors = @((& unity editors --installed --format json --no-banner 2>$null | ConvertFrom-Json).data | ForEach-Object { $_.version }) } catch {} }
 $det.unreal = Find-Unreal
 $det.blender = Find-Blender
-$det.fabcli = Find-First @((Get-Command fabcli -ErrorAction SilentlyContinue).Source, "C:\Tools\fabcli\fabcli.exe", "$User\Tools\fabcli\fabcli.exe")
+$det.fabcli = Find-First @((Get-Command fabcli -ErrorAction SilentlyContinue).Source, "$env:LOCALAPPDATA\fabcli\fabcli.exe", "$User\.local\bin\fabcli.exe", "$User\Tools\fabcli\fabcli.exe")
 $det.uvx = Find-First @((Get-Command uvx -ErrorAction SilentlyContinue).Source, "$User\.local\bin\uvx.exe")
 $det.designerSkill = Find-SkillDir "real-world-design"
 $det.unitySkills = Find-SkillDir "unity-cli"
@@ -167,11 +167,20 @@ foreach ($c in ($existing | Select-Object -Unique)) {
 # detected values fill blanks only
 $detCfg = [pscustomobject]@{
   hosts = $pickedHosts
-  paths = [pscustomobject]@{ blender = $det.blender; unityCli = $det.unityCli; designerSkill = $(if ($det.designerSkill) { Split-Path -Parent $det.designerSkill } else { "" }); voxelai = $det.voxelai; terminalmcp = $det.terminalmcp; unreal = $(if ($det.unreal) { $det.unreal[-1] } else { "" }) }
+  paths = [pscustomobject]@{ blender = $det.blender; unityCli = $det.unityCli; designerSkill = $(if ($det.designerSkill) { Split-Path -Parent $det.designerSkill } else { "" }); voxelai = $det.voxelai; terminalmcp = $det.terminalmcp; unreal = $(if ($det.unreal) { @($det.unreal)[-1] } else { "" }) }
   fab = [pscustomobject]@{ cli = $det.fabcli }
 }
 $cfg = Merge-Obj $cfg $detCfg
-if ($userCfg) { $cfg = Merge-Obj $cfg $userCfg }
+if ($userCfg) {
+  # saved absolute paths that do not exist on this PC (e.g. copied from another machine) are dropped, so detection wins
+  if ($userCfg.paths) {
+    foreach ($pp in @($userCfg.paths.PSObject.Properties)) {
+      $v = [string]$pp.Value
+      if ($v -and [System.IO.Path]::IsPathRooted($v) -and -not (Test-Path -LiteralPath $v)) { $userCfg.paths.$($pp.Name) = "" }
+    }
+  }
+  $cfg = Merge-Obj $cfg $userCfg
+}
 
 # ------------------------------------------------------------------ install: canonical copy + junctions
 function Remove-HostFolder([string]$p) {

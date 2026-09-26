@@ -1,7 +1,7 @@
 # TerminalMCP — Controllo Totale di Sistema
 
 Repository: https://github.com/Fonlogen/TerminalMCP (Node 18+, zero-dipendenze).
-Percorso installazione: `C:\Users\FRANCY\Desktop\Dev Things\TerminalMCP`.
+Percorso installazione: `paths.terminalmcp` in `config.json` (rilevato dall'installer in `%USERPROFILE%\Desktop\Dev Things\TerminalMCP`, `%USERPROFILE%\Desktop\TerminalMCP` o `%USERPROFILE%\Documents\TerminalMCP`).
 Profilo attivo: `--tools all` (29 tool completi: shell, job, vars, search, git, fs, archive, sys, net, dev, data, watch, browser, screen, input).
 
 ## Capacità Operative Principali

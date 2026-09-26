@@ -1,6 +1,6 @@
 # UI Bridge — Da DesignerSkill a Unity UI Toolkit
 
-Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (`C:\Users\FRANCY\Desktop\DesignerSkill`) in UI native Unity UI Toolkit.
+Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (skill `real-world-design`, percorso in `paths.designerSkill` di `config.json`) in UI native Unity UI Toolkit.
 
 ---
 

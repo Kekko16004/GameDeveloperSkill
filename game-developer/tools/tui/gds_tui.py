@@ -1154,8 +1154,10 @@ def selftest() -> int:
         app.handle("n")
         assert app.mode == "main"
 
-    desktop = resolve_skill_dir(r"C:\Users\FRANCY\Desktop\DesignerSkill")
-    assert desktop is not None and (desktop / "SKILL.md").is_file()
+    installed = Path.home() / ".agents" / "skills" / "real-world-design"
+    if installed.is_dir():
+        found = resolve_skill_dir(str(installed))
+        assert found is not None and (found / "SKILL.md").is_file()
     print("selftest ok")
     return 0
 
