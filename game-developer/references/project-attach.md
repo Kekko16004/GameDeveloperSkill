@@ -71,4 +71,4 @@ Assets/_Game/Audio
 
 Copy `GDD.md` here if it lived elsewhere. Set `projectPath` and `phase: greybox`.
 
-Add a Unity `.gitignore` if git init is requested (`https://raw.githubusercontent.com/github/gitignore/main/Unity.gitignore`). Never commit `Library/`.
+Always `git init` (unless already a repo) with a Unity `.gitignore` — the 10-task checkpoints commit to it (`https://raw.githubusercontent.com/github/gitignore/main/Unity.gitignore`). Never commit `Library/`.

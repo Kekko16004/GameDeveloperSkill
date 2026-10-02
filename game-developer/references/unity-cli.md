@@ -23,6 +23,7 @@ unity command gds_ping --project-path <P>        # {"gds":..,"probuilder":true,"
 | `unity command gds_build --blueprint art/blueprints/<n>.json` | `GDS.LevelBuilder.BuildFromFile` |
 | `unity command gds_village --spec art/blueprints/village_<n>.json` | `GDS.Village.BuildFromFile` |
 | `unity command gds_lint --autofix true` | `GDS.SceneLint.RunJson` — gate `issues: 0` |
+| `unity command gds_scene_map [--depth 2] [--scene Assets/_Game/Scenes/MainGame.unity]` | `GDS.SceneMap.WriteJson` → `docs/scene-map.md` (oggetti, posizioni, script per GameObject; generata, mai a mano) |
 | `unity command gds_lookdev --preset <p> [--hdri <asset>]` | `GDS.LookDev.Apply` |
 | `unity command gds_palette --colors "#..,#.."` | `GDS.LookDev.ApplyPalette` |
 | `unity command gds_catalog --folder Assets/_Game/Art/Kits/<f>/<pack>` | `GDS.KitCatalog.BuildJson` |

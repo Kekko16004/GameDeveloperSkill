@@ -6,7 +6,7 @@ param(
   [switch]$NoPipeline
 )
 # Copies the GDS layer into a Unity project:
-#   Assets/_Game/Editor/GDS   (LevelBuilder, Village, World, SceneLint, LookDev, Shots, KitCatalog, VFX, Characters, PB, CLI commands)
+#   Assets/_Game/Editor/GDS   (LevelBuilder, Village, World, SceneLint, SceneMap, LookDev, Shots, KitCatalog, VFX, Characters, PB, CLI commands)
 #   Assets/_Game/Scripts/GDS  (runtime: Noise, VoxelWorld, VoxelInteractor)
 # Adds ProBuilder + glTFast (+ optional toon/outline/volumetric) to the manifest and the Unity CLI Pipeline package,
 # so `unity command eval` and the gds_* commands work against the open Editor.

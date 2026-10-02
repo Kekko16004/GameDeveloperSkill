@@ -41,4 +41,18 @@ Parent after each worker:
 10. For art-review: 7 scores with evidence, average ≥ 4 and none < 3, or a fix list naming spec files. Scores without the PNG paths → FAIL.
 11. For playtest: Read the Play Mode PNG. If no HUD text / no menu / unreadable goal → FAIL. Unity primitives visible or no Volume → FAIL.
 
+Checkpoint (ogni 10 task, [task-decomposition.md](task-decomposition.md)):
+
+```
+phase: checkpoint-3
+status: PASS
+range: TASK-021..TASK-030
+console: 0
+tests: {"passed":14,"failed":0}
+lint: {"issues":0}
+scripts: {"todo":0,"notImplemented":0,"missingFromRegistry":0}
+scene_map: docs/scene-map.md
+commit: 3f2a91c
+```
+
 Template empty: `status: FAIL` + `missing:`.

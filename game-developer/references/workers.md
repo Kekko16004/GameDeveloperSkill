@@ -1,20 +1,24 @@
 # Workers — un job, un cervello, zero pigrizia
 
-Il parent **non implementa**. Lancia `Task` (`subagent_type: general`, `background: false`). Ogni worker riceve SOLO il prompt sotto, più 8 righe di contesto. Niente transcript precedente, niente "poi faccio anche la UI".
+Il parent **non implementa**. Lancia un subagent isolato per ogni task/fase. Ogni worker riceve SOLO il blocco PHASE sotto più le 9 righe di contesto. Niente transcript precedente, niente "poi faccio anche la UI".
 
-Se un worker chiude senza i file del gate, il parent **rilancia lo stesso worker** (stesso prompt + "GATE ROSSO: manca X"). Max 2 retry. Poi FAIL visibile all'utente.
+| Host | Come si lancia un worker |
+|---|---|
+| Claude Code | tool `Agent`, `subagent_type: "general-purpose"` (in foreground; più chiamate nello stesso messaggio = parallelo) |
+| Kilo Code / OpenCode | tool `Task`, `subagent_type: general` |
+| Antigravity / monochat | niente subagent → `session-mode: hard-stop` ([session-cuts.md](session-cuts.md)) |
 
 Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Style `realistic` → stessi worker, tool di [unreal-loop.md](unreal-loop.md).
 
 ## Contesto minimo (le uniche 9 righe per ogni worker)
 
 ```
-PROJECT=<abs path Unity/Godot>
+PROJECT=<abs path Unity/Unreal>
 GDD=<abs path GDD.md>
 CONTEXT=<abs path GAME_CONTEXT.md>
 TASKS=<abs path GAME_TASKS.md>
 SKILL=<abs path game-developer/>
-PHASE=<id>
+PHASE=<id> (+ TASK-id)
 ENGINE=unity|unreal
 STYLE=<GDD style + famiglia kit + lookdev preset>
 GENRE=<riga di genres.md>
@@ -22,17 +26,27 @@ GENRE=<riga di genres.md>
 
 Vietato incollare conversazioni, screenshot chat, o "abbiamo già fatto greybox". Il worker rilegge `GDD.md`, `GAME_CONTEXT.md`, `GAME_TASKS.md`, `art/kit-catalog.json`, `art/blueprints/` e `docs/gates/` da disco.
 
+## Retry
+
+Se un worker chiude senza i file del gate, il parent **rilancia lo stesso worker** con lo stesso prompt più `GATE ROSSO:` e **l'errore preciso**: la riga mancante del gate, il JSON di lint/build con `issues > 0`, le prime righe di `unity command console` o del test fallito. Mai solo "manca X". Max 2 retry, poi `[!]` (vedi il ciclo in [task-decomposition.md](task-decomposition.md)).
+
+## Un solo Editor Unity: lock
+
+C'è un Editor e una scena: due worker che compilano, costruiscono o lintano insieme si rovinano il risultato a vicenda. Per andare veloci si **separa il lavoro**:
+
+- **Fuori da Unity, in parallelo (max 3 worker):** scrivere blueprint / world / village / spec Blender, script C# (senza `recompile`), mock UI, ricerca e download degli asset, Blender headless.
+- **Dentro Unity, uno alla volta:** prima di qualsiasi `unity command` (recompile, `gds_build/world/village`, `gds_lint`, `run_tests`, `editor_play`, `gds_shot/sheet`):
+  ```
+  powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id>
+  ... tutta la sequenza Unity (build → lint → shot) ...
+  powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id> -Release
+  ```
+  La sequenza va tenuta corta: niente ragionamenti lunghi mentre hai il lock, correggi il JSON e rientra. Rilascia anche se fallisci. Il lock più vecchio di 10 minuti viene considerato abbandonato.
+- Un worker solo (fase sequenziale) prende comunque il lock: costa zero e protegge da worker rimasti appesi.
+
 ## Come lanciare
 
-```
-Task:
-  description: <phase id>
-  subagent_type: general
-  prompt: <blocco PHASE x da questo file, con le 8 righe sostituite>
-```
-
-Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → ui → juice → art-review → playtest).
-Art: **un blueprint per worker** per level-build (parallelo max 3 blueprint indipendenti), **fino a 3 hero asset in batch** per hero-asset.
+Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → ui → juice → art-review → playtest). Dentro la stessa fase: task liberi (colonna `Dipende` soddisfatta) in parallelo, max 3, con la regola del lock qui sopra. Art: **un blueprint per worker** per level-build, **fino a 3 hero asset in batch** per hero-asset. Systems e UI possono girare in parallelo all'art finché non toccano la stessa scena senza lock.
 
 ---
 
@@ -56,6 +70,7 @@ Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-at
 3. Apri/lascia aprire l'Editor: `unity command recompile` → `recompile_status` completed → `unity command console` 0 errori. `unity command package_add` per Cinemachine se il GDD lo usa.
 4. Verifica: `unity command gds_ping` e `unity command gds_lint` rispondono JSON.
 5. Se `GDD gen3d: meshy|tripo`: verifica che `MESHY_API_KEY`/`TRIPO_API_KEY` sia nell'env del MCP (non chiederla in chat, non loggarla).
+6. Git: se il progetto non è già un repo, `git init` + `.gitignore` Unity (Library/, Temp/, Logs/, obj/, UserSettings/, Build*/, `Assets/_Game/Art/AssetStore/`, `art/cc0/**/*.zip`) + primo commit `project: GDS ready`. Serve ai checkpoint ogni 10 task.
 Crea le cartelle `art/ blender/ voxel/ cc0/ exports/ blueprints/`, `screenshots/`, `ui/`, `docs/gates/`, `docs/lint/`, `Assets/_Game/...`.
 NON modellare, NON scrivere gameplay, NON UI.
 Scrivi `docs/gates/04-project.md` con `projectPath`, versione Unity, output di `GDS.SceneLint.RunJson()` e `PASS`.
@@ -144,9 +159,9 @@ Gate: `docs/gates/07-building-<name>.md` per edificio con `GDS_RESULT`, PNG, FBX
 Tu fai SOLO UN blueprint: `$BP_NAME` (riga di `art/blueprints/PLAN.md`). Leggi `level-builder.md`, `scene-lint.md`, `geometra.md`, `art/kit-catalog.json`.
 1. Scegli dal catalogo i file per i ruoli `floor wall wallDoor wallWindow corner roof stair` (stessa famiglia). Se manca `wall`/`floor` nel kit → `mode: probuilder` (interni/dungeon) oppure edificio `building-gen` come `props` con `collider: mesh`. MAI cubi Unity.
 2. Scrivi `art/blueprints/$BP_NAME.json`: pianta con `volumes` (L/T/U se PLAN.md lo dice), `openings` per volume, `partitions` interne con porta, `stairs` + `floorHoles` se >1 piano, `attach` (lanterne, insegne, tende, fioriere: almeno 2 per facciata visibile), `fences` se il lotto ne ha, `props` interni con coordinate relative, `scatter` esterno con `avoidRadius`.
-3. `unity command gds_build --blueprint art/blueprints/$BP_NAME.json` → leggi `missingRoles`/`warnings`, correggi il JSON e rilancia finché `missingRoles: []`.
+3. Lock Unity (`unity-lock.ps1 -Owner level-build:$BP_NAME`), poi `unity command gds_build --blueprint art/blueprints/$BP_NAME.json` → leggi `missingRoles`/`warnings`, correggi il JSON e rilancia finché `missingRoles: []`.
 4. `unity command gds_lint --autofix true` poi `gds_lint` → `issues: 0`. Un muro per linea condivisa: lint deve mostrare `overlappingWalls: 0 overlappingFloors: 0` (se no: correggi `openings`/`omit`/`wallOwner` e ricostruisci i DUE blueprint della linea; warning "built by X, not in the scene" = costruisci X).
-5. `unity command gds_shot --out screenshots/020-build-$BP_NAME.png --view orbit1`.
+5. `unity command gds_shot --out screenshots/020-build-$BP_NAME.png --view orbit1`, poi rilascia il lock (`-Release`). Se il build fallisce: rilascia, correggi il JSON fuori lock, rientra.
 VIETATO: `manage_gameobject` per piazzare muri, ProBuilder MCP face-by-face, Blender, seconda famiglia, "visto che ci sono faccio anche la casa B".
 Gate: `docs/gates/07-build-$BP_NAME.md` con `build:` JSON, `lint:` JSON, PNG. Parent Read del PNG solo per stile (coerenza famiglia), non per misurare.
 

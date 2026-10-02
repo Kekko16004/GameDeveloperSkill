@@ -30,20 +30,13 @@
 ---
 
 ## 2. Architettura Tecnica & Setup Engine
-- **Engine:** Unity `[Versione LTS es. 2022.3 / 6000.x]`
-- **Render Pipeline:** URP (Universal Render Pipeline - 3D Core)
+- **Engine:** Unity `[6000.x]` URP (stile realistico: Unreal 5.8, vedi unreal-loop.md)
 - **Percorso Assoluto Progetto:** `[Path cartella Unity sul disco]`
-- **Build Settings & Scene Attive:**
-  - `Index 0:` `Assets/_Game/Scenes/MainMenu.unity` (Schermata Iniziale obbligatoria)
-  - `Index 1:` `Assets/_Game/Scenes/MainGame.unity` (Scena di Gameplay Vertical Slice)
-- **Stato Connessioni Tool & MCP:**
-   - `Unity MCP (CoplayDev):` Attivo (scene, prefab, script, console, ProBuilder)
-   - `Kit CC0:` Kenney/KayKit in `art/cc0/` (default art)
-   - `Blender MCP:` Poly Pizza import se ledger source=polypizza; sanitize only
-   - `TerminalMCP:` Attivo (OS, screenshot, input)
-   - `Blender MCP:` `uvx mcp-for-blender` stdio → TCP 9876 (non HTTP /mcp)
-   - `Poly Pizza:` fill props se il kit manca il pezzo
-   - `Sloyd / Hunyuan:` Vietati di default
+- **Build Settings:** `Index 0` `Assets/_Game/Scenes/MainMenu.unity` (obbligatorio) · `Index 1` `Assets/_Game/Scenes/MainGame.unity`
+- **Ponte Unity:** Unity CLI (`unity command gds_*`, `eval`, `run_tests`) primario; CoplayDev unity-mcp solo fallback
+- **Art:** famiglia `[kenney|kaykit|quaternius|synty]` in `art/cc0/` + `art/kit-catalog.json`; hero prop via Blender MCP (`uvx mcp-for-blender` stdio); gen3d solo se il GDD lo permette
+- **Look:** preset `[gds_lookdev preset]`, palette `[hex...]`
+- **Git:** repo nel progetto, commit di checkpoint ogni 10 task (vedi task-decomposition.md)
 
 ---
 
@@ -60,20 +53,8 @@
 
 ---
 
-## 4. Mappa degli Oggetti Principali nella Scena (`MainGame.unity`)
-*Nota: Mappatura spaziale e funzionale degli elementi presenti nella scena attiva.*
-
-| Nome GameObject | Percorso Gerarchico Scena | Scopo nella Scena | Prefab Origine | Componenti Chiave | Coordinate Mondo (X, Y, Z) | Note Interazione / Fisica |
-|---|---|---|---|---|---|---|
-| `Ground` | `Environment/Ground` | Piano di calpestio principale dell'arena | Primitiva / Tile | `MeshFilter`, `MeshRenderer`, `BoxCollider` | `(0, 0, 0)` | Statico, Layer `Default` |
-| `Player` | `Characters/Player` | Pedina controllata dal giocatore | `Player.prefab` | `CharacterController`, `PlayerController`, `AudioListener` | `(0, 1, 0)` | Dinamico, Tag `Player` |
-| `MainCamera` | `Characters/Player/CameraMount/MainCamera` | Vista in prima/terza persona | Primitiva Camera | `Camera`, `UniversalAdditionalCameraData` | `(0, 1.7, -2.5)` | Segue orientamento mouse |
-| `House_Structure` | `Environment/Buildings/House_Structure` | Casa medievale esplorabile | `House.prefab` | `MeshFilter`, `MeshRenderer`, `MeshCollider` (convex=false) | `(0, 0, 15)` | Statico, ostacolo fisico |
-| `Door_Hinge` | `Environment/Buildings/House_Structure/Door_Hinge` | Porta d'ingresso apribile | `Door.prefab` | `DoorInteractable`, `BoxCollider` (trigger), `AudioSource` | `(0, 0, 13.5)` | Interattivo con tasto [E] |
-| `Table_Rustic` | `Environment/Props_Interior/Table_Rustic` | Tavolo da pranzo interno alla casa | `TableRustic.prefab` | `MeshFilter`, `BoxCollider` | `(1.5, 0, 16.5)` | Arredo statico |
-| `Chair_01` | `Environment/Props_Interior/Chair_01` | Sedia rustica attorno al tavolo | `ChairRustic.prefab` | `MeshFilter`, `BoxCollider` | `(1.5, 0, 15.8)` | Arredo statico |
-| `Barrel_01` | `Environment/Props_Exterior/Barrel_01` | Barile in legno all'esterno | `Barrel.prefab` | `MeshFilter`, `Rigidbody`, `CapsuleCollider` | `(-3.2, 0, 13.5)` | Fisico / Mobile se urtato |
-| `UIDocument_HUD` | `UI/UIDocument_HUD` | Renderizza HUD Toolkit (obiettivi, prompt) | `HUD.uxml` | `UIDocument`, `PanelSettings`, `HUDController` | Overlay Screen | Schermo 2D |
+## 4. Mappa della Scena — GENERATA
+Non scrivere oggetti o coordinate a mano qui: invecchiano al primo rebuild. La mappa vera è `docs/scene-map.md`, rigenerata con `unity command gds_scene_map` a ogni checkpoint (o `eval "return GDS.SceneMap.WriteJson();"`). Le posizioni autoritative stanno nei JSON (`art/world/`, `art/blueprints/`, village spec).
 
 ---
 
@@ -112,7 +93,7 @@
 
 ---
 
-## 6. Progressi nel Tempo & Decisioni Architetturali
+## 6. Decisioni (solo aggiunte in coda, una riga ciascuna, mai riscrivere le vecchie)
 - `[YYYY-MM-DD HH:MM]` **Scaffold Iniziale:** Creata struttura directory `Assets/_Game/`.
 - `[YYYY-MM-DD HH:MM]` **Greybox PASS:** Movimento base validato con test `PlayerMovementTests.cs`.
 - `[YYYY-MM-DD HH:MM]` **Decisione Rendering:** Scelto URP Lit con palette desaturata per enfatizzare l'atmosfera rustica medievale.

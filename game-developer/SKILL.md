@@ -81,11 +81,14 @@ Se l'utente chiede di aggiornare la skill: `scripts/update.bat` (git pull del re
 9. Worker **ui-main-menu**, **ui-hud**, **ui-pause**, **ui-gameover** (real-world-design, 3-4 varianti, SCELTA UTENTE per ciascuna).
 10. Worker **juice** → **art-review** (seconda passata) → **playtest** → **slice** solo se tutti i gate PASS.
 
+**Ciclo task** ([task-decomposition.md](references/task-decomposition.md)): `Inizio`/`Durata` su ogni riga, `[!]` dopo 2 retry non ferma la catena (si va avanti con i task che non dipendono da lui), **checkpoint ogni 10 task `[x]`** e prima di art-review/playtest/slice: tutti i test + lint + scansione script + `gds_scene_map` + git commit.
+
 **Sessione:** `continuous` (Claude Code / Kilo con subagent): il parent incatena le fasi, memoria su disco. `hard-stop` (Antigravity / monochat): banner + `/resumegame` dopo ogni macrotask ([session-cuts.md](references/session-cuts.md)).
 
 ## Isolamento (tassativo)
 
-- `Task` con `subagent_type: general`. Prompt = blocco di workers.md + 9 righe. Niente history.
+- Claude Code: tool `Agent` con `subagent_type: "general-purpose"`; Kilo/OpenCode: `Task` `general` ([workers.md](references/workers.md)). Prompt = blocco di workers.md + 9 righe. Niente history.
+- Un solo Editor Unity: lavoro fuori da Unity (JSON, script, Blender, mock) in parallelo; ogni `unity command` dietro `scripts/unity-lock.ps1`.
 - Il worker non fa altre fasi. Il parent rilegge solo `docs/gates/*.md` e `docs/lint/*.json`.
 - "Ho costruito X" senza spec/blueprint JSON + JSON di build + PNG = FAIL. "Ho usato Blender" senza `screenshots/blender-*.png` e GLB = FAIL. Gate di scena senza `lint: {"issues":0` = FAIL.
 

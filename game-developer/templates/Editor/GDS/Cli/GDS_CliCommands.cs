@@ -37,6 +37,11 @@ namespace GDS
         public static string Lint([CliArg("autofix", "true to snap + add colliders + convert materials")] string autofix = "false")
             => SceneLint.RunJson(autoFix: B(autofix));
 
+        [CliCommand("gds_scene_map", "Write docs/scene-map.md: objects, positions, game scripts per GameObject (replaces the hand-written map)")]
+        public static string Map([CliArg("depth", "hierarchy levels always listed; deeper objects only if they carry a game script")] string depth = "2",
+                                 [CliArg("scene", "optional comma-separated scene paths to open additively (batchmode)")] string scene = "")
+            => SceneMap.WriteJson(int.TryParse(depth, out var d) ? d : 2, scene);
+
         [CliCommand("gds_lookdev", "Sun, fog, sky, URP Volume, camera post from a preset")]
         public static string Look([CliArg("preset", "stylized-day | stylized-sunset | dungeon-torch | night-moon | pastel-bright | scifi-cold | toon-bright | realistic-overcast")] string preset = "stylized-day",
                                   [CliArg("hdri", "optional .hdr asset path used as skybox")] string hdri = "")

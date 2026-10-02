@@ -22,6 +22,7 @@ Call path: `unity command gds_*` (registered) → `unity command eval "return GD
 | `GDS.Shots` | `return GDS.Shots.Capture("screenshots/x.png", 1600, 900, "aerial");` (`gds_shot`) / `Sheet(prefix)` (`gds_sheet`) | PNG from a real camera render (post included, works headless) |
 | `GDS.SceneLint` | `return GDS.SceneLint.RunJson();` | `docs/lint/scene-lint.json`: buried / floating / noCollider / pink / nonUrp / outOfBounds |
 | | `return GDS.SceneLint.RunJson(autoFix:true);` | snaps to ground, adds box colliders, converts non-URP materials (reimport / shader swap), then report |
+| `GDS.SceneMap` | `return GDS.SceneMap.WriteJson();` (`gds_scene_map`) | `docs/scene-map.md`: objects up to depth 2 + every deeper object with a game script, positions, components |
 | `GDS.LookDev` | `return GDS.LookDev.Apply("stylized-day");` | sun, ambient, fog, skybox, Volume (ACES/bloom/color/vignette), camera post, URP quality, SSAO |
 | | `GDS.LookDev.ApplyPalette(new[]{"#8C5A3C","#B8B0A0"})` / `ConvertMaterials("Universal Render Pipeline/Lit","Toon")` | palette materials / toon swap |
 | `GDS.VFX` | `return GDS.VFX.CreateAll();` / `AttachTorches("torch")` | dust, hit, pickup, torch(+light), smoke, sparkle prefabs |
