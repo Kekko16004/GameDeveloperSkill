@@ -49,6 +49,7 @@ Continuare in QUESTA chat e VIETATO. Lo slice verra marcato FAIL.
 | ui-gameover | DesignerSkill: 3-4 varianti coerenti col menu → STOP scelta utente → UXML |
 | juice | SFX |
 | playtest | QA |
+| checkpoint | ogni 10 task `[x]`: test + lint + scansione script + scene map + commit ([task-decomposition.md](task-decomposition.md)) |
 | slice | recap gate |
 
 `/game` fa al massimo **una** macrotask dopo il lock GDD, poi HARD STOP.
