@@ -44,10 +44,26 @@
 23. **Target platform & performance**: PC only | + WebGL | + mobile; target FPS (60 default).
 24. **Look extras**: toon shader yes/no, outline yes/no, HDRI sky name or none, post intensity (subtle / strong).
 
+## Block E — Quality baseline (asked, with recommended defaults)
+
+Detail and the "why" of each item: [quality-baseline.md](quality-baseline.md). Ask the whole block in one turn; "ok consigliati" takes every default. Tell the user first, as a statement (not a question): *"Always included: key remapping (keyboard + pad, restore defaults), text size, reduced motion, scene fades ≤ 0.5 s that can be skipped, hover/focus on every button."* Every "no" below goes into `DECISIONI.md` and is not proposed again.
+
+25. **Accessibility extras** — which of these? High contrast · One-hand preset · Colour-blind symbols (icon next to every colour state) · Hold/toggle for held inputs · Relax/assist mode (e.g. no fail timer). *Recommended: all five; one-hand only if the core verb needs both hands at once; relax mode for skill-heavy or timed games.* Follow-up if relax = yes: what does it remove (timer, fail, damage)?
+26. **Notifications** — short (icon + 2-3 words; full sentence only the first time) and one at a time? *Recommended: yes + yes.* Alternative: full sentences always (story-heavy games).
+27. **Shared numbers** — numbers shown on several screens (score, money, quota): one source of truth + an automatic consistency check? *Recommended: yes* (cheap now, painful later).
+28. **Onboarding** — (a) tutorial of ≤ 4 steps on the core verb, (b) first-time hints at the first real occasion, (c) dense screens (shop, upgrades, inventory) that reveal items gradually. *Recommended: a + b + c.* Follow-up: which verb is the tutorial about, and which verb must stay available from the start?
+29. **Languages** — how many and which, at the slice/beta? *Recommended: EN + your language now, string table ready for more; 8+ (EN, ES, FR, DE, PT-BR, RU, ZH, JA, + AR/KO) if selling worldwide on Steam.* Any CJK or Arabic → font fallback + RTL tasks are added. Strings are never hard-coded either way.
+30. **Playtest kit** — opt-in local telemetry CSV per level, a demo/fresh-profile build that never touches your saves, a tester README with 10 questions? *Recommended: yes to all three* when real testers are planned. Follow-up: how will testers send files back (email, Discord, form)?
+31. **Store capture** — will the game be sold or shown on a store page? If yes: an Editor-only capture tool (HUD full / minimal / none, prompts hidden, fixed seeds, store-size screenshots + GIF frames). *Recommended: yes if sold; no for a jam/private prototype.*
+
+After the lock, if `game-launch-strategist` is installed: offer the early market check once ([launch-link.md](launch-link.md) §10). Offered, not forced.
+
 ## Lock
 
-- Recap as a table: **Declared** vs **Inferred** (inferred rows in bold so the user can correct them).
+- Recap as a table: **Declared** vs **Inferred** (inferred rows in bold so the user can correct them). Block E rows show the ESSENTIAL items as "always".
 - For `user-provided`/`hybrid`: preview the asset manifest.
 - Correction → update and show the recap again. Approved → `status: locked`, then the project phase.
 
-`GDD.md` must contain: `genre`, `style`, `engine`, `world`, `worldSize`, `camera`, `lookdev`, `palette`, `verbs`, `win`, `fail`, `enemies`, `ui`, `session-mode`, `assets`, `gen3d`, `gen3dBudgetCredits`, `gen3dMaxAssets`, `assetStore`, `fab`, `gpu`, `vram`, `platform`, `toon`, `outline`, `hdri`.
+`GDD.md` must contain: `genre`, `style`, `engine`, `world`, `worldSize`, `camera`, `lookdev`, `palette`, `verbs`, `win`, `fail`, `enemies`, `ui`, `session-mode`, `assets`, `gen3d`, `gen3dBudgetCredits`, `gen3dMaxAssets`, `assetStore`, `fab`, `gpu`, `vram`, `platform`, `toon`, `outline`, `hdri`, `a11y`, `notifications`, `sharedNumbers`, `onboarding`, `languages`, `playtestKit`, `storeCapture`, `sold`.
+
+At lock the parent writes every owner choice that closes a topic (languages, platforms, Block E "no"s, style) into `DECISIONI.md` with the date.

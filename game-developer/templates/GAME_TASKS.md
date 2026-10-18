@@ -10,6 +10,7 @@
 ## Legenda
 - `[ ]` da fare · `[/]` worker attivo · `[x]` fatto con evidenza · `[!]` bloccato dopo 2 retry (motivo in Note; i task che non dipendono da lui vanno avanti)
 - **Dipende:** ID dei task che devono essere `[x]` prima (vuoto = libero). Un `[!]` blocca solo chi lo cita qui.
+- **Note:** `fg:wNN key:<chiave>[,<chiave>] gate:NN` per i task nati da un'ondata del focus group (piano `docs/gates/plan-wNN.md`, launch-link.md §5); alla chiusura del gate il parent lancia `gate_link.py apply-status --write` e `todo --run`.
 - **Inizio:** `HH:MM` quando passa a `[/]`. **Durata:** minuti quando chiude (`[x]` o `[!]`), retry inclusi.
 
 | ID | Fase | Descrizione (tutti i numeri che servono al worker) | Spec / File | Evidenza | Dipende | Stato | Inizio | Durata | Note |

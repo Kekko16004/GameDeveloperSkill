@@ -81,6 +81,21 @@ hdri: none                # Poly Haven HDRI id for the skybox, or none
 fab: no                   # yes = FabCLI library allowed (realistic)
 worldSpec: art/world/<name>.json   # GDS.World spec when world is procedural
 
+## Quality baseline (Q25–Q31, quality-baseline.md)
+a11y-essential: remap-kb-pad+restore, text-size, reduced-motion   # always, not asked
+ui-essential: fades<=0.5s-skippable, hover+focus-every-button      # always, not asked
+a11y: [high-contrast, one-hand, colourblind-symbols, hold-toggle, relax]   # Q25, default all
+notifications: short+one-at-a-time   # Q26: short+one-at-a-time | full-sentences
+sharedNumbers: single-source+check   # Q27: yes (recommended) | no
+onboarding: tutorial<=4+first-hints+progressive   # Q28; tutorialVerb: <verb>; alwaysAvailable: <verb>
+languages: [en, it]                  # Q29; CJK/AR → font fallback + RTL tasks
+stringTable: Assets/_Game/Localization/strings.csv   # key,context,max_chars,<lang...>
+playtestKit: telemetry-csv+fresh-profile+tester-readme   # Q30; return channel: <email|discord|form>
+sold: yes                            # will it be sold / on a store page
+storeCapture: yes                    # Q31; default yes when sold: yes
+feelBaseline: docs/tests/feel-baseline.json   # written by the feel-baseline phase
+decisions: DECISIONI.md              # every owner decision, dated; workers read it first
+
 ## Art
 genre-kit: dungeon|medieval|scifi|city|pirate|interior|prototype
 production: kits          # kits | kits+polypizza | voxel | user-provided

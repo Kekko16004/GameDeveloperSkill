@@ -40,6 +40,23 @@ Parent after each worker:
 9. For world-gen: `docs/lint/world-<name>.json` `status: PASS`, `warnings: []`, `art/world/<name>.json` on disk, review PNGs.
 10. For art-review: 7 scores with evidence, average ≥ 4 and none < 3, or a fix list naming spec files. Scores without the PNG paths → FAIL.
 11. For playtest: Read the Play Mode PNG. If no HUD text / no menu / unreadable goal → FAIL. Unity primitives visible or no Volume → FAIL.
+12. **Feel regression** ([playtest.md](playtest.md) § Feel in scena reale): any gate touching physics, controller, tuning, colliders or the level scene must carry `feel: {"baseline":"docs/tests/feel-baseline.json","worse":[]}` from the suite run **in the real level**. `worse` not empty → FAIL unless `DECISIONI.md` has the owner's approval for that case. A feel sim in an empty test scene does not count.
+13. **Captures**: every screenshot/clip used as evidence for playtest, focus group or store has a `produced:` label; a capture made by a helper that changed game state (timer held, score/tips added, events placed by hand) → FAIL, redo with a real seed or real systems.
+14. **Evidence location**: any evidence path under `Temp/` or `Library/` → FAIL (Unity wipes them on close). Move it to `captures/`, `screenshots/` or `docs/`.
+15. **Report vs brief** ([workers.md](workers.md) § Contratto): the gate ends with the fixed report; every DO item is in "Fatto" with a path or in "Aperto"; writes outside OWNS only under "Deviazioni"; a "stop sui file" is handled by the parent before the next worker. Mismatch → FAIL, re-run.
+16. **DECISIONI**: a gate or report that lists as a problem, or changes, something settled in `DECISIONI.md` → that part is struck; repeated → FAIL.
+
+### Iteration gates (after the slice: waves, owner notes) — [launch-link.md](launch-link.md) §7, [templates/gate.md](../templates/gate.md)
+
+17. **Header**: `python SKILL/scripts/gate_link.py --project PROJECT check docs/gates/NN-*.md` ✅. Missing header, empty `risks`/`owner_try`, screenshot not on disk, a decision key in `closes` → FAIL.
+18. **Real mechanic, normal play**: every fix is verified in the real scene in ordinary play, from every side/situation the player meets it (front / side / rear, standing / running, with and without the related perk/option), numbers before → after. Verified only in the reported case → FAIL.
+19. **Screenshots looked at**: each one cited with one line on what it shows; a screenshot that contradicts the text (or shows an old version) → FAIL or say so in the gate.
+20. **Saves**: any Play/exe session that can write saves or prefs has `saves: backup + restore identical` (hash check). Missing → FAIL.
+21. **No unrequested builds**; **no test suites** when `DECISIONI.md` says the owner tests himself (compile 0, lint, deterministic checks and the real-scene feel sim stay).
+22. **Design changes and attribution**: every difference from the brief is in `design_changes` with `decided_by`; "the owner asked" without a source → FAIL.
+23. **Regression loop**: `risks` lists the gameplay risks the gate introduces (harder, slower, more UI, new interactions); the next wave or real test re-checks them.
+24. **Orphans**: a gate that redesigns screens, menus, shops, flow or progression has the `design_review.py screens --before` result in the gate: nothing lost its entry point, or it was retired on purpose (`hidden-ok` + source).
+25. **Hand-off** (when `launch/` exists): after PASS the parent runs `gate_link.py apply-status --write` and `gate_link.py todo --run`; before a wave `gate_link.py since --out docs/design-review/changes-since-wNN.md`.
 
 Checkpoint (ogni 10 task, [task-decomposition.md](task-decomposition.md)):
 
@@ -50,9 +67,22 @@ range: TASK-021..TASK-030
 console: 0
 tests: {"passed":14,"failed":0}
 lint: {"issues":0}
+feel: {"baseline":"docs/tests/feel-baseline.json","worse":[]}
 scripts: {"todo":0,"notImplemented":0,"missingFromRegistry":0}
 scene_map: docs/scene-map.md
 commit: 3f2a91c
+```
+
+Gate with feel and report (any phase touching the core verb):
+
+```
+phase: systems
+status: PASS
+lint: {"issues":0}
+tests: {"passed":22,"failed":0}
+feel: {"baseline":"docs/tests/feel-baseline.json","cases":6,"worse":[]}
+captures: captures/2026-10-17/manifest.json   # produced: seed:42, hud:none
+report: (fixed block of templates/worker-report.md)
 ```
 
 Template empty: `status: FAIL` + `missing:`.

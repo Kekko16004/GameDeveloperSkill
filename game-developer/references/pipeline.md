@@ -5,7 +5,8 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 
 ```
 0  doctor                          parent
-1-3 GDD interview (blocchi A-D, domande adattive) + LOCK   parent parla; oppure worker gdd
+1-3 GDD interview (blocchi A-E, domande adattive) + LOCK   parent parla; oppure worker gdd
+3m controllo di mercato precoce     OFFERTO (game-launch-strategist Mirata, launch-link.md), non imposto
     style realistic → engine unreal: stesse fasi, tool di unreal-loop.md
 4  project attach|create + GDS editor scripts + packages     worker project
 5  task-decomposition               worker task-decomposition (GAME_TASKS + GAME_CONTEXT + ASSET-LEDGER + lista blueprint)
@@ -21,12 +22,20 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 8r art-review                       worker art-review (gds_sheet + rubric R1-R7, media ≥ 4, fix list → rilancio fasi)
 9  characters (+ navmesh se nemici) worker characters (GDS.Characters + skill initialize-ai-navigation)
 10 systems + test per verbo         worker systems
+10f feel-baseline                   worker feel-baseline (sim del verbo core nella scena VERA → docs/tests/feel-baseline.json)
 11a Main Menu UI Toolkit            worker ui-main-menu   <-- obbligatorio (Variant Studio: 3-4 varianti → scelta utente → UXML)
 11b HUD / 11c Pause / 11d GameOver   worker ui-hud / ui-pause / ui-gameover (Variant Studio: 3-4 varianti coerenti col menu → scelta utente ciascuna)
+11e baseline-* (a11y, ui-quality, onboarding, loc, playtest-kit, store-capture)   worker baseline-<item> (quality-baseline.md)
 12 juice (VFX + audio + hit-stop)   worker juice (gds_vfx + audio-pipeline)
 12r art-review                      worker art-review (seconda passata, con VFX e UI)
 13 playtest                         worker playtest (SceneLint 0 + Play Mode + WASD + screenshot)
 14 slice recap                      worker slice  (FAIL se un gate e rosso)
+
+--- dopo la slice: iterazione (ondate del focus group o note del proprietario) ---
+15 design-review                    worker design-review (mappa del gioco + mappa schermate + run a tempi, sola lettura)
+16 piano dei gate                   parent: docs/gates/plan-wNN.md solo con le proposte approvate (launch-link.md §5)
+17 iterate-gate (uno per gate)      worker iterate-gate → gate con header → gate_link.py check / apply-status / todo
+18 design-review "dopo"             run toccate con --before; controllo orfani dopo un redesign; poi il prossimo gate
 ```
 
 `session-mode: continuous` (Claude Code / Kilo con subagent): il parent lancia il worker successivo appena il gate e PASS, senza fermarsi. `hard-stop` (Antigravity / monochat): banner + `/resumegame` dopo ogni riga (vedi session-cuts.md).
@@ -48,6 +57,13 @@ Ogni fase legge/scrive solo file piccoli e strutturati, mai la chat:
 | `art/blueprints/*.json` | level-build (uno per edificio/area), village (`village_*.json`) | level-build / village (rebuild), playtest |
 | `docs/lint/scene-lint.json`, `docs/lint/build-*.json` | GDS scripts | parent (gate) |
 | `docs/gates/NN-*.md` | ogni worker | parent, slice |
+| `DECISIONI.md` | parent (ogni decisione del proprietario, con data) | **tutti, per primo** |
+| `docs/progress/<PHASE>-<TASK>.md` | il worker, dopo ogni passo | lo stesso worker quando riparte |
+| `docs/tests/feel-baseline.json` | feel-baseline | ogni gate che tocca il verbo core, playtest |
+| `launch/**` (ondate, sintesi, proposte, `TODO.md`, `00-intenzioni.md`) | game-launch-strategist | parent (piano dei gate, [launch-link.md](launch-link.md) §5) |
+| `launch/issue_status.json` | game-launch-strategist; dal parent **solo** con `gate_link.py apply-status` | parent, worker iterate-gate (sola lettura) |
+| `docs/design-review/*.md` (mappa, schermate, run, `changes-since-wNN.md`) | design-review; `gate_link.py since` | parent, iterate-gate, game-launch-strategist (stato attuale) |
+| `docs/gates/plan-wNN.md` | parent | iterate-gate, game-launch-strategist |
 
 ## File gate
 
@@ -86,6 +102,15 @@ Senza questo file la fase non e fatta. Chat "fatto" non conta. Senza riga `lint:
 | Gioco parte in FP senza menu | retry ui-main-menu. Slice bloccata |
 | Screenshot illeggibile | retry hud + playtest |
 | Worker ha fatto 3 fasi in un turno | scarta il lavoro extra |
+| Report vago o diverso dal brief, file fuori OWNS | FAIL, rilancio con la differenza (workers.md § Contratto) |
+| Worker ripropone una cosa già in `DECISIONI.md` | togli la parte, ricorda la riga D-NNN nel prompt del rilancio |
+| Worker attribuisce al proprietario una scelta non nel brief | correggi in `decided_by: implementer`, dillo al proprietario così com'è |
+| Fix provato solo nel caso del report (es. colpo di fronte, non di lato) | rilancio: meccanica vera nel gioco normale, tutte le direzioni |
+| Redesign che lascia una schermata/funzione senza ingresso | `design_review.py screens --before`, ricollega o ritira apposta |
+| Gate senza `risks` | FAIL: la prossima ondata non sa cosa ricontrollare |
+| Sim di feel verde in scena vuota | non vale: suite nella scena vera contro la baseline |
+| Cattura con stato finto (timer fermo, punti aggiunti) | rifai con seed/sistemi veri, etichetta `produced:` |
+| Deliverable in `Temp/` o `Library/` | sposta in `captures/` / `docs/` prima di chiudere il gate |
 | Contesto parent enorme | non implementare tu. Lancia il prossimo worker |
 
 ## Greybox vs art

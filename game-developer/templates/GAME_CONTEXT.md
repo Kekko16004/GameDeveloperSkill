@@ -36,6 +36,8 @@
 - **Ponte Unity:** Unity CLI (`unity command gds_*`, `eval`, `run_tests`) primario; CoplayDev unity-mcp solo fallback
 - **Art:** famiglia `[kenney|kaykit|quaternius|synty]` in `art/cc0/` + `art/kit-catalog.json`; hero prop via Blender MCP (`uvx mcp-for-blender` stdio); gen3d solo se il GDD lo permette
 - **Look:** preset `[gds_lookdev preset]`, palette `[hex...]`
+- **Decisioni:** `DECISIONI.md` (leggere per primo, mai riaprire); se esiste `launch/`, anche `launch/00-intenzioni.md` + "Decisioni prese" di `launch/TODO.md`
+- **Feel baseline:** `docs/tests/feel-baseline.json` (suite nella scena vera, ogni gate la confronta)
 - **Git:** repo nel progetto, commit di checkpoint ogni 10 task (vedi task-decomposition.md)
 
 ---

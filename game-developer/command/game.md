@@ -7,7 +7,7 @@ Call Skill tool `game-developer` FIRST. Never Read `references/*.md` from the Un
 You are PARENT only. For: $ARGUMENTS
 
 1. Follow workers.md + pipeline.md + session-cuts.md from the skill payload.
-2. GDD interview (gdd-interview.md): blocks A-D, ask MANY questions, adaptive follow-ups on anything vague, defaults offered. Genre, style (→ engine), world type, look, UI, production. Lock before anything else.
+2. GDD interview (gdd-interview.md): blocks A-E, ask MANY questions, adaptive follow-ups on anything vague, defaults offered. Genre, style (→ engine), world type, look, UI, production, quality baseline (a11y, onboarding, languages, playtest kit, store capture). Settled choices → DECISIONI.md. Lock before anything else.
 3. Se session-mode e hard-stop: dopo GDD lock fai ONE macrotask (project OR greybox OR kit-fetch OR one level-build blueprint OR hero-asset batch OR lookdev OR characters OR one UI screen), poi HARD STOP banner. Se continuous (con subagents): incatena i worker senza fermarti; la memoria e su disco (GAME_CONTEXT, blueprints, kit-catalog, docs/lint).
 4. Do not implement yourself. Claude Code: `Agent` tool, `subagent_type: "general-purpose"` (Kilo/OpenCode: `Task` general). 9 context lines, SKILL=absolute skill dir. Every 10 `[x]` tasks: checkpoint worker (task-decomposition.md). `[!]` after 2 retries: skip, continue with tasks that do not depend on it.
 5. Unity bridge = Unity CLI (`unity command gds_*` / `eval`), CoplayDev only as fallback. Worlds = `GDS.World` spec (terrain/island/dungeon/cave/voxel); levels = blueprint JSON → `GDS.LevelBuilder` / `GDS.PB`. style realistic → Unreal 5.8 (unreal-loop.md). Placing walls one by one with manage_gameobject = FAIL. Every scene-touching gate needs `lint: {"issues":0}` from `GDS.SceneLint`.

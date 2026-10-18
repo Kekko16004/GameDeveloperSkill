@@ -61,3 +61,14 @@ L'utente DEVE SEMPRE avere la scelta tra 3-4 varianti per CIASCUNA schermata (Ma
 2. **Setup PanelSettings Obbligatorio**:
    - Verificare che il GameObject contenente `UIDocument` abbia assegnato un `PanelSettings` valido (Match 1920x1080 o Reference Resolution attiva). Senza `PanelSettings`, Unity non disegna nulla a schermo!
    - Assegnare il controller C# generato per gestire il binding di click ed eventi di gioco.
+
+---
+
+## 4. Qualità di base (ESSENZIALE, ogni schermata)
+
+Dettaglio: [quality-baseline.md](quality-baseline.md) §1-2. Va previsto già nei mock delle varianti, non aggiunto dopo.
+- **Hover + focus** su ogni pulsante (mouse, tastiera, pad): scala ~1,05 o contorno/riempimento più chiaro, ~0,1 s, cursore a mano. Il focus del pad non salta e non resta su un elemento nascosto.
+- **Transizioni** tra scene: dissolvenza ≤ 0,5 s, saltabile con qualsiasi tasto.
+- **Testo al 150 %** e lingue più lunghe (DE/RU) senza sovrapposizioni: screenshot di ogni schermata a 100 % e 150 %.
+- **Nessuna stringa nel UXML o nel controller**: solo chiavi di `strings.csv`; i prompt (`[E]`) leggono il binding corrente.
+- Notifiche brevi e una alla volta, se il GDD le ha scelte (`notifications`).

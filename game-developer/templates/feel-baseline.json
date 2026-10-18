@@ -1,0 +1,29 @@
+{
+  "_note": "Baseline of the core-verb feel sims, measured in the REAL level geometry. Copy to <game>/docs/tests/feel-baseline.json. Every gate re-runs the sims and compares: a metric worse than baseline beyond 'tolerance' = gate FAIL unless the owner approves (then update the baseline and add a DECISIONI.md row).",
+  "updated": "2026-10-10",
+  "gate": "docs/gates/49-tray-regression-spills.md",
+  "scene": "Assets/_Game/Scenes/Villa.unity",
+  "command": "unity command bp_carrysim --scene Villa --suite real --seed 42 --format json",
+  "build": "editor",
+  "cases": [
+    {"id": "walk-straight",      "route": "hall A -> B, no obstacles",          "runs": 8, "metrics": {"successRate": 1.0,  "drops": 0, "maxTiltDeg": 9.5,  "trayPenetrationM": 0.00}},
+    {"id": "door-pass",          "route": "hall -> kitchen through door D2",    "runs": 8, "metrics": {"successRate": 1.0,  "drops": 0, "maxTiltDeg": 14.0, "trayPenetrationM": 0.01}},
+    {"id": "wall-bump-slow",     "route": "walk into north wall at 1 m/s",      "runs": 8, "metrics": {"successRate": 1.0,  "drops": 0, "maxTiltDeg": 18.0, "trayPenetrationM": 0.02}},
+    {"id": "corner-turn",        "route": "90 deg corner C1 at walk speed",     "runs": 8, "metrics": {"successRate": 1.0,  "drops": 0, "maxTiltDeg": 16.0, "trayPenetrationM": 0.01}},
+    {"id": "sprint-turns",       "route": "sprint + 3 turns, buffet loop",      "runs": 8, "metrics": {"successRate": 0.875,"drops": 1, "maxTiltDeg": 24.0, "trayPenetrationM": 0.03}},
+    {"id": "sprint-stop-wall",   "route": "sprint, stop 0.5 m from a wall",     "runs": 8, "metrics": {"successRate": 0.875,"drops": 1, "maxTiltDeg": 22.0, "trayPenetrationM": 0.02}}
+  ],
+  "tolerance": {
+    "successRate": -0.125,
+    "drops": 1,
+    "maxTiltDeg": 3.0,
+    "trayPenetrationM": 0.02
+  },
+  "direction": {
+    "successRate": "higher-is-better",
+    "drops": "lower-is-better",
+    "maxTiltDeg": "lower-is-better",
+    "trayPenetrationM": "lower-is-better"
+  },
+  "approvedRegressions": []
+}

@@ -1,6 +1,6 @@
 # Workers — un job, un cervello, zero pigrizia
 
-Il parent **non implementa**. Lancia un subagent isolato per ogni task/fase. Ogni worker riceve SOLO il blocco PHASE sotto più le 9 righe di contesto. Niente transcript precedente, niente "poi faccio anche la UI".
+Il parent **non implementa**. Lancia un subagent isolato per ogni task/fase. Ogni worker riceve SOLO il blocco PHASE sotto più le 9 righe di contesto e il **contratto** (DECISIONI, OWNS, DO / DO NOT, PROGRESS, REPORT, più le regole 7-9 su scelte di design, decisioni e salvataggi). Niente transcript precedente, niente "poi faccio anche la UI".
 
 | Host | Come si lancia un worker |
 |---|---|
@@ -26,9 +26,32 @@ GENRE=<riga di genres.md>
 
 Vietato incollare conversazioni, screenshot chat, o "abbiamo già fatto greybox". Il worker rilegge `GDD.md`, `GAME_CONTEXT.md`, `GAME_TASKS.md`, `art/kit-catalog.json`, `art/blueprints/` e `docs/gates/` da disco.
 
+## Contratto (in OGNI prompt di worker o helper, dopo le 9 righe)
+
+Lezione Buffet Panic!: due helper paralleli hanno sovrascritto lo stesso `.cs`; un worker è uscito dal brief e ha reso un report vago; i rate limit hanno ucciso worker a metà; decisioni già prese sono state riaperte più volte.
+
+```
+DECISIONI=<abs path DECISIONI.md>  — leggilo PER PRIMO. Quello che c'è è deciso: non riaprirlo, non segnalarlo come problema.
+OWNS=<lista esplicita dei file/cartelle che questo worker può scrivere>
+DO=<cosa fare, 2-6 punti numerati = gli item del report>
+DO NOT=<cosa non fare: altre fasi, file vicini, "già che ci sono", tuning/bilanciamento non chiesto>
+PROGRESS=<abs path docs/progress/<PHASE>-<TASK-id>.md>
+REPORT=formato fisso di SKILL/templates/worker-report.md
+```
+
+1. **Proprietà dei file.** Il worker scrive solo i file in `OWNS` (+ il proprio gate e il proprio PROGRESS). Prima di scrivere un file non suo, o un file suo che è cambiato da quando l'ha letto (data/sha1 diversi da quelli annotati in PROGRESS), **si ferma e lo riporta** in "Stop sui file" del report. Niente merge creativi.
+2. **Parallelo.** Il parent non lancia mai in parallelo due worker con file in comune negli `OWNS` (cartelle comprese). Un file condiviso (es. `PlayerController.cs`, `strings.csv`) ha un solo proprietario per giro; gli altri gli chiedono la modifica tramite il report. Un solo worker alla volta guida l'Editor Unity (lock qui sotto).
+3. **Recinto DO / DO NOT.** Fuori da `DO` = deviazione: si fa solo se serve per chiudere un item di `DO`, e si scrive in "Deviazioni". Bilanciamento, tuning, testi e stile non chiesti sono sempre DO NOT.
+4. **Report fisso** ([templates/worker-report.md](../templates/worker-report.md)): fatto (un item di DO per riga, con path di evidenza), deviazioni, aperto, file cambiati, stop sui file, numeri JSON. Il parent confronta il report con il brief: item mancante, lavoro fuori DO non dichiarato, "fatto" senza path → **FAIL, rilancio** con `GATE ROSSO:` + la differenza.
+5. **Avanzamento riprendibile** ([templates/progress-checkpoint.md](../templates/progress-checkpoint.md)): il worker crea PROGRESS nel primo minuto e lo aggiorna dopo OGNI passo (fatto, prossimo passo, file toccati con sha1, lock). Rilanciato dopo un crollo (rate limit, sessione chiusa) **legge PROGRESS per primo** e riparte dal "Prossimo passo", senza rifare il fatto. Il parent, se un worker muore, lo rilancia con lo stesso prompt + `RIPRENDI da PROGRESS`.
+6. **Deliverable mai in `Temp/` o `Library/`** (Unity li svuota alla chiusura). Catture, clip, backup, log da tenere → `captures/`, `screenshots/`, `docs/`, `_backup/`. `Temp/` solo per file usa-e-getta.
+7. **Scelte di design dette chiaro.** Se il worker implementa una cosa in modo diverso dal brief (una soglia, un comportamento, un testo, un flusso), lo scrive in "Deviazioni" e in `design_changes` del gate: cosa, perché, `decided_by: implementer`. **Mai** "il proprietario ha chiesto X" se X non è nel brief o in `DECISIONI.md` con la fonte (lezione Buffet Panic!: una scelta del worker è stata attribuita al proprietario).
+8. **Decisioni: solo proposte etichettate.** Un worker che pensa che una decisione vada cambiata non la cambia: scrive `Riapre la decisione: D-NNN — prove — proposta` nella sezione "Proposte" del report ([launch-link.md](launch-link.md) §4).
+9. **Salvataggi del proprietario.** Prima di ogni Play/exe che può scrivere salvataggi o preferenze: backup (cartelle dei salvataggi + chiavi di registro/PlayerPrefs), salvataggi del Play in una cartella temporanea se il gioco lo permette, ripristino alla fine con controllo "identici" (hash). La riga va nel gate (`saves:`).
+
 ## Retry
 
-Se un worker chiude senza i file del gate, il parent **rilancia lo stesso worker** con lo stesso prompt più `GATE ROSSO:` e **l'errore preciso**: la riga mancante del gate, il JSON di lint/build con `issues > 0`, le prime righe di `unity command console` o del test fallito. Mai solo "manca X". Max 2 retry, poi `[!]` (vedi il ciclo in [task-decomposition.md](task-decomposition.md)).
+Se un worker chiude senza i file del gate, o con un report che non corrisponde al brief, il parent **rilancia lo stesso worker** con lo stesso prompt più `GATE ROSSO:` e **l'errore preciso**: la riga mancante del gate, il JSON di lint/build con `issues > 0`, le prime righe di `unity command console` o del test fallito. Mai solo "manca X". Max 2 retry, poi `[!]` (vedi il ciclo in [task-decomposition.md](task-decomposition.md)).
 
 ## Un solo Editor Unity: lock
 
@@ -43,17 +66,18 @@ C'è un Editor e una scena: due worker che compilano, costruiscono o lintano ins
   ```
   La sequenza va tenuta corta: niente ragionamenti lunghi mentre hai il lock, correggi il JSON e rientra. Rilascia anche se fallisci. Il lock più vecchio di 10 minuti viene considerato abbandonato.
 - Un worker solo (fase sequenziale) prende comunque il lock: costa zero e protegge da worker rimasti appesi.
+- Vale anche per gli helper che un worker lancia a sua volta: stesso contratto, `OWNS` disgiunti, un solo helper con l'Editor.
 
 ## Come lanciare
 
-Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → ui → juice → art-review → playtest). Dentro la stessa fase: task liberi (colonna `Dipende` soddisfatta) in parallelo, max 3, con la regola del lock qui sopra. Art: **un blueprint per worker** per level-build, **fino a 3 hero asset in batch** per hero-asset. Systems e UI possono girare in parallelo all'art finché non toccano la stessa scena senza lock.
+Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → feel-baseline → ui → baseline-* → juice → art-review → playtest). Dentro la stessa fase: task liberi (colonna `Dipende` soddisfatta) in parallelo, max 3, con la regola del lock qui sopra. Art: **un blueprint per worker** per level-build, **fino a 3 hero asset in batch** per hero-asset. Systems e UI possono girare in parallelo all'art finché non toccano la stessa scena senza lock.
 
 ---
 
 ## PHASE gdd
 
-Tu fai SOLO l'intervista GDD. Leggi `gdd-interview.md`, `genres.md`, `styles.md`, `world-gen.md`, `tool-stack.md`, `gdd-template.md`, `gen3d.md`, `lookdev.md`.
-Blocchi A-D, tante domande, follow-up su tutto ciò che è vago, default consigliati. Tutti i campi elencati in fondo a `gdd-interview.md` vanno lockati in `GDD.md`.
+Tu fai SOLO l'intervista GDD. Leggi `gdd-interview.md`, `genres.md`, `styles.md`, `world-gen.md`, `tool-stack.md`, `gdd-template.md`, `gen3d.md`, `lookdev.md`, `quality-baseline.md`.
+Blocchi A-E, tante domande, follow-up su tutto ciò che è vago, default consigliati. Tutti i campi elencati in fondo a `gdd-interview.md` vanno lockati in `GDD.md`.
 Scrivi `PROJECT/GDD.md` (se PROJECT ancora vuoto, scrivi nel workspace e il parent lo sposterà).
 NON aprire Unity, Blender, Voxel, UI.
 Stop quando `status: locked` e l'utente ha confermato il recap.
@@ -71,7 +95,7 @@ Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-at
 4. Verifica: `unity command gds_ping` e `unity command gds_lint` rispondono JSON.
 5. Se `GDD gen3d: meshy|tripo`: verifica che `MESHY_API_KEY`/`TRIPO_API_KEY` sia nell'env del MCP (non chiederla in chat, non loggarla).
 6. Git: se il progetto non è già un repo, `git init` + `.gitignore` Unity (Library/, Temp/, Logs/, obj/, UserSettings/, Build*/, `Assets/_Game/Art/AssetStore/`, `art/cc0/**/*.zip`) + primo commit `project: GDS ready`. Serve ai checkpoint ogni 10 task.
-Crea le cartelle `art/ blender/ voxel/ cc0/ exports/ blueprints/`, `screenshots/`, `ui/`, `docs/gates/`, `docs/lint/`, `Assets/_Game/...`.
+Crea le cartelle `art/ blender/ voxel/ cc0/ exports/ blueprints/`, `screenshots/`, `captures/`, `ui/`, `docs/gates/`, `docs/lint/`, `docs/progress/`, `docs/tests/`, `Assets/_Game/...`, e `DECISIONI.md` dal template (righe vere dal GDD lock: lingue, piattaforme, scelte "no" del blocco E).
 NON modellare, NON scrivere gameplay, NON UI.
 Scrivi `docs/gates/04-project.md` con `projectPath`, versione Unity, output di `GDS.SceneLint.RunJson()` e `PASS`.
 
@@ -89,7 +113,8 @@ Genera:
 3. `PROJECT/ASSET-LEDGER.md`: una riga per blueprint e per hero asset, `source:` dal catalogo `cc0-sources.md` o tier gen3d del GDD.
 4. `PROJECT/art/reference/BOARD.md` + 4-8 immagini di riferimento ([art-direction.md](art-direction.md)).
 5. Se il mondo è procedurale (`GDD world`, vedi world-gen.md): `PROJECT/art/world/<name>.json` partendo da `art/world/example_<mode>.json` (seed, dimensione, scatter con nomi TODO fino al kit-fetch).
-6. `PROJECT/art/blueprints/PLAN.md`: tabella edifici/aree → `source: blender-gen|kit|probuilder`, posizione/rotazione nel livello (griglia Geometra 4 m) o `lot: village`, così building-gen / level-build / village non inventano nulla. Default per esterni low-poly: **blender-gen** per le case, kit per props/recinzioni/lampioni/alberi, ProBuilder per interni.
+6. Task della baseline di qualità dal blocco E del GDD ([quality-baseline.md](quality-baseline.md)): gli ESSENZIALI sempre, gli opzionali solo se `yes`; il task feel-baseline dopo il primo verbo core.
+7. `PROJECT/art/blueprints/PLAN.md`: tabella edifici/aree → `source: blender-gen|kit|probuilder`, posizione/rotazione nel livello (griglia Geometra 4 m) o `lot: village`, così building-gen / level-build / village non inventano nulla. Default per esterni low-poly: **blender-gen** per le case, kit per props/recinzioni/lampioni/alberi, ProBuilder per interni.
 NON modellare, NON aprire Unity.
 
 Gate: `GAME_TASKS.md` (60-80 task per deliverable, max 90, regole di merge di task-decomposition.md) + `GAME_CONTEXT.md` (con `genre:` e `style:`) + `ASSET-LEDGER.md` + `art/blueprints/PLAN.md` + `art/reference/BOARD.md`.
@@ -252,7 +277,33 @@ Tu fai SOLO i verbi del GDD (oltre move già nel greybox): interact, pause, win/
 Ogni verbo = script + test che gira nella stessa modifica.
 Prompt a schermo minimo: cosa fare adesso (es. "Saccheggia la casa prima del coprifuoco").
 NON Main Menu. NON modellare.
+Testi a schermo solo come chiavi della string table (`strings.csv`), mai stringhe nel codice. Ogni numero mostrato in più schermate ha un solo getter ([quality-baseline.md](quality-baseline.md) §2).
 Gate: `docs/gates/10-systems.md` + test names.
+
+---
+
+## PHASE feel-baseline (dopo il primo verbo core giocabile nel livello vero)
+
+Tu fai SOLO le simulazioni di "feel" del verbo core e la baseline. Leggi `playtest.md` (§ Feel in scena reale), `SKILL/templates/feel-baseline.json`.
+1. Sim deterministica (input pilotato, seed fisso) nella **scena di gioco vera**, non in una scena di test vuota: porte, muri, angoli, sprint, stop vicino a un muro, più i casi del genere (salto su bordo, curva a velocità piena...). Min 6 casi × 8 run.
+2. Comando o test ripetibile (`unity command <game>_feelsim --suite real --format json` o PlayMode test) che stampa JSON con le metriche per caso.
+3. Scrivi `docs/tests/feel-baseline.json` (casi, metriche, `tolerance`, `direction`, gate, comando).
+DO NOT: cambiare tuning o fisica per far uscire numeri migliori.
+Gate: `docs/gates/10-feel-baseline.md` con il JSON incollato + path della baseline.
+
+---
+
+## PHASE baseline-<item> (a11y | ui-quality | onboarding | loc | playtest-kit | store-capture)
+
+Tu fai SOLO l'item della baseline del tuo task. Leggi `quality-baseline.md` (sezione dell'item), `GDD.md` blocco E, `DECISIONI.md`.
+- **a11y:** rimappatura tastiera + pad con "Ripristina predefiniti", dimensione testo, movimento ridotto (+ opzionali scelti nel GDD); prompt HUD che leggono il binding corrente. Test per ognuno; screenshot di ogni schermata al 150 %.
+- **ui-quality:** transizioni ≤ 0,5 s saltabili, hover + focus su ogni pulsante (mouse, tastiera, pad), coda notifiche (se `yes`), controllo coerenza numeri.
+- **onboarding:** tutorial ≤ 4 passi, suggerimenti alla prima occasione (salvati per profilo), comparsa graduale nelle schermate dense.
+- **loc:** `strings.csv` (`key,context,max_chars,<lingue>`), fallback font CJK/arabo (RTL), `loc_check` (mancanti, placeholder, duplicati, oltre `max_chars`, stringhe nel codice UI) = 0 errori; uno screenshot per scrittura.
+- **playtest-kit:** telemetria CSV opt-in locale per livello, variante build demo/profilo pulito con cartella salvataggi propria, `TESTER_README.md` dal template.
+- **store-capture:** tool solo Editor, HUD `full|minimal|none`, prompt nascosti, seed fissi, screenshot taglia store + sequenze di frame GIF in `captures/<data>/` + `manifest.json`.
+DO NOT: ridisegnare schermate già scelte dall'utente (solo stati, scala, transizioni); cambiare controlli di default se `DECISIONI.md` li fissa.
+Gate: `docs/gates/16-baseline-<item>.md` con test, check JSON, PNG.
 
 ---
 
@@ -316,6 +367,8 @@ Tu fai SOLO QA. Leggi `playtest.md`, `scene-lint.md`.
 2. Play Mode reale: `editor_play`, input da PlayMode test o TerminalMCP, `capture_game_view`, `console` 0 errori, `editor_stop`.
 FAIL se dallo screenshot non si capisce l'obiettivo (manca testo HUD / prompt / menu).
 FAIL se in Game View ci sono primitives Unity visibili (cubo/capsula default) o scena piatta senza Volume.
+3. Rilancia le sim di feel in scena reale e confronta con `docs/tests/feel-baseline.json`: un caso peggiore della tolleranza = FAIL (salvo riga di approvazione del proprietario in `DECISIONI.md`).
+4. Controllo "catture vs regole" su ogni screenshot che va al playtest o allo store ([playtest.md](playtest.md)).
 Scrivi `docs/playtest.md` e `docs/gates/13-playtest.md`.
 NON inventare test verdi. Incolla job_id / output / lint JSON.
 
@@ -326,6 +379,33 @@ NON inventare test verdi. Incolla job_id / output / lint JSON.
 Tu fai SOLO il recap. Leggi tutti i `docs/gates/*.md`.
 Se uno è rosso, NON dichiarare slice fatta. Elenca i rossi.
 Gate: `docs/gates/14-slice.md`.
+
+---
+
+## PHASE design-review (dopo la slice; prima e dopo ogni gate di gameplay/UI/flusso)
+
+Tu fai SOLO la review, **in sola lettura** sul gioco: niente fix. Leggi `design-review.md`, `DECISIONI.md`, gli ultimi gate, e se ci sono `launch/fg/waves/wNN-mappa-gioco.md` / `-schermate.md` / `-runs.md` (punto di partenza, non si rifanno).
+1. `docs/design-review/game-map.md` dal codice e dai dati, con file e discrepanze.
+2. `docs/design-review/screen-map.md`: tabella + blocco `screens`; `design_review.py screens` (con `--before` se c'è una versione in `history/`).
+3. `docs/design-review/runs.md`: ≥ 3 run a tempi con i segni; `design_review.py runs` (con `--before`).
+4. Copia le versioni "prima" in `docs/design-review/history/*-gNN.md`.
+OWNS: `docs/design-review/**`. DO NOT: toccare codice, scene, `launch/`; giudicare decisioni come problemi.
+Gate: `docs/gates/review-gNN.md` con i numeri dei due script e l'elenco: orfani, tratti morti > 20 s, momenti con > 4 UI insieme, spirali, discrepanze.
+
+---
+
+## PHASE iterate-gate (dopo la slice: un gate del piano, da ondata o dalle note del proprietario)
+
+Tu fai SOLO i punti del tuo gate (`docs/gates/plan-wNN.md` riga NN, o la lista del proprietario). Leggi `DECISIONI.md` per primo, poi `launch-link.md` §5-8, `design-review.md` §4, [templates/gate.md](../templates/gate.md).
+1. **Prima:** misura il problema nel gioco vero (numeri, foto `-before`); review "prima" dalle run toccate.
+2. **Causa vera**, poi fix. Bilanciamento, tuning e stile non chiesti = DO NOT.
+3. **Verifica la meccanica vera nel gioco normale**, non solo il caso del report: tutte le direzioni e situazioni in cui il giocatore la incontra (davanti / di lato / da dietro, fermo / in corsa, con e senza il perk), con numeri prima → dopo. Un colpo che "non fa niente" da un lato è un bug anche se di fronte funziona.
+4. **Foto guardate**, una per una, con una riga su cosa mostrano; una foto che contraddice il testo = rifai.
+5. **Salvataggi:** backup e ripristino identici (Contratto 9).
+6. **Niente build** se il proprietario non l'ha chiesta. **Niente suite di test** se `DECISIONI.md` dice che prova lui: restano compilazione 0, lint, controlli deterministici (testi, numeri) e, se il gate tocca fisica/controller/collider, la sim di feel nella scena vera.
+7. **Dopo:** review "dopo" sulle run toccate; dopo un redesign controllo orfani (`design_review.py screens --before`).
+8. Gate con header ([launch-link.md](launch-link.md) §7): `risks` = rischi di gameplay **introdotti** (cosa può peggiorare); `design_changes` con `decided_by`; `owner_try`; sezione `## Per il proprietario`. Poi `gate_link.py check` ✅.
+OWNS: i file del piano per quel gate + `docs/gates/NN-*.md` + `docs/screens/NN/`. DO NOT: `launch/**` (lo aggiorna il parent con `gate_link.py`), decisioni, punti di altri gate.
 
 ---
 

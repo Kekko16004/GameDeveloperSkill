@@ -28,7 +28,9 @@ game-developer/
   templates/world/         spec di esempio: terrain, island, dungeon, cave, voxel
   templates/blender/       generatore procedurale di edifici
   templates/unreal/        gds_ue.py (lookdev, lint, screenshot, import Fab, heightmap)
-  scripts/                 doctor, install GDS nel progetto, fetch kit/audio CC0, edifici Blender headless
+  templates/*.md|json      DECISIONI, TESTER_README, feel-baseline, progress-checkpoint, worker-report, gate, gate-plan
+  scripts/                 doctor, install GDS nel progetto, fetch kit/audio CC0, edifici Blender headless,
+                           gate_link.py (contratto con game-launch-strategist), design_review.py (schermate/orfani, run a tempi)
   command/                 /game /gdd /playtest /resumegame
   tools/tui/               console
 docs/                      audit, roadmap, sample render
@@ -36,7 +38,9 @@ docs/                      audit, roadmap, sample render
 
 ## Pipeline
 
-`/game` → intervista (blocchi A-D, domande adattive) → project → task (60-80, per deliverable) → greybox + test → kit → **world-gen** → edifici/livelli → hero prop → lookdev → **art review a punteggio** → personaggi → sistemi (verbo = script + test) → UI (scelta utente per ogni schermata) → juice → art review → playtest → slice.
+`/game` → intervista (blocchi A-E, domande adattive) → (controllo di mercato offerto) → project → task (60-80, per deliverable) → greybox + test → kit → **world-gen** → edifici/livelli → hero prop → lookdev → **art review a punteggio** → personaggi → sistemi (verbo = script + test) → feel baseline (scena vera) → UI (scelta utente per ogni schermata) → baseline di qualità → juice → art review → playtest → slice.
+
+Dopo la slice: **design review** (mappa del gioco dal codice, mappa schermate con controllo orfani, run simulate a tempi) → piano dei gate → **gate di iterazione** con header leggibile da macchina → review "dopo". Con `game-launch-strategist` le due skill si passano il lavoro con file fissi (`references/launch-link.md`, contratto `gdl-v2`); senza, la skill lavora da sola.
 
 ## Documentazione
 
