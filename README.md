@@ -57,7 +57,7 @@ docs/                      audit, roadmap, sample render
 
 Dopo il greybox i track ART / CODE / UI / AUDIO / QUALITY girano in parallelo; l'editor ha un solo driver alla volta (lock).
 
-Dopo la slice: **design review** (mappa del gioco dal codice, mappa schermate con controllo orfani, run simulate a tempi) → piano dei gate → **gate di iterazione** con header leggibile da macchina → review "dopo". Con `game-launch-strategist` le due skill si passano il lavoro con file fissi (`references/launch-link.md`, contratto `gdl-v2`); senza, la skill lavora da sola.
+Dopo la slice: **design review** (mappa del gioco dal codice, mappa schermate con controllo orfani, run simulate a tempi) → piano dei gate → **gate di iterazione** con header leggibile da macchina → review "dopo". Con `game-launch-strategist` le due skill si passano il lavoro con file fissi (`references/launch-link.md`, contratto `gdl-v3`); senza, la skill lavora da sola.
 
 ## Documentazione
 

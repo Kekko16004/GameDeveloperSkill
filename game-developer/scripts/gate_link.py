@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gate_link.py: the developer side of the game-developer <-> game-launch-strategist contract (launch-link.md v2).
+"""gate_link.py: the developer side of the game-developer <-> game-launch-strategist contract (launch-link.md v3).
 
 Standard library only. Works with or without `launch/` (then it only validates gates).
 
