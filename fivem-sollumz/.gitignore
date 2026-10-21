@@ -1,0 +1,6 @@
+tools/CodeWalker/
+tools/CwXmlToBin/bin/
+tools/CwXmlToBin/obj/
+__pycache__/
+*.pyc
+build/

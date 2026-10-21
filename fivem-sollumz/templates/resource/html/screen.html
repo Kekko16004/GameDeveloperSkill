@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* La pagina e' renderizzata nella texture DUI: dimensioni = CreateDui(url, w, h) */
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff;
+               font-family: Arial, Helvetica, sans-serif; }
+  #root { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; }
+  #title { font-size: 72px; font-weight: bold; }
+  #sub { font-size: 36px; opacity: .8; margin-top: 16px; }
+  img, video, iframe { max-width: 100%; max-height: 100%; }
+</style>
+</head>
+<body>
+<div id="root"><div id="title">FiveM DUI</div><div id="sub">SZ.ScreenSend(key, {title=..., sub=..., image=..., video=...})</div></div>
+<script>
+  // Messaggi da Lua: SendDuiMessage(dui, json.encode({...}))
+  window.addEventListener('message', function (e) {
+    var d = e.data || {};
+    if (d.title !== undefined) document.getElementById('title').textContent = d.title;
+    if (d.sub !== undefined) document.getElementById('sub').textContent = d.sub;
+    if (d.image) document.getElementById('root').innerHTML = '<img src="' + d.image + '">';
+    if (d.video) document.getElementById('root').innerHTML =
+      '<video src="' + d.video + '" autoplay loop muted playsinline></video>';
+  });
+</script>
+</body>
+</html>
