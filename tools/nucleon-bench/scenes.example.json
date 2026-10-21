@@ -1,0 +1,8 @@
+{
+ "scenarios": [
+  {"name": "forest-view", "kind": "view", "position": [0, -30, 8], "lookAt": [0, 20, 2], "seconds": 8},
+  {"name": "forest-fly", "kind": "fly", "speed": 10,
+   "points": [[[-60, -60, 6], [0, 0, 3]], [[0, -20, 5], [40, 30, 3]], [[50, 40, 8], [80, 80, 3]]]},
+  {"name": "scan-rock", "kind": "approach", "target": "Rock_01", "from": 60, "to": 2, "height": 1.7, "seconds": 8, "repeat": 2}
+ ]
+}

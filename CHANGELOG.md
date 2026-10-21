@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-21 (3): Nucleon bench, then execution plan
+
+| Cosa | Dove |
+|---|---|
+| Kit benchmark: driver in gioco (camera, CSV per frame, marcatori), matrice di config (una modifica contro base), ipotesi H1-H9 con regole di verdetto | nuovo `tools/nucleon-bench/` (`bench.py`, `gds_bench.lua`, `configs.json`) |
+| `analyze`: p50/p95/p99, hitch e correlazione con caricamenti di pagine/texture, passate GPU per scenario, contatori dell'engine, frame più lenti → REPORT.md | `bench.py analyze` |
+| `plan`: EXECUTION-PLAN.md con i brief K1-K5 (bug noti) e solo le H confermate, in ordine di guadagno misurato, ciascuno con un prompt pronto per Claude Code | `bench.py plan`, `briefs.json` |
+| A1 isolato su HEAD: il colpevole è il percorso **GPU-driven** (`NC_GPU_DRIVEN=0` corregge; basecolor, `NC_GD_COUNT=0` e `NC_PREPASS_MASKED=0` no) | `docs/NUCLEON-ENGINE-NOTES.md`, `docs/samples/nucleon-bug-a1-isolation.jpg` |
+| Note dell'engine riviste con la lettura del codice (A2-A5, B1-B6, C1-C2); nuovi A6 (contatori del profiler con nomi pendenti: crash con `os.exit`) e A7 (readback di `makeSrgbCopy` dopo ogni restream) | `docs/NUCLEON-ENGINE-NOTES.md` |
+
 ## 2026-10-21 (2) — Nucleon: mondi, kit, lint in Play, sessione, capture, telemetria, bug dell'engine
 
 Tutto provato sull'editor compilato da `main@d8e49bc` (Linux/Xvfb). Demo: `docs/samples/nucleon-glade-*.jpg` (terreno generato, foresta,

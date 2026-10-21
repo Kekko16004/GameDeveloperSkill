@@ -1,0 +1,248 @@
+{
+  "version": 1,
+  "notes": "Each config changes ONE thing against base. env = environment variables of the engine (verified in the source of main@d8e49bc); the other keys are applied in game by gds_bench.lua (Lighting.set, Lighting.setVirtual, Graphics.setGroup...). 'bound' configs are upper bounds (they remove a feature to see how much it costs), not fixes.",
+  "base": {
+    "env": {}
+  },
+  "hypotheses": {
+    "H1": {
+      "title": "Texture mips: the 8K mips are uploaded with CPU copies when you get close (Megascans close-up drops)",
+      "scenarios": [
+        "approach"
+      ],
+      "configs": {
+        "tex-upload-budget": {
+          "env": {
+            "NC_TEXTURE_UPLOAD_MB": "512",
+            "NC_TEXTURE_IO_MB": "512"
+          }
+        },
+        "tex-pool-full": {
+          "env": {
+            "NC_TEXTURE_POOL_PERCENT": "100"
+          }
+        },
+        "tex-low": {
+          "graphics": {
+            "textures": 0
+          },
+          "bound": true
+        },
+        "tex-uncompressed": {
+          "env": {
+            "NC_NO_TEXTURE_COMPRESSION": "1"
+          }
+        },
+        "srgb-readback": {
+          "env": {
+            "NC_SRGB_VIEW": "0"
+          }
+        }
+      },
+      "rule": "confirmed when tex-low cuts the approach hitches by >= 50 %, or >= 50 % of the approach hitch frames have texture uploads (and <= 20 % of the other frames). Also: makeSrgbCopy reads an uncompressed colour texture back from the GPU on its first draw and after every restream to another size (glmodern.cpp ~2938); base counter 'modern: srgb copies (readback)' > 0 during the approach and srgb-readback (forcing it) adding >= 25 % hitches means that stall is part of the close-up drop"
+    },
+    "H2": {
+      "title": "Virtual geometry pages: a 64 MB pool and a per-frame load budget make the close-up stall on page loads",
+      "scenarios": [
+        "approach",
+        "fly"
+      ],
+      "configs": {
+        "vgeo-resident": {
+          "env": {
+            "NC_VIRTUAL_STREAMING": "0"
+          }
+        },
+        "vgeo-pool-512": {
+          "env": {
+            "NC_VIRTUAL_POOL_MB": "512"
+          }
+        },
+        "vgeo-loads-64": {
+          "virtual": {
+            "pageLoads": 64
+          }
+        }
+      },
+      "rule": "confirmed when vgeo-resident or vgeo-pool-512 cuts the approach/fly hitches by >= 50 %, or >= 50 % of the hitch frames load pages"
+    },
+    "H3": {
+      "title": "The Nanite-like path costs more than the classic one on these assets",
+      "scenarios": [
+        "view",
+        "approach"
+      ],
+      "configs": {
+        "vgeo-off": {
+          "env": {
+            "NC_VIRTUAL": "0"
+          }
+        },
+        "vgeo-forward": {
+          "env": {
+            "NC_VIRTUAL_VISBUFFER": "0"
+          }
+        }
+      },
+      "rule": "confirmed when vgeo-off lowers the p50 frame by >= 15 % (the virtual path is slower here); refuted when it raises it by >= 15 %"
+    },
+    "H4": {
+      "title": "Shadows dominate the frame (full-detail casters, cascades redrawn, wind in the shadow casters)",
+      "scenarios": [
+        "view",
+        "fly"
+      ],
+      "configs": {
+        "shadows-off": {
+          "lighting": {
+            "shadows": false
+          },
+          "bound": true
+        },
+        "shadows-low": {
+          "graphics": {
+            "shadows": 1
+          }
+        },
+        "vshadows-classic": {
+          "env": {
+            "NC_VIRTUAL_SHADOWS": "0"
+          }
+        },
+        "gd-shadow-plan-off": {
+          "env": {
+            "NC_GD_SHADOW_PLAN": "0"
+          }
+        },
+        "wind-off": {
+          "env": {
+            "NC_WIND": "0"
+          }
+        },
+        "wind-shadow-15m": {
+          "env": {
+            "NC_SHADOW_WIND_DISTANCE": "15"
+          }
+        }
+      },
+      "rule": "confirmed when shadows-off lowers p50 by >= 25 % or the shadow passes are >= 30 % of the GPU frame in base"
+    },
+    "H5": {
+      "title": "LOD is not aggressive enough (trees and props drawn at full detail far away, in the shadows too)",
+      "scenarios": [
+        "view",
+        "fly"
+      ],
+      "configs": {
+        "lod-coarsest": {
+          "env": {
+            "NC_LOD_FORCE": "3"
+          },
+          "bound": true
+        },
+        "lod-bias-2": {
+          "lodBias": 2
+        },
+        "gpu-lod": {
+          "env": {
+            "NC_GPU_LOD": "1"
+          }
+        }
+      },
+      "rule": "confirmed when lod-coarsest lowers p50 by >= 25 % (the room a better LOD policy can win)"
+    },
+    "H6": {
+      "title": "Masked foliage overdraw (leaves, grass): many layers of cut-out pixels",
+      "scenarios": [
+        "view"
+      ],
+      "configs": {
+        "foliage-low": {
+          "graphics": {
+            "foliage": 0
+          },
+          "bound": true
+        },
+        "prepass-masked-on": {
+          "env": {
+            "NC_PREPASS_MASKED": "1"
+          }
+        },
+        "prepass-masked-off": {
+          "env": {
+            "NC_PREPASS_MASKED": "0"
+          }
+        }
+      },
+      "rule": "confirmed when foliage-low lowers p50 by >= 20 % and resolution-50 also does (pixel bound)"
+    },
+    "H7": {
+      "title": "Global illumination / Lumen costs too much with vegetation",
+      "scenarios": [
+        "view"
+      ],
+      "configs": {
+        "gi-off": {
+          "gi": "none",
+          "bound": true
+        },
+        "gi-no-vegetation": {
+          "env": {
+            "NC_GI_VEGETATION": "0"
+          }
+        },
+        "reflections-ssr": {
+          "reflections": "ssr"
+        }
+      },
+      "rule": "confirmed when gi-off lowers p50 by >= 15 %"
+    },
+    "H8": {
+      "title": "Instancing / GPU-driven: wrong materials (A1) and what each path costs",
+      "scenarios": [
+        "view"
+      ],
+      "configs": {
+        "gpu-driven-off": {
+          "env": {
+            "NC_GPU_DRIVEN": "0"
+          }
+        },
+        "instancing-off": {
+          "env": {
+            "NC_INSTANCING": "0"
+          }
+        },
+        "retained-off": {
+          "env": {
+            "NC_RETAINED_SCENE": "0"
+          }
+        },
+        "vgeo-unified": {
+          "env": {
+            "NC_VGEO_UNIFIED": "1"
+          }
+        },
+        "gpu-occlusion": {
+          "env": {
+            "NC_GPU_OCCLUSION": "1"
+          }
+        }
+      },
+      "shots": true,
+      "rule": "A1 isolation: the picture of gpu-driven-off differs from base -> the GPU-driven path; only instancing-off differs -> the instance classes / instanced shaders. Cost: vgeo-unified >= 10 % faster makes its material bug worth fixing. Note: NC_INSTANCING=0 also turns off GPU-driven, retained scene, GPU LOD, pre-skin, foliage, ISM sets and mesh particles, so it is not a pure instancing A/B."
+    },
+    "H9": {
+      "title": "GPU pixel bound or CPU / geometry bound?",
+      "scenarios": [
+        "view"
+      ],
+      "configs": {
+        "resolution-50": {
+          "resolutionScale": 0.5
+        }
+      },
+      "rule": "pixel bound when resolution-50 lowers p50 by >= 30 %; CPU / geometry bound when < 10 % (then look at cpuFrameMs and the CPU zones)"
+    }
+  }
+}
