@@ -7,6 +7,11 @@ Skill multi-host (Claude Code, Kilo, Codex, Antigravity, Cursor...) che porta un
 | low-poly, toon, stylized, voxel, 2D | Unity 6 URP | Unity CLI (`unity command gds_*`), kit CC0, mondi procedurali GDS, Blender per le case |
 | realistico | Unreal 5.8 | MCP ufficiale Epic, Megascans/Fab, Landscape + PCG, `gds_ue.py` |
 
+## Skill aggiuntiva: `fivem-sollumz/`
+
+Pipeline Blender + Sollumz per modelli GTA V / FiveM (prop statici, fisici, animati con YCD, UV, DUI, porte, luci,
+Gen8 + Gen9), 100% pilotabile da Python. Vedi [fivem-sollumz/README.md](fivem-sollumz/README.md).
+
 ## Avvio
 
 ```bat

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-21 — Nuova skill `fivem-sollumz` (Blender + Sollumz -> risorsa FiveM)
+
+Fonti: sorgente Sollumz v2.9.0 e wiki ufficiale (GitHub Sollumz/Sollumz, Sollumz/wiki), docs Cfx.re
+(citizenfx/fivem-docs: asset manual parti 1-9, legacy vs enhanced, DUI, resource manifest, Alchemist), dichiarazioni
+native (citizenfx/natives, citizenfx/fivem ext/native-decls), CodeWalker.Core.
+
+| Cosa | Dove |
+|---|---|
+| Libreria Python deterministica su Sollumz (drawable, shader, collisioni, LOD, luci, scheletri, YCD, UV anim, porte, fragment, YTD, YTYP, audit, export headless) | `fivem-sollumz/scripts/sz_fivem.py` |
+| Spec JSON -> build -> export -> risorsa | `scripts/build_from_spec.py`, `templates/spec_examples/all_types.json` |
+| PNG -> DDS con mipmap (texconv o Pillow), normal OpenGL -> DirectX, palette tint | `scripts/dds_convert.py` |
+| Risorsa FiveM: `stream/` Gen8 + `stream_enhanced/` Gen9, Lua (spawn, anim, DUI, porte, tint, state bag) | `scripts/make_resource.py`, `templates/resource/` |
+| Convertitore XML -> binario, Gen8 -> Gen9, `--info` di verifica (CodeWalker.Core) | `tools/CwXmlToBin/` |
+| Ricette e riferimenti (statico, fisico/fragment, animato + trigger, DUI, porte, luci, mappa, veicoli/vestiti/armi) | `references/` |
+| Self-test end-to-end (8 asset, verifica binari) | `scripts/selftest.py` |
+
 ## 2026-10-18 — Iterazione dopo la slice e contratto con `game-launch-strategist` (gdl-v2)
 
 Fonti: `BuffetPanic/docs/gates/49-56*.md`, `launch/fg/waves/w09-*` (mappa del gioco, schermate, run a tempi, proposte, limite beta, sintesi), `launch/TODO.md`, `launch/00-intenzioni.md`, `launch/issue_status.json`, memoria delle decisioni del proprietario. Obiettivo: due skill complete da sole che collaborano senza attrito.
