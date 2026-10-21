@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-21 (2) — Nucleon: mondi, kit, lint in Play, sessione, capture, telemetria, bug dell'engine
+
+Tutto provato sull'editor compilato da `main@d8e49bc` (Linux/Xvfb). Demo: `docs/samples/nucleon-glade-*.jpg` (terreno generato, foresta,
+villaggio KayKit CC0, cielo e luce del tramonto; lint in Play 0 problemi su 275 oggetti).
+
+| Cosa | Dove |
+|---|---|
+| `ncli cycle` (lock → build → lint → foto inquadrata → unlock in una chiamata), cache delle build (spec + catalog + builder invariati = salta) | `scripts/ncli.py` |
+| Lint in Play: terreno vero, pendii, prop impilati, oggetti fuori dal terreno (`noGround`), via Raycast; zero falsi positivi sui test piantati | `ncli lint --play` + `templates/nucleon/Content/Scripts/gds_probe.lua` |
+| Sessione persistente: un editor aperto per tutti i comandi (`serve` / `session-stop`) | `ncli serve` |
+| Kit catalog offline (glTF/GLB/OBJ misurati, ruoli, modulo), stanze di pezzi kit, `kitScale`, pezzi per ruolo/nome, `origin` z `"ground"` | nuovo `scripts/nc_gds.py` |
+| Mondi seedati: terreno/isola (heightmap, layer, foliage, radure, scatter all'altezza vera, acqua), dungeon/caverna, villaggio; blocco `reference` dai riferimenti; `look` (luce, cielo, nebbia, sole) | nuovo `scripts/nc_world.py` |
+| `lua-check` (chiamate sconosciute con suggerimento, numero di argomenti delle native, sintassi) + `api-refresh`; `tools-check` (MCP cambiato) | `ncli.py`, `scripts/data/*.json` |
+| Checkpoint incrementali (`ncli affected`), suite intera prima di art-review/playtest/slice | `task-decomposition.md` |
+| Catture store/trailer in Play vero con GIF e manifest `produced: real-play` | `ncli capture` + `gds_capture.lua` |
+| Telemetria opt-in del playtest + report | `gds_telemetry.lua`, nuovo `scripts/telemetry_report.py` |
+| Budget di performance nel gate (`t.perf`, `play-test --fps`) | `gds_test.lua`, `playtest.md`, `gates.md` 25b |
+| Repro-first dei bug (test che fallisce prima e passa dopo) + bisect sui checkpoint | `templates/nucleon/.../test_bug_template.lua`, nuovo `scripts/gds_bisect.py`, `workers.md`, `gates.md` 25a |
+| Bug e lacune dell'engine con riproduzione (A1: modelli piccoli ripetuti col materiale sbagliato; MCP senza landscape/lighting; registry delle native) | nuovo `docs/NUCLEON-ENGINE-NOTES.md` |
+
 ## 2026-10-21 — Nucleon Engine, engine scelto dall'utente, run sempre continua e parallela
 
 Fonti: sorgente `NucleonEngine/NucleonEngine` (`main`, `editor/src/mcp/*`, `docs/editor/MCP.md`, `docs/api/NATIVES.md`, `docs/engine/GAME_UI.md`, sample `ThirdPersonDemo`). Verificato sull'editor compilato da `main` (Linux, Xvfb, llvmpipe): `ncli` ping / build ×2 (rebuild in place) / lint `issues: 0` / shot / play-test, harness Lua PASS in Play In Editor con `SimulateKey`, `html2rml.py` aperto nell'UI editor senza errori. Non verificati: Windows/D3D12, trasporto HTTP con l'editor del proprietario, mondo landscape+foliage.

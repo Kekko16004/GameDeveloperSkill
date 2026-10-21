@@ -11,6 +11,10 @@ Skill multi-host (Claude Code, Kilo, Codex, Cursor...) che porta un'idea a una *
 | Unreal 5.8 | MCP ufficiale Epic | `gds_ue.py`, Megascans/Fab, Landscape + PCG |
 | Godot 4 | headless (+ addon MCP se presente) | minimo |
 
+![Nucleon: radura generata con la skill (terreno, foresta, villaggio KayKit CC0, luce del tramonto)](docs/samples/nucleon-glade-board.jpg)
+
+*Nucleon, fatta interamente dalla skill da JSON: `nc_world.py` (terreno + scatter), `ncli build` (villaggio dal kit catalog), `nc_world.py look`, `ncli lint --play` (0 problemi). Bug dell'engine trovati: [docs/NUCLEON-ENGINE-NOTES.md](docs/NUCLEON-ENGINE-NOTES.md).*
+
 ## Skill aggiuntiva: `fivem-sollumz/`
 
 Pipeline Blender + Sollumz per modelli GTA V / FiveM (prop statici, fisici, animati con YCD, UV, DUI, porte, luci,

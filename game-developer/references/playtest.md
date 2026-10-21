@@ -43,6 +43,18 @@ Lezione Buffet Panic! (gate 46 → 49): la "body clearance" del gate 46 spingeva
 - **Ogni gate** che tocca fisica, controller, tuning, collider o la scena del livello rilancia la suite e incolla `feel: {"baseline":..., "worse":[...]}`. Un caso peggiore oltre la `tolerance` = **FAIL**, a meno che il proprietario lo approvi: allora riga in `DECISIONI.md`, voce in `approvedRegressions` e baseline aggiornata.
 - Un miglioramento si registra solo aggiornando la baseline nello stesso gate.
 
+## Budget di performance (gate)
+
+Il GDD fissa `targetFps` (Q23). Ogni gate che tocca scena, luci, VFX, folla o UI pesante misura il frame nella scena vera e incolla `perf:` nel gate: Nucleon `t.perf("<nome>", 10, "W")` in un `test_perf.lua` (camminata nel livello) + `ncli play-test --fps <targetFps>` → p50/p95/p99/max ms; p95 sopra `1000/targetFps` = FAIL salvo ok del proprietario (riga in `DECISIONI.md`). Unity: Profiler/`FrameTimingManager` nella stessa camminata. Solo su GPU vera: con rendering software (CI, Xvfb, llvmpipe) il numero non vale e il gate lo dice (`perf: skipped: software renderer`). Nucleon limita il dt a 100 ms: un p95 di 100 ms vuol dire "≤ 10 fps", non 100 ms esatti.
+
+## Telemetria del playtest (kit di playtest, opt-in)
+
+Nucleon: `Content/Scripts/gds_telemetry.lua` (`ncli setup`): registra solo con il consenso del giocatore (`exports.gds_telemetry:SetOptIn(true)` da un prompt al primo avvio o dalle opzioni) o con `NC_GDS_TELEMETRY=1` nelle build dei tester; CSV locale in `Saved/telemetry/` (posizione ogni 2 s, idle, quit, eventi del gioco `exports.gds_telemetry:Log("death", {cause = "spikes"})`). I file tornano a mano (canale scelto al Q30). `python SKILL/scripts/telemetry_report.py <cartella> --out docs/playtest/telemetry.md --json docs/playtest/telemetry.json`: dove si muore e perché, dove si smette, tempo al primo obiettivo, zone mai visitate. Il JSON è "test reale" per game-launch-strategist (mai mescolato con le critiche simulate).
+
+## Catture per store e trailer
+
+Nucleon: `ncli capture plan.json` (harness `gds_capture.lua`) in Play vero: camera (`position`/`lookAt`/`fov`, `follow`), tasti premuti come un giocatore, HUD nascosto, sequenze di frame → GIF (con Pillow). `manifest.json` etichetta ogni file `produced: real-play`. Dall'editor la foto è la vista di gioco (MCP); per le misure da store (1920×1080) `ncli capture plan.json --write-only <cartella del gioco pacchettizzato>` e si avvia il gioco.
+
 ## Catture fedeli alle regole
 
 Lezione Buffet Panic! (gate 48 → 50): lo script di cattura teneva fermo il timer (l'HUD nascondeva l'orologio → "bug" fantasma), aggiungeva mance senza piatti, piazzava disturbi a mano contro le regole di estrazione. I tester simulati hanno segnalato problemi che il gioco non aveva.

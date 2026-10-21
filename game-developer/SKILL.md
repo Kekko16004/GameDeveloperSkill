@@ -35,7 +35,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | Dimensioni | Geometra | [geometra.md](references/geometra.md) |
 | Ponte Unity (primario) | Unity CLI + Pipeline: `gds_*`, `eval`, `run_tests`, `editor_play`, `screenshot` | [unity-cli.md](references/unity-cli.md) + [unity-loop.md](references/unity-loop.md) |
 | Ponte Unity (secondario) | CoplayDev unity-mcp (`execute_code`, `manage_ui`, `generate_model`) | [unity-loop.md](references/unity-loop.md) |
-| Nucleon | `scripts/ncli.py` (HTTP/stdio verso l'MCP dell'editor, batch, PNG su disco, lock, exe headless) + `templates/nucleon/` + `html2rml.py` | [nucleon-loop.md](references/nucleon-loop.md) |
+| Nucleon | `scripts/ncli.py` (client dell'MCP dell'editor: build/cycle con cache, lint in Play, serve, lua-check, affected, capture, tools-check) + `nc_gds.py` (kit catalog, stanze kit, kitScale) + `nc_world.py` (terreno/isola/villaggio/dungeon/caverna, look) + `templates/nucleon/` (test, sonda, capture, telemetria) + `html2rml.py` | [nucleon-loop.md](references/nucleon-loop.md) + bug noti dell'engine [docs/NUCLEON-ENGINE-NOTES.md](../docs/NUCLEON-ENGINE-NOTES.md) |
 | Unreal | Unreal 5.8 MCP ufficiale + `gds_ue.py` + Megascans/Fab + PCG | [unreal-loop.md](references/unreal-loop.md) |
 | Godot (raro) | headless + addon MCP se c'è | [godot-loop.md](references/godot-loop.md) |
 | Mondo procedurale | `gds_world` (terrain / island / dungeon / cave / voxel) | [world-gen.md](references/world-gen.md) + [environments.md](references/environments.md) |
@@ -53,7 +53,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | OS / input / browser | TerminalMCP stdio | [terminalmcp.md](references/terminalmcp.md) |
 | HUD/Menu | real-world-design → UI Toolkit / RmlUi / UMG (**obbligatorio**, varianti di tutte le schermate in parallelo, scelta utente in una domanda unica) | [ui-bridge.md](references/ui-bridge.md) |
 | Audio | Kenney CC0 + AudioManager | [audio-pipeline.md](references/audio-pipeline.md) |
-| QA | Play Mode + test + lint | [playtest.md](references/playtest.md) + [gates.md](references/gates.md) |
+| QA | Play Mode + test + lint; repro-first dei bug (`test_bug_*`), `gds_bisect.py`, budget di performance, telemetria opt-in (`telemetry_report.py`), catture store/trailer | [playtest.md](references/playtest.md) + [gates.md](references/gates.md) |
 | Microtask / memoria | task atomici, snapshot su disco, `/resumegame` | [task-decomposition.md](references/task-decomposition.md) + [context-management.md](references/context-management.md) |
 | Stack globale | confermato una volta nel GDD | [tool-stack.md](references/tool-stack.md) + [doctor.md](references/doctor.md) |
 

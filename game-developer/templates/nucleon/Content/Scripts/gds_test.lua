@@ -52,6 +52,23 @@ function t.feel(values)
   table.sort(parts)
   print("GDS-FEEL {" .. table.concat(parts, ",") .. "}")
 end
+-- frame times for `seconds` of play (optionally while holding a key: a walk through the level), one line
+-- `GDS-PERF {"name":..., "p50_ms":..., "p95_ms":..., "p99_ms":..., "max_ms":..., "frames":...}` that `ncli play-test --fps N`
+-- checks against the budget (1000 / N). Measured at time scale 1 (GetFrameTime is real frame time then).
+function t.perf(name, seconds, key)
+  local times, e = {}, 0
+  if key then SimulateKey(key, true) end
+  while e < seconds do
+    Wait(0)
+    local dt = GetFrameTime()
+    if dt > 0 then times[#times + 1] = dt * 1000 e = e + dt else e = e + 1 / 30 end
+  end
+  if key then SimulateKey(key, false) end
+  table.sort(times)
+  local function q(p) return times[math.max(1, math.min(#times, math.ceil(#times * p)))] or 0 end
+  print(("GDS-PERF {\"name\":%q,\"p50_ms\":%.2f,\"p95_ms\":%.2f,\"p99_ms\":%.2f,\"max_ms\":%.2f,\"frames\":%d}"):format(
+    name, q(0.5), q(0.95), q(0.99), times[#times] or 0, #times))
+end
 function t.shot(name)
   local dir = os.getenv("NC_GDS_TEST_OUT")
   if dir and dir ~= "" then TakeScreenshot(dir .. "/" .. name .. ".png") end
