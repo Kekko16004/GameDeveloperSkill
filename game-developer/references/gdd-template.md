@@ -6,7 +6,7 @@ Write this file at `<game-root>/GDD.md`.
 ---
 status: draft
 genre: action-adventure   # row of genres.md
-engine: unity             # unity | unreal (style realistic)
+engine: unity             # Q0, the user's choice: unity | nucleon | unreal | godot (engines.md)
 style: lowpoly            # lowpoly | toon | stylized | voxel | realistic | 2d-pixel (styles.md)
 world: terrain            # terrain | island | village | city | dungeon | cave | interior | scifi | voxel | arena | 2d
 worldSize: medium         # small 100 m | medium 300 m | large 500 m+
@@ -63,7 +63,7 @@ blender: import-sanitize-only
 ui: real-world-design
 audio: kenney-cc0
 blender-mcp: uvx-stdio-9876
-session-mode: continuous # continuous (Claude Code / Kilo con subagents) | hard-stop (Antigravity monochat)
+parallel: 6               # Q18: max workers at once (editor work is always one driver, engines.md lock)
 asset-strategy: agent-full # agent-full | user-provided | hybrid
 forbid: bpy-modelling, sloyd, blockbench, dust3d, wall-by-wall placement
 

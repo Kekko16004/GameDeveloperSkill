@@ -106,6 +106,18 @@ function Find-Unreal {
   return @($found | Where-Object { Test-Path -LiteralPath (Join-Path $_ "Engine\Binaries\Win64\UnrealEditor.exe") } | Select-Object -Unique)
 }
 
+function Find-Nucleon {
+  $hit = (Get-Command NucleonEditor -ErrorAction SilentlyContinue).Source
+  if ($hit) { return $hit }
+  foreach ($root in @("$User\Desktop\Dev Things", "$User\Desktop", "$User\Documents", "$User\source\repos", "C:\Dev", "D:\Dev")) {
+    if (-not (Test-Path -LiteralPath $root)) { continue }
+    $exe = Get-ChildItem -LiteralPath $root -Recurse -Depth 4 -Filter NucleonEditor.exe -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($exe) { return $exe.FullName }
+  }
+  return ""
+}
+
 Write-Host ""
 Write-Host "=== Game Developer installer ==="
 Write-Host "Source:    $SkillSrc"
@@ -117,6 +129,7 @@ $det.unityCli = (Get-Command unity -ErrorAction SilentlyContinue).Source
 $det.unityEditors = @()
 if ($det.unityCli) { try { $det.unityEditors = @((& unity editors --installed --format json --no-banner 2>$null | ConvertFrom-Json).data | ForEach-Object { $_.version }) } catch {} }
 $det.unreal = Find-Unreal
+$det.nucleon = Find-Nucleon
 $det.blender = Find-Blender
 $det.fabcli = Find-First @((Get-Command fabcli -ErrorAction SilentlyContinue).Source, "$env:LOCALAPPDATA\fabcli\fabcli.exe", "$User\.local\bin\fabcli.exe", "$User\Tools\fabcli\fabcli.exe")
 $det.uvx = Find-First @((Get-Command uvx -ErrorAction SilentlyContinue).Source, "$User\.local\bin\uvx.exe")
@@ -167,7 +180,7 @@ foreach ($c in ($existing | Select-Object -Unique)) {
 # detected values fill blanks only
 $detCfg = [pscustomobject]@{
   hosts = $pickedHosts
-  paths = [pscustomobject]@{ blender = $det.blender; unityCli = $det.unityCli; designerSkill = $(if ($det.designerSkill) { Split-Path -Parent $det.designerSkill } else { "" }); voxelai = $det.voxelai; terminalmcp = $det.terminalmcp; unreal = $(if ($det.unreal) { @($det.unreal)[-1] } else { "" }) }
+  paths = [pscustomobject]@{ blender = $det.blender; unityCli = $det.unityCli; designerSkill = $(if ($det.designerSkill) { Split-Path -Parent $det.designerSkill } else { "" }); voxelai = $det.voxelai; terminalmcp = $det.terminalmcp; unreal = $(if ($det.unreal) { @($det.unreal)[-1] } else { "" }); nucleon = $det.nucleon }
   fab = [pscustomobject]@{ cli = $det.fabcli }
 }
 $cfg = Merge-Obj $cfg $detCfg

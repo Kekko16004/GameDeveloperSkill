@@ -22,7 +22,7 @@ Macro tasks ("make the village") make an agent stop early. Micro tasks ("place w
 
 - Different gates: greybox ≠ world ≠ blueprint ≠ lookdev ≠ UI screen ≠ playtest.
 - Each UI screen (the user picks a variant per screen).
-- Each blueprint that another worker could build in parallel (max 3 at once).
+- Each blueprint that another worker could build in parallel (the scheduler runs up to `parallel.maxWorkers` at once).
 - Anything with a `[WAIT-USER-ASSET]` or user choice.
 - Each art-review pass.
 
@@ -90,7 +90,7 @@ Every later task that adds text uses string keys; every task that touches physic
 
 ## Lifecycle (il parent, per ogni task)
 
-1. **Scegli:** primo `[ ]` con `Dipende` tutti `[x]` (più task liberi della stessa fase → in parallelo, max 3, regola del lock in [workers.md](workers.md)).
+1. **Scegli:** TUTTI i `[ ]` con `Dipende` tutti `[x]` e `OWNS` disgiunti → un'ondata in parallelo (max `parallel.maxWorkers`, regola del lock e scheduler in [workers.md](workers.md)); a ogni chiusura il posto libero va al prossimo pronto.
 2. **Avvio:** `[/]` + `Inizio` = ora (`HH:MM`).
 3. **Chiusura:** gate verificato su disco → `[x]` + evidenza; oppure, dopo 2 retry con l'errore preciso, `[!]` + motivo in `Note`. `Durata` = minuti dall'Inizio (retry inclusi). Aggiorna i contatori, `Tempo totale` e il puntatore in `GAME_CONTEXT.md`.
 4. **`[!]` non ferma la catena:** si salta e si continua con i task che non lo citano in `Dipende`. Si ferma tutto solo se nessun task è più eseguibile. I `[!]` si elencano all'utente alla fine (o al prossimo checkpoint), con il motivo.
@@ -101,11 +101,11 @@ Every later task that adds text uses string keys; every task that touches physic
 
 Le run lunghe si rompono così: un sistema nuovo rompe un verbo vecchio, oppure un worker con poco contesto lascia uno script a metà. Ogni 10 task chiusi (e sempre prima di art-review, playtest e slice) il parent lancia un worker **checkpoint** (prende il lock Unity):
 
-1. `unity command recompile` → `console` 0 errori.
-2. **Tutti** i test (`run_tests`), non solo quelli dell'ultimo task.
+1. `unity command recompile` → `console` 0 errori (Nucleon: `ncli exe compile-blueprints` se ci sono `.ncbp`, `ncli log` 0 errori).
+2. **Test incrementali, suite intera ai punti fermi.** Al checkpoint ogni 10 task: solo i test toccati dai file cambiati dall'ultimo checkpoint (Nucleon `ncli affected` → `NC_GDS_TEST=<lista>` + `--expect` già pronto; un file "core" cambiato — input, progetto, pawn, livello, `game.lua` — fa girare tutto; ogni `test_<verbo>.lua` dichiara `-- covers: <glob>`; Unity: le categorie dei test degli asmdef toccati). **Prima di art-review, playtest e slice: sempre la suite intera** (`run_tests` / `NC_GDS_TEST=1` + `ncli play-test --expect "GDS-TEST DONE pass=<tutti> fail=0"`). Nucleon in più, a ogni checkpoint: `ncli lua-check --strict` (chiamate sconosciute, argomenti delle native, sintassi) prima di qualsiasi Play.
 3. `gds_lint` su ogni scena di gioco → `issues: 0`. Se esiste `docs/tests/feel-baseline.json`: suite di feel nella scena vera → `worse: []` (playtest.md).
 4. Scansione degli script `Assets/_Game/Scripts/`: `TODO`, `NotImplementedException`, metodi vuoti in classi registrate in `GAME_CONTEXT.md`, script del registro non più su disco. Ognuno diventa un task di fix o viene giustificato nel report.
-5. `unity command gds_scene_map` → `docs/scene-map.md` aggiornata.
+5. `unity command gds_scene_map` → `docs/scene-map.md` aggiornata (Nucleon: `ncli call scene_list` → stessa tabella).
 6. **Solo prima di art-review / playtest / slice:** confronto con il GDD (verbi, win/fail, schermate UI, stile, mondo) → differenze in `docs/gates/drift-<n>.md`. Ogni differenza non voluta = task di fix.
 7. Tutto verde → `git add -A && git commit -m "checkpoint TASK-<ultimo>: <n> task, tests <passati>/<totali>, lint 0"`. Rosso → task di fix prima di qualsiasi altro task (stessa fase del colpevole), poi si rifà il checkpoint.
 
@@ -113,7 +113,9 @@ Report in `docs/gates/checkpoint-<n>.md` (JSON e conteggi, niente prosa). Se qua
 
 ## Speed
 
-- Task liberi in parallelo (max 3 worker): blueprint, batch hero, mock UI mentre i sistemi compilano. Il lavoro fuori da Unity (JSON, script, Blender, mock) va in parallelo, i comandi Unity passano dal lock.
+- Task liberi sempre in parallelo (scheduler a ondate, fino a `parallel.maxWorkers`): blueprint, batch hero, mock UI, script e test mentre l'editor costruisce. Il lavoro fuori dall'editor (JSON, script, Blender, mock) va in parallelo, i comandi dell'editor passano dal lock.
+- **Colonna `Dipende` stretta**: un task dipende solo da ciò che usa davvero (un blueprint dal kit-catalog, non dal blueprint precedente; un sistema dal greybox, non dall'art). Ogni dipendenza inutile serializza la run.
+- **Colonna `Editor`** (`sì`/`no`): i task `no` non aspettano mai il lock; il parent li lancia anche mentre un altro worker tiene l'editor.
 - Un worker può chiudere **task consecutivi della stessa fase** in un solo giro (es. 3 blueprint dello stesso kit) se ognuno scrive la propria riga di gate.
 - Le chiamate deterministiche restituiscono JSON: incolla il JSON nel gate, non descriverlo di nuovo.
 - La colonna `Durata` serve: dopo un paio di run mostra dove si perde tempo (retry di lookdev, compile lunghi). Un task che dura più del triplo della mediana della sua fase va annotato in `Note` con la causa.

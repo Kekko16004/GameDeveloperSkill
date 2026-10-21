@@ -56,6 +56,8 @@ Parent after each worker:
 22. **Design changes and attribution**: every difference from the brief is in `design_changes` with `decided_by`; "the owner asked" without a source → FAIL.
 23. **Regression loop**: `risks` lists the gameplay risks the gate introduces (harder, slower, more UI, new interactions); the next wave or real test re-checks them.
 24. **Orphans**: a gate that redesigns screens, menus, shops, flow or progression has the `design_review.py screens --before` result in the gate: nothing lost its entry point, or it was retired on purpose (`hidden-ok` + source).
+25a. **Repro first**: every bug fix has `repro: {before: "FAIL <reason>", after: PASS}` from a test that reproduces it (workers.md iterate-gate 1b); a fix without a failing-then-passing test → FAIL.
+25b. **Performance**: a gate that touches scene, lights, VFX, crowds or heavy UI has `perf:` (p95 vs `1000/targetFps`, playtest.md "Budget di performance"), or `perf: skipped: software renderer` with the reason.
 25. **Hand-off** (when `launch/` exists): after PASS the parent runs `gate_link.py apply-status --write` and `gate_link.py todo --run`; before a wave `gate_link.py since --out docs/design-review/changes-since-wNN.md`.
 
 Checkpoint (ogni 10 task, [task-decomposition.md](task-decomposition.md)):

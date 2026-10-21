@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "serverInfo": "nucleon-editor",
+  "tools": {
+    "editor_state": [],
+    "scene_list": [
+      "name_contains",
+      "parent",
+      "type"
+    ],
+    "entity_get": [
+      "id",
+      "name"
+    ],
+    "entity_modify": [
+      "audio_emitter",
+      "audio_volume",
+      "id",
+      "light",
+      "locked",
+      "name",
+      "new_name",
+      "parent",
+      "player_start",
+      "position",
+      "properties",
+      "reflection",
+      "rotation",
+      "scale",
+      "shape",
+      "visible"
+    ],
+    "entity_add": [
+      "asset",
+      "audio_emitter",
+      "audio_volume",
+      "light",
+      "locked",
+      "name",
+      "parent",
+      "player_start",
+      "position",
+      "properties",
+      "reflection",
+      "rotation",
+      "scale",
+      "shape",
+      "type",
+      "visible"
+    ],
+    "entity_remove": [
+      "ids",
+      "names"
+    ],
+    "scene_select": [
+      "ids"
+    ],
+    "asset_search": [
+      "limit",
+      "query",
+      "type"
+    ],
+    "asset_import": [
+      "folder",
+      "place",
+      "sources"
+    ],
+    "list_commands": [
+      "enabled_only",
+      "query"
+    ],
+    "run_command": [
+      "id"
+    ],
+    "get_input_mapping": [],
+    "set_input_mapping": [
+      "lua"
+    ],
+    "list_documents": [],
+    "switch_document": [
+      "document"
+    ],
+    "open_document": [
+      "path",
+      "type"
+    ],
+    "close_document": [
+      "discard",
+      "index"
+    ],
+    "play_control": [
+      "action"
+    ],
+    "read_log": [
+      "category",
+      "contains",
+      "level",
+      "limit",
+      "since_index"
+    ],
+    "viewport_camera": [
+      "position",
+      "target",
+      "view_mode"
+    ],
+    "capture_viewport": [
+      "max_width",
+      "target"
+    ],
+    "run_lua": [
+      "code"
+    ],
+    "migrate_project": [
+      "dry_run"
+    ],
+    "save_scene": [
+      "path"
+    ]
+  }
+}

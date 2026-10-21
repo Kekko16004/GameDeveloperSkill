@@ -4,11 +4,11 @@ Il parent **non implementa**. Lancia un subagent isolato per ogni task/fase. Ogn
 
 | Host | Come si lancia un worker |
 |---|---|
-| Claude Code | tool `Agent`, `subagent_type: "general-purpose"` (in foreground; più chiamate nello stesso messaggio = parallelo) |
-| Kilo Code / OpenCode | tool `Task`, `subagent_type: general` |
-| Antigravity / monochat | niente subagent → `session-mode: hard-stop` ([session-cuts.md](session-cuts.md)) |
+| Claude Code | tool `Agent`, `subagent_type: "general-purpose"`, **in background** (default): tutti i worker di un'ondata nello stesso messaggio, il parent viene svegliato a ogni chiusura |
+| Kilo Code / OpenCode / Codex | tool `Task` (`general`) o l'equivalente subagent del client, più chiamate nello stesso messaggio |
+| Host senza subagent | stesso flusso, il parent esegue un worker alla volta in sequenza con lo stesso contratto e la memoria su disco: mai fermarsi a chiedere una chat nuova |
 
-Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Style `realistic` → stessi worker, tool di [unreal-loop.md](unreal-loop.md).
+Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Altri engine → stessi worker, stessi gate, verbi dell'adapter di [engines.md](engines.md): Nucleon [nucleon-loop.md](nucleon-loop.md) (`ncli.py`), Unreal [unreal-loop.md](unreal-loop.md), Godot [godot-loop.md](godot-loop.md).
 
 ## Contesto minimo (le uniche 9 righe per ogni worker)
 
@@ -19,7 +19,7 @@ CONTEXT=<abs path GAME_CONTEXT.md>
 TASKS=<abs path GAME_TASKS.md>
 SKILL=<abs path game-developer/>
 PHASE=<id> (+ TASK-id)
-ENGINE=unity|unreal
+ENGINE=unity|nucleon|unreal|godot   (scelta dell'utente, GDD Q0; il worker legge SOLO la riga del suo engine in engines.md)
 STYLE=<GDD style + famiglia kit + lookdev preset>
 GENRE=<riga di genres.md>
 ```
@@ -53,26 +53,50 @@ REPORT=formato fisso di SKILL/templates/worker-report.md
 
 Se un worker chiude senza i file del gate, o con un report che non corrisponde al brief, il parent **rilancia lo stesso worker** con lo stesso prompt più `GATE ROSSO:` e **l'errore preciso**: la riga mancante del gate, il JSON di lint/build con `issues > 0`, le prime righe di `unity command console` o del test fallito. Mai solo "manca X". Max 2 retry, poi `[!]` (vedi il ciclo in [task-decomposition.md](task-decomposition.md)).
 
-## Un solo Editor Unity: lock
+## Un solo editor: lock
 
-C'è un Editor e una scena: due worker che compilano, costruiscono o lintano insieme si rovinano il risultato a vicenda. Per andare veloci si **separa il lavoro**:
+C'è un editor e una scena: due worker che compilano, costruiscono o lintano insieme si rovinano il risultato a vicenda. Per andare veloci si **separa il lavoro**:
 
-- **Fuori da Unity, in parallelo (max 3 worker):** scrivere blueprint / world / village / spec Blender, script C# (senza `recompile`), mock UI, ricerca e download degli asset, Blender headless.
-- **Dentro Unity, uno alla volta:** prima di qualsiasi `unity command` (recompile, `gds_build/world/village`, `gds_lint`, `run_tests`, `editor_play`, `gds_shot/sheet`):
-  ```
-  powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id>
-  ... tutta la sequenza Unity (build → lint → shot) ...
-  powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id> -Release
-  ```
+- **Fuori dall'editor, in parallelo (fino a `parallel.maxWorkers`, default 6):** blueprint / world / village / spec Blender, script (C#, Lua, GDScript) senza compilare, test scritti, mock UI, ricerca e download asset, Blender headless, conversione `html2rml.py`.
+- **Dentro l'editor, uno alla volta** (qualsiasi recompile, build, lint, test, play, screenshot):
+
+| engine | prendi | rilascia |
+|---|---|---|
+| unity | `powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id>` | stesso comando + `-Release` |
+| nucleon | `python SKILL/scripts/ncli.py --project PROJECT lock acquire --owner <PHASE:TASK-id>` | `... lock release --owner <PHASE:TASK-id>` |
+| unreal / godot | un solo client MCP / un solo processo headless: stesso file di lock JSON di ncli (`ncli lock` funziona per qualsiasi cartella) | idem |
+
   La sequenza va tenuta corta: niente ragionamenti lunghi mentre hai il lock, correggi il JSON e rientra. Rilascia anche se fallisci. Il lock più vecchio di 10 minuti viene considerato abbandonato.
-- Un worker solo (fase sequenziale) prende comunque il lock: costa zero e protegge da worker rimasti appesi.
-- Vale anche per gli helper che un worker lancia a sua volta: stesso contratto, `OWNS` disgiunti, un solo helper con l'Editor.
+- Un worker solo prende comunque il lock: costa zero e protegge da worker rimasti appesi.
+- Vale anche per gli helper che un worker lancia a sua volta: stesso contratto, `OWNS` disgiunti, un solo helper con l'editor.
 
-## Come lanciare
+## Scheduler a ondate (sempre continuo, tutto il parallelo possibile)
 
-Un worker alla volta per fasi dipendenti (greybox → kit-fetch → world-gen → building-gen → level-build → village → hero-asset → lookdev → art-review → characters → systems → feel-baseline → ui → baseline-* → juice → art-review → playtest). Dentro la stessa fase: task liberi (colonna `Dipende` soddisfatta) in parallelo, max 3, con la regola del lock qui sopra. Art: **un blueprint per worker** per level-build, **fino a 3 hero asset in batch** per hero-asset. Systems e UI possono girare in parallelo all'art finché non toccano la stessa scena senza lock.
+Il parent non lancia "una fase alla volta": lancia **un'ondata** = tutti i task pronti insieme.
+
+1. **Pronti** = righe `[ ]` di `GAME_TASKS.md` con tutti i `Dipende` a `[x]` (i `[!]` e chi dipende da loro restano fuori).
+2. **Raggruppa**: task con `OWNS` disgiunti nella stessa ondata; due task con un file in comune → il secondo all'ondata dopo. Max `parallel.maxWorkers` (GDD `parallel:`) worker vivi.
+3. **Lancia tutti nello stesso messaggio** (Claude Code: più `Agent` in background in una risposta). I worker che toccano l'editor si mettono in coda da soli sul lock: preparano tutto fuori (JSON, script) e prendono il lock solo per la sequenza breve build → lint → shot.
+4. **A ogni chiusura** (notifica): verifica gate + report (contratto 4), aggiorna `GAME_TASKS.md`, e **riempi subito il posto libero** con il prossimo task pronto: niente attesa che l'ondata finisca tutta.
+5. **Mai fermarsi**: un `[!]` dopo 2 retry si salta; il parent si ferma solo quando nessun task è più eseguibile, o per una scelta dell'utente.
+6. **Scelte dell'utente raggruppate**: le varianti UI di tutte le schermate si preparano in parallelo e si mostrano **insieme** in una sola domanda (una galleria per schermata, una risposta per tutte); intanto gli altri track continuano. Lo stesso per asset dell'utente e controllo di mercato: una sola sosta, non una per schermata.
+7. **Checkpoint** (ogni 10 `[x]`, prima di art-review / playtest / slice) = l'unico punto in cui si aspetta che i worker con il lock finiscano.
+
+Track che girano in parallelo dopo il greybox (ognuno con i suoi `OWNS`):
+
+```
+ART      kit-fetch → world-gen → building-gen (batch) → level-build ×N (JSON in parallelo, build in coda) → hero-asset ×N → lookdev → art-review
+CODE     systems: un verbo = script + test (scritti fuori dall'editor) → compile/test in coda → feel-baseline
+UI       mock real-world-design di TUTTE le schermate → scelta utente unica → UXML / RML / UMG → baseline-ui
+AUDIO    fetch CC0 + AudioManager / suoni Nucleon → juice
+QUALITY  baseline-* (loc, a11y, playtest-kit, store-capture) appena il suo sistema esiste
+```
+
+Granularità: **un blueprint per worker** in level-build, hero-asset a batch di 3, building-gen a batch di 5. `characters` dopo il primo level-build; `juice`, seconda `art-review`, `playtest`, `slice` in coda quando i track sono chiusi.
 
 ---
+
+> **Le PHASE qui sotto sono scritte con i comandi Unity.** Con `ENGINE=nucleon|unreal|godot` ogni comando si traduce con il verbo dell'adapter ([engines.md](engines.md)): `gds_ping`→ping, `gds_build/world/village`→build, `gds_lint`→lint, `gds_shot`/`screenshot`→shot, `run_tests`/`editor_play`→test/play, `unity-lock.ps1`→lock. Il gate resta identico (stesse righe, stesso `lint: {"issues":0`).
 
 ## PHASE gdd
 
@@ -88,7 +112,17 @@ Gate: `GDD.md` contiene `status: locked` e tutti i campi della lista in `gdd-int
 
 ## PHASE project
 
-Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md` (Unreal: `unreal-loop.md`).
+Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md` (Nucleon: `nucleon-loop.md` §1-2 e §9; Unreal: `unreal-loop.md`; Godot: `godot-loop.md`).
+
+**ENGINE=nucleon** (al posto dei punti 1-4 Unity):
+1. Attach, oppure `python SKILL/scripts/ncli.py --exe <paths.nucleon> exe new-project PROJECT --template <first-person|third-person|top-down|empty dal genere>`.
+2. `python SKILL/scripts/ncli.py setup PROJECT`: harness `Content/Scripts/gds_test.lua` + `test_move.lua`, `art/blueprints/_example.json`, cartelle della skill, righe `.gitignore`.
+3. Trasporto: editor aperto dal proprietario con Editor Preferences > AI > Enable Server (chiedilo UNA volta, nel recap del GDD) → HTTP; altrimenti `--stdio <editor>` (`--save current` su ogni build).
+4. Verifica: `ncli ping` (upAxis `z`), `ncli lint --write docs/lint/scene-lint.json` → JSON, `NC_GDS_TEST=1` + `ncli play-test --expect "GDS-TEST DONE pass=1 fail=0"` con `test_move.lua`.
+5. Poi i punti 5-6 sotto (gen3d key, `git init` + primo commit).
+Gate Nucleon: `project.ncproject` + `ncli ping` JSON + lint JSON + play-test PASS + `docs/gates/04-project.md` PASS.
+
+**ENGINE=unity:**
 1. Attach o `unity projects create ... --template com.unity.template.urp-blank` (2D: `com.unity.template.universal-2d`). Unity 6000.x installato; 6000.5+ richiede ProBuilder ≥ 6.1.2 (l'installer usa le versioni consigliate dall'Editor).
 2. `powershell -File SKILL/scripts/install-gds-editor.ps1 -ProjectPath PROJECT` (+ `-WithToonShader` se `toon: yes`, `-WithOutline` se `outline: yes`). Copia GDS Editor + Runtime, esempi `art/world/`, pacchetti, e `unity pipeline install`.
 3. Apri/lascia aprire l'Editor: `unity command recompile` → `recompile_status` completed → `unity command console` 0 errori. `unity command package_add` per Cinemachine se il GDD lo usa.
@@ -307,12 +341,20 @@ Gate: `docs/gates/16-baseline-<item>.md` con test, check JSON, PNG.
 
 ---
 
+## PHASE ui-* (due giri: `variants` in parallelo → una scelta → `implement` in parallelo)
+
+Prima un task breve **ui-tokens** (palette GDD + preset lookdev → `ui/tokens.css`, nessuna schermata). Poi, in parallelo, un worker **variants** per ogni schermata (Main Menu, HUD, Pause, Game Over, + quelle del GDD): 3-4 varianti HTML con layout davvero diversi + gallery PNG, stessi token. Il parent **raccoglie tutte le gallerie e fa UNA sola domanda all'utente** (una scelta per schermata, nella stessa risposta); mentre aspetta, gli altri track continuano. Poi un worker **implement** per schermata, in parallelo (OWNS: i suoi file UI + il suo controller; il cablaggio nella scena/progetto passa dal lock).
+Transpiler per engine: Unity `scripts/ui-transpiler.mjs` → UXML/USS · Nucleon `scripts/html2rml.py mock.html PROJECT/UI/<screen>.rml --model <screen>` → RML/RCSS (+ `.preview.lua`; controllo `NC_EDITOR_UI_DOCUMENT` screenshot) · Unreal UMG via widget toolset · Godot Control scene.
+Nelle sezioni qui sotto "MOSTRA ALL'UTENTE E ATTENDI LA SCELTA" = la domanda unica del parent, non una sosta per schermata.
+
+---
+
 ## PHASE ui-main-menu
 
 Tu fai SOLO il Main Menu.
 OBBLIGO Skill tool `real-world-design` mode=game. Vietato inventare UXML a mano come primo passo. Vietato saltare Variant Studio / mock HTML + Playwright.
-Flusso: tokens (palette GDD + preset lookdev) → 3-4 varianti HTML con layout distinti → screenshot gallery 1440x900 `screenshots/040-ui-main-menu-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)** → solo dopo la scelta: `ui-transpiler.mjs` → UXML/USS + UIDocument + PanelSettings.
-Scena MainMenu **build index 0**. Sfondo: screenshot lookdev o camera sul livello con Volume. Spawn FP nel livello = FAIL.
+Flusso: tokens (palette GDD + preset lookdev) → 3-4 varianti HTML con layout distinti → screenshot gallery 1440x900 `screenshots/040-ui-main-menu-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)** → solo dopo la scelta: transpiler dell'engine (Unity `ui-transpiler.mjs` → UXML/USS + UIDocument + PanelSettings; Nucleon `html2rml.py` → RML mostrato da `Content/Scripts/game.lua`).
+Unity: scena MainMenu **build index 0**; Nucleon: il menu RmlUi è la prima cosa che `game.lua` mostra (modo `menu`, come il sample). Sfondo: screenshot lookdev o camera sul livello con Volume. Spawn FP nel livello = FAIL.
 Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
 
 ---
@@ -321,7 +363,7 @@ Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
 
 Tu fai SOLO HUD. Skill `real-world-design` mode=game OBBLIGATORIA.
 REGOLA SCELTA UTENTE TASSATIVA: È VIETATO auto-generare l'HUD senza varianti. Mantieni i token di stile consolidati nel Main Menu (`ui/tokens.css`), ma devi SEMPRE creare 3-4 varianti di layout diverse (es. diegetico, barre angolari survival, bottom-bar compatta, minimal immersivo) in Variant Studio.
-Screenshot gallery 1440x900 `screenshots/041-ui-hud-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Screenshot gallery 1440x900 `screenshots/041-ui-hud-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta dell'utente: `ui-transpiler.mjs` → UXML/USS + PanelSettings.
 Vitali, obiettivo testuale visibile, prompt `[E]`, orologio se nel GDD. IMGUI = FAIL.
 Screenshot Play Mode `screenshots/041-ui-hud.png`. Gate `docs/gates/11-ui-hud.md`. Mock HTML mancante = FAIL.
@@ -332,7 +374,7 @@ Screenshot Play Mode `screenshots/041-ui-hud.png`. Gate `docs/gates/11-ui-hud.md
 
 Tu fai SOLO Pause. Skill `real-world-design` obbligatoria.
 REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti di layout (sidebar laterale, modale centrale, registro/libro diegetico, minimal).
-Screenshot gallery `screenshots/042-ui-pause-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Screenshot gallery `screenshots/042-ui-pause-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta: transpiler UXML + controller (Esc, timeScale 0, Riprendi / Menu).
 Screenshot `screenshots/042-ui-pause.png`. Gate `docs/gates/11-ui-pause.md`.
 
@@ -342,7 +384,7 @@ Screenshot `screenshots/042-ui-pause.png`. Gate `docs/gates/11-ui-pause.md`.
 
 Tu fai SOLO Game Over / Victory. Skill `real-world-design` obbligatoria.
 REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti (pergamena/certificato, epitaffio scuro, statistiche dettagliate, cinematico).
-Screenshot gallery `screenshots/043-ui-gameover-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (STOP OBBLIGATORIO)**.
+Screenshot gallery `screenshots/043-ui-gameover-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta: transpiler UXML + pulsante Riprova/Menu.
 Screenshot `screenshots/043-ui-gameover.png`. Gate `docs/gates/11-ui-gameover.md`.
 
@@ -398,6 +440,7 @@ Gate: `docs/gates/review-gNN.md` con i numeri dei due script e l'elenco: orfani,
 
 Tu fai SOLO i punti del tuo gate (`docs/gates/plan-wNN.md` riga NN, o la lista del proprietario). Leggi `DECISIONI.md` per primo, poi `launch-link.md` §5-8, `design-review.md` §4, [templates/gate.md](../templates/gate.md).
 1. **Prima:** misura il problema nel gioco vero (numeri, foto `-before`); review "prima" dalle run toccate.
+1b. **Repro prima del fix** (ogni bug, ogni engine): un test che riproduce il bug e **fallisce sulla build attuale** con i numeri del report. Nucleon: copia `Tools/gds/test_bug_template.lua` in `Content/Scripts/test_bug_<chiave>.lua` (`ncli play-test --expect "GDS-TEST bug_<chiave> FAIL"`); Unity: un test PlayMode `Bug_<chiave>`. Poi fix della causa (mai del test), poi PASS + suite intera. Gate: `repro: {before: "FAIL <motivo>", after: PASS}`; il test resta nella suite. Un bug che non si riesce a far fallire in un test non è capito: si torna al punto 1. Se un test diventa rosso dopo un checkpoint verde: `python SKILL/scripts/gds_bisect.py --project PROJECT --test "<il test>"` trova il commit colpevole, citato nel gate.
 2. **Causa vera**, poi fix. Bilanciamento, tuning e stile non chiesti = DO NOT.
 3. **Verifica la meccanica vera nel gioco normale**, non solo il caso del report: tutte le direzioni e situazioni in cui il giocatore la incontra (davanti / di lato / da dietro, fermo / in corsa, con e senza il perk), con numeri prima → dopo. Un colpo che "non fa niente" da un lato è un bug anche se di fronte funziona.
 4. **Foto guardate**, una per una, con una riga su cosa mostrano; una foto che contraddice il testo = rifai.
@@ -411,5 +454,4 @@ OWNS: i file del piano per quel gate + `docs/gates/NN-*.md` + `docs/screens/NN/`
 
 ## Fine fase
 
-`session-mode: continuous`: aggiorna GAME_TASKS.md + GAME_CONTEXT.md, il parent lancia la fase successiva.
-`session-mode: hard-stop`: aggiorna GAME_TASKS.md + GAME_CONTEXT.md, stampa il banner in `session-cuts.md`, **FERMA**. Max 3 level-build (o hero-asset) nella stessa chat, poi STOP anche se la lista non e finita.
+Il worker aggiorna il suo PROGRESS, scrive il gate e chiude con il report fisso. Il parent aggiorna `GAME_TASKS.md` + `GAME_CONTEXT.md` e riempie subito il posto libero dello scheduler con il prossimo task pronto. Nessuna sosta, nessun banner, nessuna chat nuova.

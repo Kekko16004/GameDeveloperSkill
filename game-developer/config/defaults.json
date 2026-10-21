@@ -1,17 +1,31 @@
 {
-  "version": 1,
+  "version": 2,
   "paths": {
     "voxelai": "",
     "designerSkill": "",
     "terminalmcp": "",
     "blender": "",
     "unityCli": "",
-    "unreal": ""
+    "unreal": "",
+    "nucleon": "",
+    "godot": ""
   },
   "engines": {
-    "default": "unity",
-    "realistic": "unreal",
-    "unrealMin": "5.8"
+    "preferred": [
+      "unity",
+      "nucleon",
+      "unreal",
+      "godot"
+    ],
+    "choice": "user",
+    "unrealMin": "5.8",
+    "godotMin": "4.3",
+    "nucleon": {
+      "bridge": "scripts/ncli.py",
+      "transport": "http",
+      "httpPort": 47420,
+      "templates": "templates/nucleon"
+    }
   },
   "modules": {
     "skillFiles": true,
@@ -22,7 +36,8 @@
     "voxelMcp": true,
     "terminalMcp": true,
     "designSkill": true,
-    "gdsEditor": true
+    "gdsEditor": true,
+    "nucleon": true
   },
   "mcp": {
     "blenderCommand": [
@@ -115,7 +130,8 @@
   "bridge": {
     "unity": "cli",
     "unityFallback": "coplay-mcp",
-    "unreal": "unreal-mcp-5.8"
+    "unreal": "unreal-mcp-5.8",
+    "nucleon": "ncli"
   },
   "fab": {
     "enabled": false,
@@ -125,5 +141,12 @@
   "tasks": {
     "target": "60-80",
     "max": 90
+  },
+  "parallel": {
+    "mode": "continuous",
+    "maxWorkers": 6,
+    "maxEditorDrivers": 1,
+    "background": true,
+    "batchUserChoices": true
   }
 }
