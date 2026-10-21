@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1400" width="1400" height="1400">
+  <title>Logo con contorno</title>
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="48" stroke-linejoin="round">
+    <polygon points="450,432 816,60 1146,60 450,762"/>
+    <polygon points="878,808 1276,808 1276,1013 878,1013"/>
+    <polygon points="946,350 1278,350 1278,556 1030,556 828,764 828,1330 628,1330 628,672"/>
+    <polygon points="403,472 403,814 578,996 578,1304 89,791"/>
+  </g>
+  <g fill="#D21F3A">
+    <polygon points="450,432 816,60 1146,60 450,762"/>
+    <polygon points="878,808 1276,808 1276,1013 878,1013"/>
+  </g>
+  <g fill="#000000">
+    <polygon points="946,350 1278,350 1278,556 1030,556 828,764 828,1330 628,1330 628,672"/>
+    <polygon points="403,472 403,814 578,996 578,1304 89,791"/>
+  </g>
+</svg>
