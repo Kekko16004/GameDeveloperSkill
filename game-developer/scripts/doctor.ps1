@@ -174,11 +174,33 @@ if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Packages\
   else { Row "WARN" "unity-pipeline" "unity pipeline install --project-path `"$ProjectPath`"" }
 }
 
-# Unreal (style realistic only): the official MCP needs 5.8+
+# Nucleon (engine: nucleon): NucleonEditor + the ncli bridge (python, standard library)
+$nc = ""
+if ($cfg -and $cfg.paths -and $cfg.paths.nucleon) { $nc = [string]$cfg.paths.nucleon }
+if (-not $nc -and $env:NUCLEON_EDITOR) { $nc = $env:NUCLEON_EDITOR }
+if ($nc -and (Test-Path -LiteralPath $nc -PathType Container)) { $nc = Join-Path $nc "NucleonEditor.exe" }
+if ($nc -and (Test-Path -LiteralPath $nc)) {
+  if (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $nc) "Nucleon.exe")) { Row "PASS" "nucleon" $nc }
+  else { Row "WARN" "nucleon" "$nc found but Nucleon.exe is not next to it (packaging / run-lua need the runtime of the same build)" }
+} else { Row "WARN" "nucleon" "NucleonEditor not set: config.json paths.nucleon or env NUCLEON_EDITOR (only for engine: nucleon)" }
+$py = Get-Cmd "python"; if (-not $py) { $py = Get-Cmd "py" }
+$ncli = Join-Path $SkillRoot "scripts\ncli.py"
+if ($py -and (Test-Path -LiteralPath $ncli)) {
+  Row "PASS" "ncli" "python scripts/ncli.py (Nucleon bridge)"
+  if ($ProjectPath -and (Get-ChildItem -LiteralPath $ProjectPath -Filter "*.ncproject" -ErrorAction SilentlyContinue)) {
+    $ping = & $py $ncli --project $ProjectPath --timeout 5 ping 2>$null
+    if ($ping -match '"ok":true') { Row "PASS" "nucleon-mcp" $ping }
+    else { Row "WARN" "nucleon-mcp" "editor MCP not reachable over HTTP: open the project, Editor Preferences > AI > Enable Server (or workers use --stdio)" }
+    if (Test-Path -LiteralPath (Join-Path $ProjectPath "Content\Scripts\gds_test.lua")) { Row "PASS" "nucleon-gds" "gds_test.lua harness in the project" }
+    else { Row "WARN" "nucleon-gds" "copy templates/nucleon/Content/Scripts/*.lua into the project (phase project)" }
+  }
+} elseif (-not $py) { Row "WARN" "ncli" "python not on PATH (needed by ncli.py, gate_link.py, design_review.py)" }
+
+# Unreal (engine: unreal): the official MCP needs 5.8+
 $ue = @()
 foreach ($root in @("$env:ProgramFiles\Epic Games", "C:\Games", "D:\Games")) {
   if (Test-Path -LiteralPath $root) { $ue += Get-ChildItem -LiteralPath $root -Directory -Filter "UE_*" -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } }
 }
 if ($ue | Where-Object { $_ -match '^UE_(5\.(8|9|\d{2})|[6-9]\.)' }) { Row "PASS" "unreal" ($ue -join ", ") }
-elseif ($ue.Count -gt 0) { Row "WARN" "unreal" (($ue -join ", ") + " found; style realistic needs UE 5.8+ (Epic Launcher)") }
-else { Row "WARN" "unreal" "not installed (only needed for style realistic)" }
+elseif ($ue.Count -gt 0) { Row "WARN" "unreal" (($ue -join ", ") + " found; engine unreal needs UE 5.8+ (Epic Launcher)") }
+else { Row "WARN" "unreal" "not installed (only needed for engine: unreal)" }

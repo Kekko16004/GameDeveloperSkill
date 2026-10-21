@@ -10,7 +10,7 @@
 - **Genere:** `[es. 3D Action Adventure / Survival / Puzzle]`
 - **Target Audience & Mood:** `[es. Atmosferico, medievale low-poly, ritmo calmo ma teso]`
 - **Stile Visivo & Palette:** `[es. Low-poly stilizzato, URP Lit, palette: #2c3e50, #8e44ad, #f39c12]`
-- **Scala Mondo:** `1 unità Unity = 1 metro reale`
+- **Scala Mondo:** `1 unità = 1 metro` (Nucleon/Unreal: Z up negli strumenti; Unity/Godot: Y up)
 
 ### Core Game Loop
 1. **Loop dei 30 Secondi:** `[Cosa fa il giocatore istante per istante: es. Esplora l'ambiente, cerca porte/oggetti interattivi, raccoglie risorse]`
@@ -30,10 +30,10 @@
 ---
 
 ## 2. Architettura Tecnica & Setup Engine
-- **Engine:** Unity `[6000.x]` URP (stile realistico: Unreal 5.8, vedi unreal-loop.md)
+- **Engine:** `[unity 6000.x | nucleon 0.x | unreal 5.8 | godot 4.x]` — scelta dell'utente (GDD Q0, engines.md); loop: `[unity-loop | nucleon-loop | unreal-loop | godot-loop].md`
 - **Percorso Assoluto Progetto:** `[Path cartella Unity sul disco]`
-- **Build Settings:** `Index 0` `Assets/_Game/Scenes/MainMenu.unity` (obbligatorio) · `Index 1` `Assets/_Game/Scenes/MainGame.unity`
-- **Ponte Unity:** Unity CLI (`unity command gds_*`, `eval`, `run_tests`) primario; CoplayDev unity-mcp solo fallback
+- **Avvio:** Unity `Index 0` `Assets/_Game/Scenes/MainMenu.unity` · `Index 1` `MainGame.unity` | Nucleon `startupLevel` in `project.ncproject` + menu RmlUi mostrato da `Content/Scripts/game.lua` (Main Menu obbligatorio in entrambi)
+- **Ponte engine:** Unity CLI (`unity command gds_*`) · Nucleon `python SKILL/scripts/ncli.py` (ping/build/lint/shot/play-test, lock) · Unreal MCP 5.8 · Godot headless
 - **Art:** famiglia `[kenney|kaykit|quaternius|synty]` in `art/cc0/` + `art/kit-catalog.json`; hero prop via Blender MCP (`uvx mcp-for-blender` stdio); gen3d solo se il GDD lo permette
 - **Look:** preset `[gds_lookdev preset]`, palette `[hex...]`
 - **Decisioni:** `DECISIONI.md` (leggere per primo, mai riaprire); se esiste `launch/`, anche `launch/00-intenzioni.md` + "Decisioni prese" di `launch/TODO.md`

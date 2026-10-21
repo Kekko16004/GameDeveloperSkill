@@ -7,8 +7,8 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 0  doctor                          parent
 1-3 GDD interview (blocchi A-E, domande adattive) + LOCK   parent parla; oppure worker gdd
 3m controllo di mercato precoce     OFFERTO (game-launch-strategist Mirata, launch-link.md), non imposto
-    style realistic → engine unreal: stesse fasi, tool di unreal-loop.md
-4  project attach|create + GDS editor scripts + packages     worker project
+    engine = scelta dell'utente (Q0): stesse fasi su unity / nucleon / unreal / godot, verbi dell'adapter (engines.md)
+4  project attach|create + layer deterministico dell'engine (GDS / ncli + templates/nucleon / gds_ue)   worker project
 5  task-decomposition               worker task-decomposition (GAME_TASKS + GAME_CONTEXT + ASSET-LEDGER + lista blueprint)
 6  greybox + movement test          worker greybox  (GDS.PB.Room / primitives blueprint; ground top = Y 0)
 7a kit-fetch + kit-catalog          worker kit-fetch (fetch-cc0-kits.ps1 + gds_catalog → art/kit-catalog.json)
@@ -38,7 +38,7 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 18 design-review "dopo"             run toccate con --before; controllo orfani dopo un redesign; poi il prossimo gate
 ```
 
-`session-mode: continuous` (Claude Code / Kilo con subagent): il parent lancia il worker successivo appena il gate e PASS, senza fermarsi. `hard-stop` (Antigravity / monochat): banner + `/resumegame` dopo ogni riga (vedi session-cuts.md).
+**Sempre continua e parallela.** I numeri sopra sono l'ordine delle dipendenze, non una coda: dopo il greybox i track ART / CODE / UI / AUDIO / QUALITY girano insieme con lo scheduler a ondate ([workers.md](workers.md) "Scheduler"); l'editor ha un solo driver alla volta (lock). L'utente viene interpellato solo per le scelte UI (una domanda unica per tutte le schermate) e per ciò che il GDD lascia aperto.
 `GDD.md` campo `phase:` aggiornato dal parent dopo ogni gate PASS.
 
 ## Memoria su disco (per host che perdono contesto)
@@ -47,7 +47,7 @@ Ogni fase legge/scrive solo file piccoli e strutturati, mai la chat:
 
 | File | Chi lo scrive | Chi lo legge |
 |---|---|---|
-| `GDD.md` (19 risposte lockate) | gdd | tutti |
+| `GDD.md` (risposte lockate, engine Q0 compreso) | gdd | tutti |
 | `GAME_CONTEXT.md` / `GAME_TASKS.md` | task-decomposition, poi ogni worker | tutti, `/resumegame` |
 | `ASSET-LEDGER.md` | task-decomposition, hero-asset | level-build, slice |
 | `art/kit-catalog.json` | kit-fetch | level-build |

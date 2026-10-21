@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-10-21 — Nucleon Engine, engine scelto dall'utente, run sempre continua e parallela
+
+Fonti: sorgente `NucleonEngine/NucleonEngine` (`main`, `editor/src/mcp/*`, `docs/editor/MCP.md`, `docs/api/NATIVES.md`, `docs/engine/GAME_UI.md`, sample `ThirdPersonDemo`). Verificato sull'editor compilato da `main` (Linux, Xvfb, llvmpipe): `ncli` ping / build ×2 (rebuild in place) / lint `issues: 0` / shot / play-test, harness Lua PASS in Play In Editor con `SimulateKey`, `html2rml.py` aperto nell'UI editor senza errori. Non verificati: Windows/D3D12, trasporto HTTP con l'editor del proprietario, mondo landscape+foliage.
+
+| Cosa | Dove |
+|---|---|
+| Engine = scelta dell'utente alla domanda Q0, definitiva; lo stile non sceglie più l'engine; contratto adapter a 8 verbi (ping, build, lint, shot, test, play, lock, package) per unity / nucleon / unreal / godot | nuovo `references/engines.md`, `gdd-interview.md` Q0, `styles.md`, `tool-stack.md`, `gdd-template.md`, `config/defaults.json` (`engines.preferred`) |
+| Ponte Nucleon: MCP dell'editor via HTTP (token letto da `editor-settings.lua`) o stdio; batch JSON-RPC in un round trip; screenshot su file (mai base64 nel contesto); i worker non caricano gli schemi MCP | nuovo `scripts/ncli.py` |
+| Layer deterministico Nucleon: spec JSON (stanze con varchi porta/finestra, pezzi, scatter seedato, shape, luci, player start) → entità sotto `BP_<nome>`, rebuild in place, `docs/lint/build-<nome>.json`; lint (kill Z, duplicati, floating/underground, primitive, errori di log) | `ncli build`, `ncli lint`, `templates/nucleon/specs/house_example.json` |
+| Test dei verbi in Lua con input vero (`SimulateKey`), righe `GDS-TEST`, `GDS-FEEL` per la feel baseline; `play-test` si ferma al `DONE` | nuovo `templates/nucleon/Content/Scripts/gds_test.lua` + `test_move.lua`, `playtest.md` |
+| UI: mock real-world-design → RmlUi (`.rml` + `.rcss` + `.preview.lua`, report dei cambi) | nuovo `scripts/html2rml.py`, `ui-bridge.md` §3b |
+| Loop completo Nucleon (requisiti, coordinate Z up vs file Y up, fasi, regole) | nuovo `references/nucleon-loop.md`, PHASE project in `workers.md` |
+| Godot minimo | nuovo `references/godot-loop.md` |
+| Sessione sempre continua: tolti `session-mode`, `hard-stop`, banner e cambi chat; `/resumegame` solo dopo un crollo | via `references/session-cuts.md`; `context-management.md`, `SKILL.md`, `command/*.md` |
+| Scheduler a ondate: tutti i task pronti con `OWNS` disgiunti in un messaggio (subagent in background, `parallel.maxWorkers` = 6), posto libero riempito subito, track ART / CODE / UI / AUDIO / QUALITY in parallelo, lock generico dell'editor | `workers.md` "Scheduler a ondate" e "Un solo editor: lock", `task-decomposition.md`, `pipeline.md`, colonna `Ed` in `templates/GAME_TASKS.md` |
+| UI: varianti di tutte le schermate in parallelo, **una sola domanda** all'utente, implementazione in parallelo | `workers.md` PHASE ui-* |
+| Doctor e installer: NucleonEditor (`paths.nucleon`), runtime accanto, `ncli ping` sul progetto, harness presente | `scripts/doctor.ps1`, `install.ps1`, `INSTALL.md` |
+
 ## 2026-10-21 — Nuova skill `fivem-sollumz` (Blender + Sollumz -> risorsa FiveM)
 
 Fonti: sorgente Sollumz v2.9.0 e wiki ufficiale (GitHub Sollumz/Sollumz, Sollumz/wiki), docs Cfx.re

@@ -1,35 +1,37 @@
-# Styles — one decision that routes engine, assets, look and gates
+# Styles — one decision that routes assets, look and gates
 
-The GDD `style:` (Q7) is locked once and every worker reads it. A style is a bundle, not an adjective: it picks the engine, the asset family, the lookdev preset, the shaders and what the art review measures.
+The GDD `style:` (Q9) is locked once and every worker reads it. A style is a bundle, not an adjective: it picks the asset family, the lookdev preset, the shaders and what the art review measures. **It does not pick the engine**: the engine is the user's answer to Q0 ([engines.md](engines.md)); the columns below say how each engine renders the style.
 
-| style | engine | assets (one family) | look | shaders / post | art review focus |
+| style | assets (one family) | Unity URP | Nucleon | Unreal 5.8 | art review focus |
 |---|---|---|---|---|---|
-| `lowpoly` | Unity URP | Kenney / KayKit / Quaternius / Synty Starter | `stylized-day` / `stylized-sunset` / `pastel-bright` | URP Lit, flat palette materials, SSAO, bloom low | silhouette, palette coherence, no default grey |
-| `toon` | Unity URP | same kits, or Blender buildings with palette | `toon-bright` (+ any stylized preset) | Delt06 toon shader + CristianQiu outline (`-WithToonShader -WithOutline`), `GDS.LookDev.ConvertMaterials` | clean shadow bands, outlines readable, saturated but not neon |
-| `stylized` | Unity URP | kits + Poly Haven textures on terrain, hand-picked hero props | `stylized-*`, `realistic-golden` | URP Lit with textures, volumetric light optional | lighting mood, depth (fog), texture scale |
-| `voxel` | Unity URP | `GDS.VoxelWorld` + VoxelAI hero models | `stylized-day` / `night-moon` | palette texture, SSAO on | block scale 1 m, chunk seams, no z-fighting |
-| `realistic` | **Unreal 5.8** | Fab / Megascans (free in UE), Poly Haven | `realistic-overcast` / `realistic-golden` equivalents in UE | Lumen, Nanite, Virtual Shadow Maps, Exposure/TSR | scale, material realism, GI, no floating assets |
-| `2d-pixel` | Unity URP 2D | Kenney 2D, itch CC0 tilesets | 2D lights | Unity skills `2d-pixel-perfect`, `tilemap-*`, `sprite-editor` | pixel grid, no filtering, readable sprites |
+| `lowpoly` | Kenney / KayKit / Quaternius / Synty Starter | URP Lit flat palette, `stylized-*` / `pastel-bright` | modern lighting, palette `.ncmat` per kit colour, low bloom | Lumen, flat materials | silhouette, palette coherence, no default grey |
+| `toon` | same kits, or Blender buildings with palette | Delt06 toon + CristianQiu outline, `toon-bright` | flat palette `.ncmat` + strong key light; bands/outline through a material graph only if the lookdev worker proves it (`engine_gap:` otherwise) | toon post material | clean shadow bands, outlines readable, saturated but not neon |
+| `stylized` | kits + Poly Haven textures on terrain, hand-picked hero props | URP Lit textured, volumetric optional | modern lighting, landscape paint layers, volumetric fog | Lumen + PCG foliage | lighting mood, depth (fog), texture scale |
+| `voxel` | `GDS.VoxelWorld` (Unity) or VoxelAI/Blender voxel models | palette texture, SSAO | voxel models as `.glb`, palette material | voxel meshes, Nanite off | block scale 1 m, chunk seams, no z-fighting |
+| `realistic` | Fab / Megascans, Poly Haven | `realistic-*` presets = stylized-realistic | Lumen-like GI, traced reflections, Nanite-like virtualized meshes | Lumen, Nanite, VSM, TSR | scale, material realism, GI, no floating assets |
+| `2d-pixel` | Kenney 2D, itch CC0 tilesets | URP 2D, `2d-pixel-perfect`, tilemaps | not 3D-first: say so at Q0 | not recommended | pixel grid, no filtering, readable sprites |
 
 Mixing is allowed only inside the row (a toon game can use low-poly kits; a low-poly game cannot use Megascans).
 
-## Why realistic → Unreal
+## Engine notes per style (facts to tell the user at Q0, never a pick)
 
-- UE 5.8 ships a free first-party MCP server (Unreal MCP + All Toolsets) and Epic's Claude Code plugin (`/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`).
-- Megascans on Fab are free for Unreal projects; Lumen/Nanite give real GI and dense geometry that URP cannot match on the same budget.
-- Unity URP can still do `realistic-*` presets for a stylized-realistic look; it is the fallback when UE 5.8 is not installed or the GPU cannot run it.
+- Unreal 5.8 ships a free first-party MCP server and Megascans are free for Unreal projects.
+- Nucleon renders `realistic`/`stylized` with modern lighting (Lumen/Nanite-like) and its assets are text files the agent edits directly; `.glb` kits import as they are.
+- Unity has the widest CC0 kit tooling here (`GDS.*` C# layer), 2D, voxel runtime, WebGL/mobile.
 
 ## Hardware gate (Q22)
 
-| GPU / VRAM | realistic in UE 5.8 | toon/lowpoly/voxel in Unity |
+The hardware sets quality settings, never the engine.
+
+| GPU / VRAM | realistic (Unreal / Nucleon modern) | toon/lowpoly/voxel |
 |---|---|---|
 | ≥ 8 GB, RTX | Lumen HW, Nanite, VSM | everything on |
 | 6 GB GTX (e.g. 1660 Super) | Lumen **software**, Nanite on, VSM on, TSR 66 %, scalability High not Epic; keep levels small | everything on, SSAO ok |
-| ≤ 4 GB | not recommended: propose `stylized` in Unity | SSAO off, shadow distance 50 |
+| ≤ 4 GB | say it will be slow; offer `stylized` or Nucleon `classic` lighting (the user decides) | SSAO off, shadow distance 50 |
 
 ## Style → first files
 
 - `lowpoly` / `toon` / `stylized`: [art-pipeline.md](art-pipeline.md), [lookdev.md](lookdev.md), [level-builder.md](level-builder.md), [world-gen.md](world-gen.md)
 - `voxel`: [world-gen.md](world-gen.md) (mode `voxel`), [voxelai.md](voxelai.md) for hero models
-- `realistic`: [unreal-loop.md](unreal-loop.md)
+- Engine loop first: [unity-loop.md](unity-loop.md) · [nucleon-loop.md](nucleon-loop.md) · [unreal-loop.md](unreal-loop.md) · [godot-loop.md](godot-loop.md)
 - `2d-pixel`: Unity skills `2d-pixel-perfect`, `tilemap-palette-create`, `tilemap-ruletile-createempty`, `sprite-editor`, `manage-sprite-atlas`

@@ -31,12 +31,14 @@ Stesso commit: script + test.
 Unity: `run_tests`. Fallback `unity test <project> --mode EditMode --timeout 300 --format json`.
 Play Mode input: MCP inject, altrimenti TerminalMCP `window: Unity` + `shot: true`.
 
+Nucleon: un `Content/Scripts/test_<verbo>.lua` per verbo con l'harness `gds_test.lua` ([nucleon-loop.md](nucleon-loop.md) §6): input vero con `t.hold("W", 1)` / `t.tap("E")` (`SimulateKey` passa da `Config/Input.lua` e dallo script del pawn), numeri nel messaggio di FAIL. Si lancia con `NC_GDS_TEST=1` nell'ambiente dell'editor e `ncli play-test --seconds 120 --expect "GDS-TEST DONE pass=<n> fail=0" --shot screenshots/play.png` (si ferma da solo al `DONE`). Build pacchettizzata: `NC_GDS_TEST=1 NC_GDS_TEST_EXIT=1` → exit code 0/3.
+
 ## Feel in scena reale (suite di regressione)
 
 Lezione Buffet Panic! (gate 46 → 49): la "body clearance" del gate 46 spingeva il vassoio nei muri e la pila esplodeva sulle porte. La sim del vassoio è rimasta verde (8/8) perché girava in una scena vuota, senza muri.
 
 - Le sim di "feel" del verbo core girano nella **geometria vera del livello**: porte, muri, angoli, sprint, stop vicino a un muro. Una scena di test vuota non vale come prova.
-- Input pilotato e seed fisso; ≥ 6 casi × 8 run; output JSON.
+- Input pilotato e seed fisso; ≥ 6 casi × 8 run; output JSON (Nucleon: `t.feel({...})` → righe `GDS-FEEL {json}` lette da `ncli play-test --grep GDS-FEEL --verbose`).
 - Baseline in `docs/tests/feel-baseline.json` ([template](../templates/feel-baseline.json)), scritta dalla fase feel-baseline.
 - **Ogni gate** che tocca fisica, controller, tuning, collider o la scena del livello rilancia la suite e incolla `feel: {"baseline":..., "worse":[...]}`. Un caso peggiore oltre la `tolerance` = **FAIL**, a meno che il proprietario lo approvi: allora riga in `DECISIONI.md`, voce in `approvedRegressions` e baseline aggiornata.
 - Un miglioramento si registra solo aggiornando la baseline nello stesso gate.

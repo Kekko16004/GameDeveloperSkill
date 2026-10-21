@@ -1,13 +1,13 @@
 # Tool stack — default for the whole game
 
-Ask this in GDD (question 17). One answer covers **every later worker**. Do not re-litigate per prop. Q20–Q24 (gen3d tier + budget, asset store, GPU, look preset) complete it.
+Ask this in GDD (question 17), for the engine the user picked at Q0 ([engines.md](engines.md)). One answer covers **every later worker**. Do not re-litigate per prop. Q20–Q24 (gen3d tier + budget, asset store, GPU, look preset) complete it.
 
 Recommended (free, unlimited, already wired):
 
 | Job | Tool | Why this one |
 |---|---|---|
-| Engine | Unity 6 URP (6000.x) for lowpoly/toon/stylized/voxel/2D; Unreal 5.8 for realistic ([styles.md](styles.md)) | One engine per game |
-| Editor bridge | Unity CLI + Pipeline (`unity command gds_*`, `eval`, tests, play, screenshots); CoplayDev MCP secondary; Unreal MCP (5.8) | Fast, JSON, few tokens ([unity-cli.md](unity-cli.md), [unreal-loop.md](unreal-loop.md)) |
+| Engine | the user's Q0 answer: Unity 6 URP · Nucleon · Unreal 5.8 · Godot 4 ([engines.md](engines.md)) | One engine per game, never re-picked by style |
+| Editor bridge | Unity CLI (`unity command gds_*`); Nucleon `scripts/ncli.py` (editor MCP via HTTP/stdio, batches, PNG to disk); Unreal MCP (5.8); Godot headless | Fast, JSON, few tokens ([unity-cli.md](unity-cli.md), [nucleon-loop.md](nucleon-loop.md), [unreal-loop.md](unreal-loop.md)) |
 | World | `GDS.World` spec (terrain / island / dungeon / cave / voxel) | Seeded, rebuildable ([world-gen.md](world-gen.md)) |
 | Deterministic layer | `Assets/_Game/Editor/GDS/*` ([gds-editor.md](gds-editor.md)) | Buildings from JSON, lint, lookdev, characters, VFX — no LLM eyeballing |
 | Buildings / rooms | blueprint JSON → `GDS.LevelBuilder` (kit) / `GDS.PB` (ProBuilder shells) | One call per building; pivot-agnostic; door/window gaps without CSG |

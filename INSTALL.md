@@ -10,7 +10,7 @@ install.bat -Copy      :: copia la skill in ogni host invece di collegarla (host
 
 ## Cosa fa
 
-1. **Rileva** (cerca, niente percorsi fissi): host installati (`.claude`, `.config/kilo`, `.codex`, `.gemini`, `.cursor`, ...), Unity CLI ed Editor, Unreal (Launcher + cartelle `UE_*`), Blender più recente, FabCLI, uvx, VoxelAI, TerminalMCP, le skill `real-world-design` e `unity-cli` ovunque siano (cartelle skill degli host, Desktop/Documents fino a 3 livelli).
+1. **Rileva** (cerca, niente percorsi fissi): host installati (`.claude`, `.config/kilo`, `.codex`, `.gemini`, `.cursor`, ...), Unity CLI ed Editor, Unreal (Launcher + cartelle `UE_*`), NucleonEditor (PATH o Desktop/Documents/`C:\Dev`/`D:\Dev` fino a 4 livelli → `paths.nucleon`), Blender più recente, FabCLI, uvx, VoxelAI, TerminalMCP, le skill `real-world-design` e `unity-cli` ovunque siano (cartelle skill degli host, Desktop/Documents fino a 3 livelli).
 2. **Installa una volta** in `%USERPROFILE%\.agents\skills\game-developer` e crea una **junction** da ogni host a quella cartella (niente admin, niente copie che divergono: un aggiornamento arriva ovunque).
 3. **Config**: `config.json` = default + percorsi rilevati + valori che avevi già (i tuoi vincono sempre, anche da vecchie copie negli host).
 4. Comandi `/game /gdd /playtest /resumegame` negli host che li supportano, MCP Blender / VoxelAI / TerminalMCP senza toccare gli altri server, skill ufficiali Unity (`npx skills add Unity-Technologies/skills`), addon Blender, `doctor`.
@@ -21,6 +21,13 @@ install.bat -Copy      :: copia la skill in ogni host invece di collegarla (host
 - Unity CLI (se manca): `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex`, poi `unity auth login`.
 - Blender (solo per edifici/hero prop): pannello N → MCP → Start MCP Server.
 - Realistico: Unreal **5.8+** dal Launcher; in Claude Code `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`; nel progetto abilita Unreal MCP + All Toolsets ([unreal-loop.md](game-developer/references/unreal-loop.md)).
+
+## Nucleon (engine: nucleon)
+
+- Una volta: `config.json` → `paths.nucleon` = la cartella di `NucleonEditor.exe` (con `Nucleon.exe` della stessa build accanto) se l'installer non l'ha trovata; Python 3.9+ sul PATH.
+- Per lavorare con l'editor aperto: Editor Preferences > AI > **Enable Server** (porta 47420). `ncli.py` legge porta e token da `editor-settings.lua`, nessun token da copiare a mano.
+- Senza editor aperto i worker usano `--stdio` (l'editor parte e si chiude per ogni comando).
+- Opzionale, solo per sessioni interattive: `python game-developer\scripts\ncli.py --project <progetto> mcp-config` stampa i comandi `claude mcp add nucleon ...`. I worker non ne hanno bisogno.
 
 ## Per ogni progetto Unity
 
@@ -45,4 +52,4 @@ CoplayDev unity-mcp è opzionale (fallback): `https://github.com/CoplayDev/unity
 - HDRI sui materiali dei prop (come skybox va bene)
 - Piazzare muri / alberi uno a uno: si scrive la spec
 - TerminalMCP `--http`
-- Aprire Unity / Blender / Unreal prima del lock del GDD
+- Aprire Unity / Nucleon / Blender / Unreal / Godot prima del lock del GDD (l'engine lo sceglie l'utente alla domanda Q0)

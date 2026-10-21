@@ -2,6 +2,12 @@
 
 Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (skill `real-world-design`, percorso in `paths.designerSkill` di `config.json`) in UI native Unity UI Toolkit.
 
+## 3b. Transpilazione Nucleon (RmlUi)
+1. `python scripts/html2rml.py <mock.html> "<project>/UI/<screen>.rml" --model <screen>` → `.rml` + `.rcss` + `.preview.lua`; il JSON di output elenca ogni cambio (px→dp, grid→flex wrap, ombre tolte, `onclick`/`href` tolti).
+2. Bottoni per `id`: il controller è `Content/Scripts/game.lua` (o `ui_<screen>.lua`) con le native della categoria Game UI (`CreateUIModel`, documenti mostrati/nascosti come nel sample `ThirdPersonDemo`); niente logica nell'HTML.
+3. Controllo: `NC_EDITOR_UI_DOCUMENT=UI/<screen>.rml NC_EDITOR_SCREENSHOT=docs/screens/<screen>.png NucleonEditor <project>` (0 righe `error` nel log) e screenshot in Play con `ncli play-test --shot`.
+4. Pausa e opzioni: i template hanno già `nc.pause` e `UI/options.rml` (opzioni grafiche cablate): si restyla, non si rifà.
+
 ---
 
 ## 0. Ordine tassativo
