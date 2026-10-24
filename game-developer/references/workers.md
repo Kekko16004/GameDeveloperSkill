@@ -244,8 +244,9 @@ Gate: `docs/gates/07-village.md` con il JSON village, `lint:`, i 2 PNG.
 
 ## PHASE hero-asset (batch fino a 3)
 
-Tu fai SOLO gli hero asset `$ASSET_ID_1..3` del ledger (prop unici che nessun kit ha). Leggi `art-pipeline.md`, `blender-mcp.md`, `polypizza.md`, `gen3d.md`, `asset-contract.md`, e `GDD.md → gen3d:`.
-Ordine: Poly Pizza → Poly Haven models → Sketchfab CC0 → tier gen3d del GDD (solo se `gen3d != none`, entro `gen3dMaxAssets` e budget).
+Tu fai SOLO gli hero asset `$ASSET_ID_1..3` del ledger (prop unici che nessun kit ha). Leggi **`hero-procedural.md`** (percorso di default), `asset-contract.md`; per il fallback `blender-mcp.md`, `polypizza.md`, `gen3d.md` e `GDD.md → gen3d:`.
+**Default: script procedurale headless.** Per ogni asset: riferimento (immagine dell'utente o board) → `PROJECT/Tools/$ASSET_ID_build.py` con `SKILL/scripts/blender/hero_kit.py` (parti da `SKILL/templates/blender/hero/*.py`) → `blender -b -P Tools/$ASSET_ID_build.py -- art/exports/$ASSET_ID.glb art/preview/$ASSET_ID` → leggi i PNG accanto al riferimento, scrivi le differenze, correggi, ricostruisci (2-4 giri) → import nel motore + screenshot del motore (Nucleon: `ncli call asset_import`, spec showcase, `ncli build --save current`, `ncli shot`). Riga ledger `source: procedural (Tools/$ASSET_ID_build.py)`.
+**Fallback** (solo organico: persone, animali, volti; o se l'utente lo chiede), con i passi 0-4 qui sotto. Ordine: Poly Pizza → Poly Haven models → Sketchfab CC0 → tier gen3d del GDD (solo se `gen3d != none`, entro `gen3dMaxAssets` e budget).
 Per ogni asset:
 0. `execute_blender_code`: RESET SCENA (rimuovi tutti objects/meshes/materials).
 1. Ricerca + download nativo (`search_polypizza_models` / `search_polyhaven_assets(asset_type="models")` / `search_sketchfab_models`) oppure `generate_model` (CoplayDev, provider dal GDD) / Hyper3D.
@@ -253,9 +254,9 @@ Per ogni asset:
 3. `get_viewport_screenshot` → 1 PNG `screenshots/blender-$ASSET_ID.png`.
 4. Riga ledger: `source`, id, licence, attribution, crediti usati.
 Poi aggiungi il prop alla lista `props` del blueprint giusto (`art/blueprints/<bp>.json`) e rilancia `GDS.LevelBuilder.BuildFromFile` + lint (l'import-art lo fa se il GLB non è ancora in `Assets/_Game/Art/`).
-VIETATO: bpy modelling da zero, cubi, `read_homefile`, `blender -b`, muri/pavimenti, superare il budget, PBR fotorealistico accanto a Kenney senza flatten materiale.
+VIETATO: bpy modelling a mano via MCP (`execute_blender_code`), cubi, `read_homefile`, muri/pavimenti, superare il budget, PBR fotorealistico accanto a Kenney senza flatten materiale.
 GLB < 15KB = FAIL. MCP giù: avvia Blender; porta 9876 chiusa → STOP.
-Gate: `docs/gates/07-hero-$ASSET_ID.md` per asset con PNG, GLB, riga ledger, `lint:` dopo il rebuild.
+Gate: `docs/gates/07-hero-$ASSET_ID.md` per asset con script, PNG di anteprima + screenshot del motore, riga `STATS`, GLB, riga ledger, `lint:` dopo il rebuild (checklist in `hero-procedural.md`).
 
 ---
 

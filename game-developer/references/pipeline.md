@@ -16,7 +16,7 @@ Art routing: [art-pipeline.md](art-pipeline.md). Layer deterministico: [gds-edit
 7b building-gen (Blender procedurale, batch max 5 spec)  worker building-gen  ← case/locande/torri-casa VERE: gds-building.ps1 → FBX + preview
 7c level-build (1 blueprint = 1 worker) worker level-build  ← kit L/T/U + interni + attach + recinzioni, o shell ProBuilder per interni/dungeon
 7d village (SOLO insediamento — environments.md)   worker village (GDS.Village: terreno, strade, piazza, lotti con edifici 7b/7c, lampioni, bosco). Caverna/dungeon/interno/citta/sci-fi: il mondo e fatto da 7c, non da village
-7e hero-asset (Poly Pizza / Poly Haven / Sketchfab / gen3d tier)   worker hero-asset (batch max 3, sanitize, export, poi riga props nel blueprint)
+7e hero-asset (script procedurale `blender -b`; organico: Poly Pizza / Poly Haven / Sketchfab / gen3d tier)   worker hero-asset (batch max 3, sanitize, export, poi riga props nel blueprint)
 7f import-art                       se restano GLB fuori Unity
 8  lookdev                          worker lookdev (gds_lookdev preset GDD + palette + toon/outline opzionali)
 8r art-review                       worker art-review (gds_sheet + rubric R1-R7, media ≥ 4, fix list → rilancio fasi)

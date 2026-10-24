@@ -166,7 +166,7 @@ layers, deferred models) to tell what the new materials cost.
 | greybox | spec with rooms/shapes → `build` → `lint` → `play-test` with `test_move.lua` green |
 | world-gen | `nc_world.py build` → `exe run-lua` → `attach` → `build _world_<name>.json` → `lint --play` (§4b) |
 | level-build | blueprint JSON (kit roles / kit rooms / `scatter`) → `cycle` (one worker per blueprint, JSON written in parallel, `cycle` takes the lock itself) |
-| hero-asset | Blender MCP unchanged → GLB → `call asset_import '{"sources":[...],"folder":"Content/Models/Hero"}'` → `pieces` row |
+| hero-asset | [hero-procedural.md](hero-procedural.md): `blender -b -P Tools/<asset>_build.py` (hero_kit) → GLB → `call asset_import '{"sources":[...],"folder":"Content/Models/Hero"}'` → `pieces` row with `rotation [0,0,180]` (front toward the player) → `build --save current` → `shot` |
 | lookdev | `nc_mat.py auto` + `assign` (§8a) + `check` on the new models → `art/look/<name>.json` from the board → `nc_world.py look` → shots in Game View (`NC_EDITOR_GAME_VIEW=1` on the editor) → art review |
 | characters | template pawn (`Content/Actors/Player.ncactor`, Character Movement, animation graph `.ncanim`); enemies: navigation volume + `BuildNavigationMesh` / behavior trees (`nc.behavior`) |
 | systems | `Content/Scripts/<system>.lua` + actor scripts + `test_<verb>.lua`; Blueprint only if the GDD says so |

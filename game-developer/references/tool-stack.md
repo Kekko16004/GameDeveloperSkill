@@ -12,7 +12,7 @@ Recommended (free, unlimited, already wired):
 | Deterministic layer | `Assets/_Game/Editor/GDS/*` ([gds-editor.md](gds-editor.md)) | Buildings from JSON, lint, lookdev, characters, VFX — no LLM eyeballing |
 | Buildings / rooms | blueprint JSON → `GDS.LevelBuilder` (kit) / `GDS.PB` (ProBuilder shells) | One call per building; pivot-agnostic; door/window gaps without CSG |
 | Modular look | **One** family: Kenney zips **or** KayKit GitHub **or** Quaternius MegaKit Standard **or** Synty POLYGON Starter (Asset Store, Q21) | Same palette, snap |
-| Missing hero prop | Blender MCP: Poly Pizza → Poly Haven models → Sketchfab CC0 → gen3d tier (Q20) | Native tools, normalize metres, sanitize block only |
+| Missing hero prop | `blender -b -P Tools/<asset>_build.py` with `scripts/blender/hero_kit.py` ([hero-procedural.md](hero-procedural.md)); organic only: Blender MCP Poly Pizza → Poly Haven → Sketchfab CC0 → gen3d tier (Q20) | Deterministic script, previews read against the reference, engine screenshot |
 | Look | `GDS.LookDev.Apply(<Q11 preset>)` + palette; optional toon (Delt06) / outline (CristianQiu) | Sun, fog, skybox/HDRI, ACES, bloom, AO, vignette in one call |
 | Characters | KayKit / Kenney Animated / Quaternius UBC + UAL → `GDS.Characters` | Humanoid, Animator, CharacterController from code |
 | Enemies / AI | skill `initialize-ai-navigation` + `NavMeshAgent` | Already installed |

@@ -48,7 +48,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | Art review | `gds_sheet` + rubric R1-R7 + board di riferimento | [art-direction.md](references/art-direction.md) |
 | Personaggi | KayKit / Kenney animati / Quaternius UAL → `GDS.Characters` + NavMesh | [characters.md](references/characters.md) |
 | VFX | `gds_vfx` + Cartoon FX Free | [vfx.md](references/vfx.md) |
-| Hero prop | Blender MCP: Poly Pizza → Poly Haven → Sketchfab CC0 → tier gen3d GDD | [blender-mcp.md](references/blender-mcp.md) + [polypizza.md](references/polypizza.md) + [gen3d.md](references/gen3d.md) |
+| Hero prop | **Script Blender procedurale headless** (`blender -b -P Tools/<asset>_build.py`, `scripts/blender/hero_kit.py`) dal riferimento → GLB → import nel motore (Nucleon: `ncli asset_import` + spec + `shot`). Fallback solo per organico (persone, animali) o se l'utente lo chiede: Poly Pizza → Poly Haven → Sketchfab CC0 → tier gen3d | [hero-procedural.md](references/hero-procedural.md) (+ [blender-mcp.md](references/blender-mcp.md), [gen3d.md](references/gen3d.md) per il fallback) |
 | Voxel hero model | VoxelAI | [voxelai.md](references/voxelai.md) |
 | OS / input / browser | TerminalMCP stdio | [terminalmcp.md](references/terminalmcp.md) |
 | HUD/Menu | real-world-design → UI Toolkit / RmlUi / UMG (**obbligatorio**, varianti di tutte le schermate in parallelo, scelta utente in una domanda unica) | [ui-bridge.md](references/ui-bridge.md) |
@@ -57,7 +57,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | Microtask / memoria | task atomici, snapshot su disco, `/resumegame` | [task-decomposition.md](references/task-decomposition.md) + [context-management.md](references/context-management.md) |
 | Stack globale | confermato una volta nel GDD | [tool-stack.md](references/tool-stack.md) + [doctor.md](references/doctor.md) |
 
-Vietato modellare a mano in `execute_blender_code` (ammesso: wipe, sanitize, `gds_building.py`). Vietato Sloyd. Vietato gen3d fuori tier/budget GDD. Vietato HDRI sui materiali dei prop (ok come skybox). Vietato `--http` TerminalMCP. Blender MCP = `uvx mcp-for-blender` stdio → TCP 9876. Vietato piazzare muri/pavimenti/alberi uno a uno: si scrive la spec.
+Vietato modellare a mano in `execute_blender_code` (ammesso: wipe, sanitize, `gds_building.py`). Gli hero prop si modellano con uno script deterministico `Tools/<asset>_build.py` lanciato da `blender -b` ([hero-procedural.md](references/hero-procedural.md)): è il percorso di default, approvato dal proprietario il 2026-10-24. Vietato Sloyd. Vietato gen3d fuori tier/budget GDD. Vietato HDRI sui materiali dei prop (ok come skybox). Vietato `--http` TerminalMCP. Blender MCP = `uvx mcp-for-blender` stdio → TCP 9876. Vietato piazzare muri/pavimenti/alberi uno a uno: si scrive la spec.
 
 ### Blender MCP: tool dedicati
 

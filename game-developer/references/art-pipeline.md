@@ -1,6 +1,6 @@
-# Art pipeline — blueprint + kits + ProBuilder + hero props. Never bpy cubes, never one wall at a time.
+# Art pipeline — blueprint + kits + ProBuilder + procedural hero props. Never bpy cubes, never one wall at a time.
 
-AI `execute_blender_code` modelling is banned. It drifts, floats pivots, leaks light. Hand-placing 40 kit walls via MCP calls never finishes either. A playable slice uses pieces that already exist, assembled by `GDS.LevelBuilder` from a JSON blueprint ([level-builder.md](level-builder.md)), then lit by `GDS.LookDev` ([lookdev.md](lookdev.md)).
+AI `execute_blender_code` modelling is banned (hero props are built by a script run with `blender -b`, [hero-procedural.md](hero-procedural.md): that is allowed and is the default). It drifts, floats pivots, leaks light. Hand-placing 40 kit walls via MCP calls never finishes either. A playable slice uses pieces that already exist, assembled by `GDS.LevelBuilder` from a JSON blueprint ([level-builder.md](level-builder.md)), then lit by `GDS.LookDev` ([lookdev.md](lookdev.md)).
 
 ## Rank (first that fits)
 
@@ -9,9 +9,10 @@ AI `execute_blender_code` modelling is banned. It drifts, floats pivots, leaks l
 | **1** | **Blender building generator** (`gds-building.ps1`, spec JSON) | $0, seconds | Every exterior building that must look finished: houses, inns, tower-houses, shops, sheds | Curved towers (PB), furniture (kits) |
 | **1b** | **Kit family** (Kenney zips / KayKit / Quaternius Standard / Synty Starter if Q21) via blueprint `mode: kit` + `attach` | $0 | Buildings in the kit's own style, furniture, props, fences, lanterns, trees, rocks | Mixing families in one room |
 | **2** | **ProBuilder** via `GDS.PB` / blueprint `mode: probuilder` + palette material | $0 | Rooms, corridors, towers, stairs, arches, collision shell when the kit has no walls | Hero props, characters |
-| **3** | **Poly Pizza / Poly Haven models / Sketchfab CC0** (Blender MCP, sanitize, export) | $0 | One missing prop/character; normalize to Geometra metres | Levels, dioramas, 50k scans next to Kenney |
+| **2b** | **Procedural hero script** (`Tools/<asset>_build.py` + `scripts/blender/hero_kit.py`, `blender -b`) | $0, seconds | Every unique hero prop from a reference: badges, clocks, furniture pieces, machines, signs, weapons, statues of objects | Characters, animals, faces |
+| **3** | **Poly Pizza / Poly Haven models / Sketchfab CC0** (Blender MCP, sanitize, export) | $0 | Characters / organic props a script cannot reach; normalize to Geometra metres | Levels, dioramas, 50k scans next to Kenney |
 | **4** | **gen3d tier from GDD Q20** (Modly local / Meshy / Tripo / Hyper3D) | $0 local or credits | ≤ `gen3dMaxAssets` unique hero props | Modular pieces, anything a kit has |
-| **X** | bpy modelling, Sloyd, Blockbench, Dust3D, Unity primitives after greybox | — | — | Default path |
+| **X** | bpy modelling by MCP calls, Sloyd, Blockbench, Dust3D, Unity primitives after greybox | — | — | Default path |
 
 ## Beta-ready checklist (enforced by SceneLint + LookDev, not by eye)
 
@@ -47,7 +48,7 @@ GDD asset row
   ├─ settlement / outdoor map      → village (roads, plaza, lots, terrain, forest)
   ├─ interior / dungeon / area     → level-build (blueprint: shell + partitions + interior props + attach)
   ├─ prop in kit                   → row in a blueprint `props` list
-  ├─ prop missing in kit           → hero-asset (Poly Pizza → Poly Haven → Sketchfab → gen3d tier) then `props` row
+  ├─ prop missing in kit           → hero-asset (procedural script first; organic: Poly Pizza → Poly Haven → Sketchfab → gen3d tier) then `props` row
   ├─ character                     → characters (KayKit / Kenney / Quaternius UAL)
   ├─ trees / rocks / clutter       → blueprint `scatter`
   └─ voxel GDD                     → voxel worker
