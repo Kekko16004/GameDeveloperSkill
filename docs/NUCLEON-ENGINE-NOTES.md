@@ -3,6 +3,9 @@
 These came up while really building things with the skill: the editor was built from `main@d8e49bc` and run on Linux under
 Xvfb with llvmpipe. Two things were built: the demo in `docs/samples/nucleon-glade-*.jpg` and the `ncli.py` tests.
 The first version was revised with a code review of the engine; each item marks what that review confirmed and what it ruled out.
+**Re-checked on `main@5cf63bb` (2026-10-24, after the material system of 21 October):** A1 is still there (also with material
+assets on the models; `NC_GPU_DRIVEN=0` still fixes it), C1 is not fixed (the API snapshot shows the same registry), the MCP has not
+changed (B1-B6 open). New: M1-M2 below.
 Nothing has been changed in the engine repository. The fixes belong there and follow its workflow (one branch + PR per stage).
 The fix plan is in `tools/nucleon-bench`: benchmark, report, then `EXECUTION-PLAN.md` with the briefs K1-K5 and those of
 the measured causes.
@@ -97,6 +100,27 @@ This happens on its first draw **and again after every restream to another size*
 up to an asset and its mips go up. On llvmpipe a single readback took 53 ms in one frame (counter
 `modern: srgb copies (readback)`). The bench measures it (H1, config `srgb-readback`, and the counter in the report). The fix
 is in brief H1: sRGB format at upload, never a readback on the render thread.
+
+### M1. Material system: the first frames that ever ran (2026-10-24, OpenGL, llvmpipe)
+The engine documents every new shading model as "written and built, never run". GameDeveloperSkill `nc_mat.py check` renders
+each model in the Material document twice, with the models on and with `NC_MATERIAL_MODELS=0`:
+Results (`docs/samples/nucleon-materials-models.jpg`: top row the fallback, bottom row the model):
+
+| Model | Result |
+|---|---|
+| Car Paint | renders: coat highlights and glints |
+| Cloth | renders: fuzz sheen at the rim |
+| Single Layer Water | renders: absorption colour and highlights |
+| Preintegrated Skin | renders: softer, scattered falloff |
+| Two Sided Foliage | same as the fallback, as expected with no light from behind |
+| **Glass / Acrylic** | **suspect: the sphere disappears completely.** There is no specular highlight and no Fresnel rim, while the fallback has three highlights. With nothing behind the sphere the refraction shows only the background, but the reflection lobe should still be there. It must be checked in a scene (`:world`) and on D3D12 before any glass ships. |
+- D3D12 and Vulkan were not tried.
+- A real-GPU art review is still needed: llvmpipe washes the colours out.
+
+### M2. Opening a material marks it unsaved. LOW
+`NC_EDITOR_MATERIAL=<file>` opens the Material document with the tab already marked modified (`M_carPaint •`, and "1 unsaved" in
+the status bar), with no edit made. Probably the model preset (`presetSlab`) or the feature cards write their values back on open.
+The effect: an agent or a user who only looks at a material gets a "save changes?" question when closing it.
 
 ## B. Editor MCP
 

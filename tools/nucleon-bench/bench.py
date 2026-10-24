@@ -118,7 +118,7 @@ def run_one(a, runtime, desktop, label, cfg, scenes, out_dir, run_idx):
     rel_out = "Saved/gds-bench-%s-%d" % (label, run_idx)
     plan = {"label": label, "out": rel_out, "warmup": a.warmup, "maxLoadWait": a.load_wait, "scenarios": scenes["scenarios"],
             "quality": a.quality}
-    for k in ("lighting", "virtual", "lodBias", "graphics", "resolutionScale", "gi", "reflections"):
+    for k in ("lighting", "virtual", "lodBias", "graphics", "resolutionScale", "gi", "reflections", "upscaling"):
         if k in cfg:
             plan[k] = cfg[k]
     if cfg.get("shots"):
@@ -443,8 +443,16 @@ def verdicts(res, configs, scenes):
                               "gpu-driven-off vs base picture difference %": gdiff,
                               "retained-off p50 %": delta("retained-off", ["view"], "p50_ms"), "gpu-occlusion p50 %": delta("gpu-occlusion", ["view"], "p50_ms"),
                               "instancing-off vs base picture difference %": diff}}
+    mo = delta("models-off", ["view", "fly"], "p50_ms")
+    so = delta("sets-off", ["view", "fly"], "p50_ms")
+    out["H10"] = {"confirmed": bool((mo is not None and mo <= -10) or (so is not None and so <= -5)),
+                  "evidence": {"models-off p50 % (bound)": mo, "sets-off p50 %": so, "wpo-off p50 %": delta("wpo-off", ["view", "fly"], "p50_ms"),
+                               "layers-off p50 %": delta("layers-off", ["view", "fly"], "p50_ms"),
+                               "deferred-models-off p50 %": delta("deferred-models-off", ["view", "fly"], "p50_ms"),
+                               "models-off vs base picture difference %": res.get("_shots", {}).get("models-off")}}
     out["H9"] = {"pixel_bound": rs is not None and rs <= -30, "cpu_or_geometry_bound": rs is not None and rs > -10,
-                 "evidence": {"resolution-50 p50 %": rs}}
+                 "evidence": {"resolution-50 p50 %": rs, "fsr-quality p50 %": delta("fsr-quality", ["view"], "p50_ms"),
+                              "fsr-performance p50 %": delta("fsr-performance", ["view"], "p50_ms")}}
     for hid in out:
         out[hid]["title"] = configs["hypotheses"].get(hid, {}).get("title", hid)
     return out

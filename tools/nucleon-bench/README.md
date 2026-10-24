@@ -23,7 +23,8 @@ scenes.json ──> bench.py run ──> results/<stamp>/  (CSV per frame, GPU p
 | H6 | Overdraw from masked foliage | pixel bound with grass/leaves | foliage Low *(bound)*, masked pre-pass on/off |
 | H7 | GI/Lumen with vegetation | high cost even when standing still | GI off *(bound)*, no vegetation in GI, SSR reflections |
 | H8 | GPU-driven / instancing paths (bug A1) and their cost | brown or missing repeated objects | `NC_GPU_DRIVEN=0`, `NC_INSTANCING=0`, retained off, vgeo unified, occlusion (with screenshots) |
-| H9 | Pixel bound or CPU/geometry bound? | which way to start | resolution 50 % |
+| H9 | Pixel bound or CPU/geometry bound? | which way to start | resolution 50 %, FSR 3 Quality / Performance |
+| H10 | The material system (21 Oct) costs Default Lit and foliage something | fps lower after the material update | models off *(bound)*, sets off, WPO off, layers off, deferred models off (with screenshots) |
 
 *(bound)* = it switches a feature off to find out how much it costs. It is an upper bound, not a fix.
 The rules for each verdict are in `configs.json` (`rule`) and in `bench.py` (`verdicts`). A hypothesis is confirmed only by

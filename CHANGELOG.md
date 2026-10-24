@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-24: Nucleon aggiornato a `5cf63bb` (sistema materiali in stile UE)
+
+L'engine ha ricevuto 138 commit: il sistema materiali (14 shading model come preset di uno slab Substrate, layer e layer function,
+World Position Offset e vento nei materiali, parallax/triplanar/detail normal, domini post-process/sky/fog/decal/light function/volume/UI,
+Subsurface Profile `.ncsss`, Material Function `.ncmatfunc`, Parameter Collection `.ncmpc`), il fix dei motion vector di FSR 3 e
+gli scalability preset che non cambiano più la risoluzione. MCP e natives sono invariati.
+
+| Cosa | Dove |
+|---|---|
+| `nc_mat.py`: `auto` (ruolo per slot glTF da nomi materiale/texture/catalogo, atlanti protetti, materiali condivisi per il batching, ORM dalle mappe separate, immagini GLB estratte, vento della vegetazione solo sulle piante vere), `assign` (materiali + vento sul livello), `make` (39 preset: vetro, acqua, car paint, pelle, stoffa, neon...), `check` (anteprima del Material document con modelli on/off: nero, piatto o identico = fallito) | nuovo `scripts/nc_mat.py` |
+| Provato su HEAD: kit KayKit → 8 materiali condivisi, 81 entità con materiali e 53 con vento; 7 shading model renderizzati per la prima volta (OpenGL): Car Paint, Cloth, Water e Skin funzionano; **Glass sospetto** (la sfera sparisce, nessun riflesso), segnalato in M1 | `docs/samples/nucleon-materials-*.jpg` |
+| Lookdev Nucleon = `auto` → `assign` → `make` → `check` → `look` | `nucleon-loop.md` §8a, `workers.md` PHASE lookdev, `styles.md` |
+| Benchmark: H10 costo del sistema materiali (models/sets/WPO/layers/deferred off, con screenshot), FSR 3 Quality/Performance in H9 | `tools/nucleon-bench` |
+| Snapshot API aggiornato (601 nomi legacy: MaterialParameters, PostMaterial, RuntimeVirtualTexture) | `scripts/data/nucleon-api.json` |
+| A1 ancora presente su `5cf63bb` (anche con i materiali assegnati); C1 non corretto | `docs/NUCLEON-ENGINE-NOTES.md` |
+
 ## 2026-10-21 (3): Nucleon bench, then execution plan
 
 | Cosa | Dove |

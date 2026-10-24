@@ -36,6 +36,7 @@ local function apply()
     if plan.resolutionScale then pcall(Graphics.setResolutionScale, plan.resolutionScale) end
     if plan.gi then pcall(Graphics.setGlobalIllumination, plan.gi) end
     if plan.reflections then pcall(Graphics.setReflections, plan.reflections) end
+    if plan.upscaling and Graphics.setUpscaling then pcall(Graphics.setUpscaling, plan.upscaling) end
     pcall(Graphics.setVSync, false)
     if Graphics.apply then pcall(Graphics.apply) end
   end

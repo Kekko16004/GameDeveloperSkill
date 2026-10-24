@@ -124,13 +124,39 @@ Mock HTML (user picks a variant per screen, unchanged rule) → `python SKILL/sc
 - Lookdev preset = a `lighting`+`environment` table written by the lookdev worker into the level (`call entity_modify` on the sun + Project Settings) and a `shot` per preset view; art review as for Unity ([art-direction.md](art-direction.md)).
 - Software rendering (CI, Xvfb/llvmpipe) washes colours out: art review only on screenshots from the owner's GPU.
 
+## 8a. Materials: `scripts/nc_mat.py` (the material system of 21 October 2026)
+Nucleon has Unreal's shading models as presets of one Substrate-style slab (engine docs `docs/rendering/MATERIAL_SYSTEM.md`,
+`MATERIALS.md`): Default Lit, Unlit, Subsurface, Preintegrated Skin, Clear Coat, Subsurface Profile (`.ncsss`), Two Sided Foliage,
+Hair, Cloth, Eye, Single Layer Water, Thin Translucent, Glass/Acrylic, Car Paint, Thin Film; plus layers (`layers`, `layerStack`
+of `.ncmatfunc` layer functions), World Position Offset / material wind, parallax, triplanar, detail normals, material domains
+(post process, sky, fog, decal, light function, volume, UI) and parameter collections (`.ncmpc`). A kit left on its glTF material is
+Default Lit everywhere: the lookdev worker gives every surface its model.
+- `nc_mat.py auto --project P --catalog art/kit-catalog.json --style <GDD style> --name <kit>`: every glTF/GLB slot gets a role
+  (material and texture names; on an **atlas** texture only the catalog role, never water/glass/emissive guessed from an asset
+  name), shared `.ncmat` in `Content/Materials/Auto/<kit>/` (one per role and texture set: the renderer batches **per material**,
+  so few materials = few draws), separate PBR maps packed into ORM (`realistic`), GLB images extracted, and the vegetation wind of
+  the plants (`wind = {type = "tree"|"bush"|"grass"}`: weighted by height, the trunk base stays; never on hills, buildings, stumps).
+- `nc_mat.py assign --project P --map art/materials/<kit>.map.json` (editor CLOSED, `session-stop` first): `materials` and `wind` on the
+  level's model entities. Run it after every `build --save` that placed kit pieces (the MCP `entity_add` has no materials field).
+- `nc_mat.py make <role> OUT.ncmat [--texture T] [--set k=v]` for one surface: `glass`, `frosted`, `ice`, `crystal`, `stained`,
+  `water`/`ocean`/`pool`/`swamp` (Single Layer Water, the engine's Ocean/Lake/Pool/Swamp numbers), `carPaint`, `lacquer`, `painted`,
+  `cloth`, `velvet`, `skin`, `wax`, `jade`, `marble`, `hair`, `eye`, `neon`, `screen`, `holo`, `film`, `foliage`, `grass`... (`presets`
+  lists them with their keys). Big water surfaces stay the Water entity (its own pass); the material is for ponds, pools, troughs.
+- `nc_mat.py check --project P --editor NucleonEditor <files>`: every NEW shading model is "written and built, never run" in the engine:
+  the check renders the Material document with models on and with `NC_MATERIAL_MODELS=0`, and fails a black, flat or unchanged preview.
+  A failing model goes to the engine notes (`docs/NUCLEON-ENGINE-NOTES.md`) and the material falls back to `defaultLit` with the
+  same textures: never ship a surface nobody saw.
+- A material replaces the slot completely (textures too): `auto` copies the glTF's maps; a hand-made `.ncmat` must name its maps.
+- Triplanar / parallax replace or displace the mesh UVs: only on tileable sets, never on a kit atlas.
+
 ## 8b. Performance diagnosis: `tools/nucleon-bench`
 When `play-test --fps` fails on the real GPU, or the owner reports drops: don't guess. `bench.py grab-view` (the spot from the
 open editor) → `bench.py run --only <H>` (one change per config against base: shadows, LOD, foliage, GI, texture and page
 streaming, the GPU-driven paths, resolution) → `analyze` (REPORT.md with verdicts) → `plan` (EXECUTION-PLAN.md: briefs with a
 ready-made prompt for Claude Code in the NucleonEngine repository). Engine bugs and the K1-K5 briefs:
 `docs/NUCLEON-ENGINE-NOTES.md`. In the meantime the game works around them: `NC_GPU_DRIVEN=0` if repeated props come out wrong
-(A1), `instances` for repeated props once they have been run.
+(A1), `instances` for repeated props once they have been run. The bench has H10 (the material system: models, sets, offset,
+layers, deferred models) to tell what the new materials cost.
 
 ## 9. Phase mapping
 
@@ -141,7 +167,7 @@ ready-made prompt for Claude Code in the NucleonEngine repository). Engine bugs 
 | world-gen | `nc_world.py build` → `exe run-lua` → `attach` → `build _world_<name>.json` → `lint --play` (§4b) |
 | level-build | blueprint JSON (kit roles / kit rooms / `scatter`) → `cycle` (one worker per blueprint, JSON written in parallel, `cycle` takes the lock itself) |
 | hero-asset | Blender MCP unchanged → GLB → `call asset_import '{"sources":[...],"folder":"Content/Models/Hero"}'` → `pieces` row |
-| lookdev | `art/look/<name>.json` from the board → `nc_world.py look` → shots in Game View (`NC_EDITOR_GAME_VIEW=1` on the editor) → art review |
+| lookdev | `nc_mat.py auto` + `assign` (§8a) + `check` on the new models → `art/look/<name>.json` from the board → `nc_world.py look` → shots in Game View (`NC_EDITOR_GAME_VIEW=1` on the editor) → art review |
 | characters | template pawn (`Content/Actors/Player.ncactor`, Character Movement, animation graph `.ncanim`); enemies: navigation volume + `BuildNavigationMesh` / behavior trees (`nc.behavior`) |
 | systems | `Content/Scripts/<system>.lua` + actor scripts + `test_<verb>.lua`; Blueprint only if the GDD says so |
 | ui-* | §7 |

@@ -287,5 +287,26 @@
     ],
     "branch": "perf/cpu-frame",
     "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/cpu-frame: the GameDeveloperSkill bench found the frame CPU or geometry bound ({evidence}). Use NC_PROFILE_REPORT to find the dominant CPU zones and move them off the main thread or into the retained scene."
+  },
+  "H10": {
+    "title": "Material system cost: Default Lit and foliage must not pay for the new models",
+    "files": [
+      "engine/src/renderer/materials/slab.*",
+      "engine/src/renderer/shaders/bsdf/",
+      "engine/src/renderer/pipeline/glmodern.cpp (applyMaterialModel, internMatExt, modelFragment)",
+      "engine/src/renderer/scene/glmodern_scene.inc (fillDrawData)",
+      "engine/src/renderer/geometry/instancing (isetMergeKey, extGroupFor)"
+    ],
+    "steps": [
+      "Read which config wins in the bench: models-off (the record / dispatch costs Default Lit something), sets-off faster (the per-material batch split or the extra bind group per batch costs more than it saves), wpo-off (vertex offset in instanced draws), deferred-models-off (the extended deferred pass).",
+      "Profile the winning case with NC_GPU_PROFILE and PIX: shader permutation actually bound for Default Lit (must be the old text), bind groups per batch, draw count against NC_MATERIAL_MODELS=0.",
+      "Fix so the promise of MATERIAL_SYSTEM.md 'Permutations' holds: a frame of Default Lit and foliage costs the same as before the system (within 2 %)."
+    ],
+    "acceptance": [
+      "bench H10 models-off within 2 % of base on the forest and city views",
+      "pictures of base and models-off equal on a Default Lit scene (pngdiff)"
+    ],
+    "branch": "perf/material-system-cost",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/material-system-cost: the GameDeveloperSkill bench measured a cost of the material system of 21 October on scenes that are mostly Default Lit / foliage ({evidence}). Find which part (record and dispatch, per-material batch split in the sets, WPO instanced variants, extended deferred pass) costs it with NC_GPU_PROFILE and PIX, and make Default Lit and foliage frames cost what they cost with NC_MATERIAL_MODELS=0 (within 2 %), keeping the switches. Verify with windows.ps1 -Changed and the bench H10."
   }
 }

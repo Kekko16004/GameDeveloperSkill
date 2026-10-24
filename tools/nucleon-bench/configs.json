@@ -240,9 +240,58 @@
       "configs": {
         "resolution-50": {
           "resolutionScale": 0.5
+        },
+        "fsr-quality": {
+          "upscaling": "quality",
+          "env": {
+            "NC_UPSCALER": "fsr"
+          }
+        },
+        "fsr-performance": {
+          "upscaling": "performance",
+          "env": {
+            "NC_UPSCALER": "fsr"
+          }
         }
       },
-      "rule": "pixel bound when resolution-50 lowers p50 by >= 30 %; CPU / geometry bound when < 10 % (then look at cpuFrameMs and the CPU zones)"
+      "rule": "pixel bound when resolution-50 lowers p50 by >= 30 %; CPU / geometry bound when < 10 % (then look at cpuFrameMs and the CPU zones). fsr-quality / fsr-performance: what the upscaler (FSR 3, motion vectors fixed on 2026-10-24) buys on this scene: the default to ship when the frame is pixel bound"
+    },
+    "H10": {
+      "title": "The material system (shading models, sets, World Position Offset, layers, deferred table) costs more than it should",
+      "scenarios": [
+        "view",
+        "fly"
+      ],
+      "configs": {
+        "models-off": {
+          "env": {
+            "NC_MATERIAL_MODELS": "0"
+          },
+          "bound": true
+        },
+        "sets-off": {
+          "env": {
+            "NC_MATERIAL_SETS": "0"
+          }
+        },
+        "wpo-off": {
+          "env": {
+            "NC_WPO": "0"
+          }
+        },
+        "layers-off": {
+          "env": {
+            "NC_LAYERS": "0"
+          }
+        },
+        "deferred-models-off": {
+          "env": {
+            "NC_DEFERRED_MODELS": "0"
+          }
+        }
+      },
+      "shots": true,
+      "rule": "confirmed when models-off lowers p50 by >= 10 % on a scene whose materials are mostly Default Lit / foliage (the system promises zero cost for them), or sets-off is FASTER (the batched material paths lose). The pictures also show which feature changes the look."
     }
   }
 }
