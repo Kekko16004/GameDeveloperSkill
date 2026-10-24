@@ -1,0 +1,312 @@
+{
+  "K1": {
+    "title": "A1: small repeated models drawn brown and see-through (repro on HEAD, then fix)",
+    "evidence": "Reproduced by GameDeveloperSkill (KayKit tree_single_A.gltf x200 brown and see-through; trees_A_medium.gltf with the same texture correct; NC_INSTANCING=0 fixes it). Ruled out by reading the code: the class key has textures, every material parameter, fade/fadeInvert, alpha mode, every vertex and index stream (glmodern_scene.inc:473-523, glmodern.cpp:5561); a 95-vertex tree has no LOD (lodMinTriangles = 256, cooker.h:29), so no LOD cross-fade.",
+    "files": [
+      "engine/src/renderer/geometry/instancing/glmodern_gpudriven.inc (gdBindStreams, gdRecordGbufClass)",
+      "engine/src/renderer/pipeline/glmodern.cpp (forwardPipeline, uploadItems ~5558, GPU-driven draws after the CPU forward ~10577)",
+      "engine/src/renderer/pipeline/glmodern_shaders.cpp (ncCoverage ~3598)",
+      "engine/src/renderer/geometry/meshes/glscenemodel.cpp (crossFade ~5485-5535)"
+    ],
+    "steps": [
+      "Reproduce on HEAD with the KayKit level (or 200 copies of any < 256-triangle textured glTF next to a bigger one sharing its texture). Run in this order and keep the screenshots: default; NC_GPU_DRIVEN=0 with instancing on (picture fixed -> the GPU-driven path; still wrong -> the instance classes or the instanced shader variant); NC_EDITOR_VIEWMODE=basecolor (one flat colour = one texel of the atlas sampled: UV stream); NC_INSTANCING=0 (control).",
+      "Check the two .gltf files: attributes, COLOR_0, texCoord index of baseColorTexture, alphaMode/alphaCutoff. A model without COLOR_0 next to one with it, or texCoord 1, is the first suspect for a variant-dependent stream bind.",
+      "Candidate 1: the UV/colour stream of the instanced or GPU-driven variant (gdBindStreams binds slot 2 only when it.variant & 2, gdRecordGbufClass when shade.uv(); compare with the streams forwardPipeline expects for the same material). A missing UV bind reads UV 0 = one texel = uniform brown; the see-through look is fragments discarded by ncCoverage with that texel's alpha.",
+      "Candidate 2: an object-wide crossFade stuck below 1 (streaming fade-in or HLOD fade, glscenemodel.cpp ~5535) on items that then enter the GPU-driven class with fade < 1 forever. Log crossFade of the items of the wrong class for a frame.",
+      "Fix at the root, add a regression scene to tests/smoke (two models of different vertex formats sharing a texture, 200 copies, screenshot compared against NC_INSTANCING=0 with tests/cook/pngdiff.py)."
+    ],
+    "acceptance": [
+      "the default picture equals the NC_INSTANCING=0 picture (pngdiff under the threshold) on OpenGL, D3D12 and Vulkan",
+      "GameDeveloperSkill bench H8: 'gpu-driven-off vs base picture difference %' and 'instancing-off vs base' both < 1 %",
+      "no change in GPU ms of the forest bench (tests/bench/perf/gpu_driven.sh)"
+    ],
+    "branch": "fix/a1-instanced-material",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md): reproduce and fix bug A1 of GameDeveloperSkill docs/NUCLEON-ENGINE-NOTES.md: many copies of a small textured glTF (KayKit tree_single_A, 95 vertices) render brown and see-through with the default settings, correct with NC_INSTANCING=0, while a larger model with the same texture is correct. The class key already covers textures, material, fade and streams, and the model has no LOD, so do not chase those. Isolate in this order on HEAD: NC_GPU_DRIVEN=0 with instancing on, NC_EDITOR_VIEWMODE=basecolor, then the .gltf attributes (COLOR_0, texCoord, alphaMode). Prime suspects: the UV/colour stream bind of the GPU-driven/instanced variant (gdBindStreams and gdRecordGbufClass vs forwardPipeline) and an object crossFade stuck below 1 (glscenemodel.cpp). Fix at the root, add a smoke test that compares the picture with NC_INSTANCING=0, run tools/verify/linux.sh --changed and say what still needs windows.ps1 -Changed. One branch fix/a1-instanced-material, one PR. Bench evidence: {evidence}"
+  },
+  "K2": {
+    "title": "Small fixes in one PR: MCP type names, editor guide axes, native arities, profiler counter names, three doc notes",
+    "evidence": "B2, B3, C1 and the doc notes A2, A5, C2 of docs/NUCLEON-ENGINE-NOTES.md, located in the code.",
+    "files": [
+      "editor/src/mcp/mcp_tools.cpp (~774, type enum)",
+      "docs/editor/MCP.md (~116)",
+      "engine/src/world/scene/scene.cpp (~141 entityTypeName)",
+      "editor/src/mcp/mcp.cpp (~91 editor guide)",
+      "resources/lua/nc/natives (SetAnimationParameter, TriggerEvent, TriggerServerEvent, TriggerClientEvent, CallOnServer, CallOnOwner, CallOnAll, SendNetworkMessage, SendNetworkMessageToPlayer, GetFrameTime)",
+      "docs/rendering/LIGHTING.md 'Instancing'",
+      "docs/engine/PHYSICS.md (~239)",
+      "engine/src/core/profiling/profiler.cpp (Counter names ~286, Report destructor ~525)"
+    ],
+    "steps": [
+      "B2: the scene_list / entity type enum accepts the real names: landscape (keep terrain as an alias), and adds water, fog_volume, decal, effect, post_process_volume, instances (whatever entityTypeName returns, lower case). Same list in MCP.md.",
+      "B3: the editor guide resource says Z up, X east, Y north, rotation [pitch, roll, yaw] in degrees, as MCP.md and the tools do.",
+      "C1: mark value of SetAnimationParameter optional (type 'any?') and the trailing ... of the eight event / network natives optional; run tests/smoke/run-natives-docs.sh build/bin/Nucleon --update (regenerates NATIVES.md, natives.lua annotations, bpapi.inc).",
+      "A2: LIGHTING.md 'Instancing': NC_INSTANCING=0 also turns off GPU-driven, retained scene, GPU LOD, pre-skin, foliage (no other draw path), ISM sets and mesh particles of the effects (silently); list the separate switches NC_GPU_DRIVEN, NC_RETAINED_SCENE, NC_FOLIAGE_GPU, NC_GPU_INSTANCES. Also log one line when mesh particles are dropped (glfxextras.cpp ~576).",
+      "A5: PHYSICS.md: visible = false keeps the collider (as in UE); use Details > Physics > Collision: None (collision = \"none\").",
+      "C2: GetFrameTime description: in Play In Editor the step is capped at 0.1 s (editor.cpp ~6434), not in a packaged game.",
+      "A6: ncprof::Counter keeps a copy of its name (or only static names are allowed, checked in debug), so the report has no garbage 'misc:' names; Report writes from an explicit shutdown call, not only from its static destructor, so os.exit() with NC_PROFILE_REPORT on does not crash in strlen."
+    ],
+    "acceptance": [
+      "scene_list {type: 'landscape'} and {type: 'terrain'} both return the landscape (run-editor-mcp.sh / mcp_smoke.py check added)",
+      "natives-check and blueprint-nodes-check pass",
+      "run-editor-mcp.sh, native-natives, natives-docs pass",
+      "a Lua os.exit() with NC_PROFILE_REPORT on (frames not reached) exits 0 and the report has no unreadable counter names"
+    ],
+    "branch": "fix/mcp-natives-docs",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), one branch fix/mcp-natives-docs, one PR, the small items of GameDeveloperSkill docs/NUCLEON-ENGINE-NOTES.md: B2 (MCP type enum uses the names entityTypeName returns, landscape with terrain as alias, plus water, fog volume, decal, effect, post process volume, instances; MCP.md too), B3 (editor guide resource in mcp.cpp ~91: Z up, rotation [pitch, roll, yaw]), C1 (optional value of SetAnimationParameter and the trailing ... of TriggerEvent, TriggerServerEvent, TriggerClientEvent, CallOnServer, CallOnOwner, CallOnAll, SendNetworkMessage, SendNetworkMessageToPlayer, then run-natives-docs.sh --update), docs A2 (LIGHTING.md Instancing: what NC_INSTANCING=0 turns off and the separate switches; a log line when mesh particles are dropped), A5 (PHYSICS.md: hidden shapes keep their collider, Collision: None), C2 (GetFrameTime is capped at 0.1 s only in Play In Editor). A6: profiler counters with dangling names (garbage 'misc:' lines in NC_PROFILE_REPORT, crash in CounterWindow::read from Report::~Report when Lua calls os.exit): copy the names, write the report from an explicit shutdown. Add an MCP smoke check for the landscape filter. Run tools/verify/linux.sh --changed."
+  },
+  "K3": {
+    "title": "capture_viewport for automated QA: wait for everything, pending field, chosen resolution, Game View",
+    "evidence": "B1/B5/B6: capture_viewport only calls Scene::finishLoading() (scene.cpp:1573): texture streaming, world partition cells and HLOD, virtual geometry and GPU set preparation and reimports are not awaited; Scene::loadingPending() (scene.h:524) exists and is unused; the capture is the panel size (viewport.cpp:209); Game View has no command id; TakeScreenshot in PIE reads the whole window.",
+    "files": [
+      "editor/src/mcp/mcp_tools.cpp (capture_viewport)",
+      "engine/src/world/scene/scene.cpp / scene.h (finishLoading, loadingPending)",
+      "editor/src/viewport/viewport.cpp (~209)",
+      "resources/lua/nc/natives/game.lua (~348 TakeScreenshot)"
+    ],
+    "steps": [
+      "capture_viewport gets wait: 'none' | 'models' (today) | 'all' (default): loops editor frames until loadingPending() is 0 and the texture / page / cell / reimport queues are empty, with a timeout (default 120 s); the result carries pending: {models, textures, pages, cells, reimports} and settled: bool.",
+      "width / height: render the viewport camera into an offscreen RenderTarget of that size (RHI and GL paths), independent of the panel; keep max_width for the old behaviour.",
+      "game_view: true draws without grid, icons, gizmo, outline (the Game View state for the capture only); add the command id view.game_view so run_command can toggle it.",
+      "A native or option for PIE: TakeScreenshot(path, {view = 'game'}) captures the game viewport only (the play view's render target), the default stays the window."
+    ],
+    "acceptance": [
+      "after deleting Saved/DDC, capture_viewport(wait='all') of a level with virtualized and heavy models shows every model (test in run-editor-mcp.sh)",
+      "capture_viewport(width=1920,height=1080) returns 1920x1080 from a 1280x720 window",
+      "pending is 0 and settled true when it returns before the timeout"
+    ],
+    "branch": "mcp/capture-settled",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch mcp/capture-settled, one PR: make the MCP capture_viewport reliable for agents (GameDeveloperSkill docs/NUCLEON-ENGINE-NOTES.md B1, B5, B6). Add wait none|models|all (default all: frames until Scene::loadingPending() and the texture streaming, virtual geometry pages, world partition cells, HLOD and reimport queues are empty, with a timeout) and a pending/settled field in the result; width/height that render the viewport camera offscreen at that size; game_view to hide grid, icons, gizmo and outline for the capture, plus a command id for Game View; TakeScreenshot in Play In Editor able to capture only the game view. Tests in run-editor-mcp.sh (DDC deleted, every model visible; 1920x1080 from a smaller window). Run tools/verify/linux.sh --changed."
+  },
+  "K4": {
+    "title": "MCP tools for what an agent still has to do with the editor closed",
+    "evidence": "B4: run_command already reaches Add > Effects (Water, Fog Volume, Decal, Particle Emitter), Post Process / Navigation Volume and Build GI / Navigation / HLOD. Missing: landscape sculpt and paint, foliage, the level lighting table, Project Settings values, import settings, entity_modify fields of water/fog/decal/particles/post-process volumes; run_lua changes the engine world but is not saved nor undoable.",
+    "files": [
+      "editor/src/mcp/mcp_tools.cpp",
+      "editor/src/terrain/terraintools.*",
+      "editor/src/editor_editing.cpp (undo)",
+      "editor/src/assets/assetmeta.* (import settings)",
+      "docs/editor/MCP.md"
+    ],
+    "steps": [
+      "landscape: create {size, resolution, height range}, import_heightmap {png|r16}, sculpt {op raise|lower|smooth|flatten, points or a stroke, radius, strength}, paint_layer {layer, stroke}, add_layer {textures}; each one an undo step and saved with the level.",
+      "foliage: add_type {model or card, density, scale range, align, LODs}, paint / erase {stroke or polygon, density}, list.",
+      "lighting_get / lighting_set: the level lighting table (sun, sky, fog, exposure, tonemapper, GI) with undo and save.",
+      "project_settings_get / set {section, key, value} and import_settings_get / set {asset, settings} with a reimport.",
+      "entity_modify covers the fields of water, fog volume, decal, particle emitter, post process volume, navigation volume (the Details rows already have them).",
+      "scene_stats: Lighting.getStats() + GPU pass timings as a tool (the performance gate of agents)."
+    ],
+    "acceptance": [
+      "mcp_smoke.py builds a level with a sculpted, painted landscape, foliage and a custom lighting table, saves, reopens and compares",
+      "every new write is one undo step",
+      "MCP.md documents the tools"
+    ],
+    "branch": "mcp/world-tools",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch mcp/world-tools, one PR per group if large: MCP tools for landscape (create, import heightmap, sculpt, paint layer), foliage (types, paint, erase), the level lighting table, Project Settings values, import settings, the missing entity_modify fields (water, fog volume, decal, particles, post process and navigation volumes) and a scene_stats tool (draw calls, instancing, GPU pass ms). Every write is an undo step and saved with the level, unlike run_lua. Source: GameDeveloperSkill docs/NUCLEON-ENGINE-NOTES.md B4. Tests in mcp_smoke.py, docs in MCP.md. Run tools/verify/linux.sh --changed."
+  },
+  "K5": {
+    "title": "Foliage types with models and LODs (painted), over the existing instances entity",
+    "evidence": "A3: the instances entity (ISM/HISM, docs/rendering/INSTANCES.md), Convert Selection to Instances and Optimize Level for Streaming exist since 16 October but are built, never run, and instances stay out of the retained scene and GPU LOD. Missing: painted foliage types using models with LODs (COMPETITOR_PLAN 2.3).",
+    "files": [
+      "engine/src/renderer/foliage/glfoliage.cpp",
+      "engine/src/renderer/foliage/foliagelod.cpp",
+      "docs/rendering/INSTANCES.md",
+      "editor/src/terrain/terraintools.*"
+    ],
+    "steps": [
+      "Run the instances entity first (Convert Selection to Instances on the KayKit level), measure it, fix what fails.",
+      "Foliage type kind 'model': a glTF with its LOD chain (cooked LODs, impostor last), painted by the brush into instance sets per landscape tile; GPU culling and LOD as the cards have.",
+      "Put instance sets into the retained scene and the GPU LOD path.",
+      "Shadows: casters up to a distance, impostor shadows beyond (A4)."
+    ],
+    "acceptance": [
+      "10 000 painted kit trees: GPU ms within 10 % of the same count as cards",
+      "the bench 'view' and 'fly' p95 do not regress"
+    ],
+    "branch": "render/foliage-models",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md): first run and fix the instances entity (docs/rendering/INSTANCES.md, Convert Selection to Instances), then add foliage types that use glTF models with their LOD chain and an impostor, painted by the landscape brush into instance sets, with GPU culling and LOD, inside the retained scene. Source: GameDeveloperSkill docs/NUCLEON-ENGINE-NOTES.md A3. Measure with tools/nucleon-bench of GameDeveloperSkill before and after. Branch render/foliage-models, one PR per stage."
+  },
+  "H1": {
+    "title": "Texture mip streaming without CPU pixel copies (Megascans close-up drops)",
+    "files": [
+      "engine/src/renderer/materials/gltexture.*",
+      "engine/src/world/streaming/asyncload.*",
+      "engine/src/rhi/d3d12/rhi_d3d12.cpp (upload / residency)",
+      "engine/src/renderer/pipeline/glmodern.cpp (makeSrgbCopy ~2900-2960: readback after a restream)"
+    ],
+    "steps": [
+      "Profile one approach hitch (NC_PROFILE_REPORT slow frames): which zone, how many MB uploaded that frame.",
+      "makeSrgbCopy: an uncompressed colour texture without mip levels, or on a device without Caps::srgbViewsRgba8, is read back from the GPU (a full stall) on its first draw and again after every restream to another size. Create sRGB textures with an sRGB format at upload (as UE does) or with an sRGB view always; never read back on the render thread.",
+      "Plan N2 of CLAUDE.md: mips read from the DDS straight into an upload heap ring (no CPU pixel copy, no RGBA conversion), copy queue on D3D12, a fence per mip; budget per frame in MB, not in textures.",
+      "Upload coarse mips first and keep them resident; fine mips by screen-space texel density (UE's mip bias by distance), with hysteresis so walking back does not evict and reload.",
+      "Keep NC_TEXTURE_STREAM_V2=0 for the old path."
+    ],
+    "acceptance": [
+      "bench H1 'approach' hitches -80 % or more against base, p99 under 2x p50",
+      "no visible blur longer than 0.5 s at 2 m (screenshot after 0.5 s equals the warm one)"
+    ],
+    "branch": "perf/texture-mip-streaming",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/texture-mip-streaming: the GameDeveloperSkill bench confirmed that walking up to Megascans assets hitches on texture mip uploads ({evidence}). Implement N2: DDS mips straight into an upload ring without CPU pixel copies, the copy queue on D3D12, a per-frame MB budget, coarse mips resident first, fine mips by texel density with hysteresis; NC_TEXTURE_STREAM_V2=0 keeps the old path. Done when the bench H1 approach scenario loses 80 % of its hitches on the same GPU. Verify with windows.ps1 -Changed."
+  },
+  "H2": {
+    "title": "Virtual geometry page streaming: pool size, prefetch and load budget",
+    "files": [
+      "engine/src/renderer/geometry/virtual_geometry/vgstream.cpp",
+      "engine/src/renderer/geometry/virtual_geometry/vgpages.cpp",
+      "engine/src/renderer/geometry/virtual_geometry/glmodern_virtual.inc"
+    ],
+    "steps": [
+      "Pool size from the VRAM budget (default a fraction of it, not a fixed 64 MB), NC_VIRTUAL_POOL_MB overrides.",
+      "Prefetch by distance and camera velocity (pages of the next LOD level before they are needed), as Nanite's streaming priority.",
+      "Read pages from the pak with the IO scheduler (no temp file), decode on workers, upload in a budget measured in ms.",
+      "Never stall the frame on a page: draw the coarser resident cluster."
+    ],
+    "acceptance": [
+      "bench H2 approach/fly hitches -70 % against base",
+      "poolUsedMB stays under the new budget, no frame waits on pages"
+    ],
+    "branch": "perf/vgeo-streaming",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/vgeo-streaming: the GameDeveloperSkill bench confirmed that the close-up drops of virtualized assets come from geometry page streaming ({evidence}). Size the page pool from the VRAM budget, prefetch pages by distance and camera speed, read them from the pak through the IO scheduler without temp files, decode on workers, upload within a ms budget, and never stall: draw the coarser resident clusters. Keep a switch to the old behaviour. Done when bench H2 loses 70 % of its hitches."
+  },
+  "H3": {
+    "title": "The virtual geometry path is slower than the classic one on these assets",
+    "files": [
+      "engine/src/renderer/geometry/virtual_geometry/glmodern_visbuffer.inc",
+      "engine/src/renderer/geometry/virtual_geometry/glmodern_vgu.inc",
+      "engine/src/assets/cooking/cooker.h"
+    ],
+    "steps": [
+      "Compare with NC_GPU_PROFILE which pass grows: cluster culling, the visibility buffer raster, the resolve (4 ms on the city).",
+      "Tile classification of the resolve by material (the paused render/gpu-frame work), compute raster for small triangles (N4).",
+      "A size threshold: assets under N triangles are not virtualized by default (the cook decides)."
+    ],
+    "acceptance": [
+      "bench H3 vgeo-off is no longer faster than base (within 5 %)"
+    ],
+    "branch": "perf/vgeo-resolve",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/vgeo-resolve: the GameDeveloperSkill bench found the virtual geometry path slower than the classic path on the same scene ({evidence}). Find the pass with NC_GPU_PROFILE, add tile classification to the visibility buffer resolve and a cook threshold so small assets are not virtualized. Done when vgeo-off is within 5 % of base."
+  },
+  "H4": {
+    "title": "Shadows: per-cascade culling, cached cascades, LOD and no wind in far casters",
+    "files": [
+      "engine/src/renderer/shadows/glshadow.cpp",
+      "engine/src/renderer/shadows/glmodern_vsm.inc",
+      "engine/src/renderer/pipeline/glmodern.cpp (shadowPass)"
+    ],
+    "steps": [
+      "Cull casters (and terrain chunks) per cascade frustum, not once for all cascades.",
+      "Casters use a coarser LOD than the view (LOD bias per cascade), no wind beyond NC_SHADOW_WIND_DISTANCE by default.",
+      "Cache the far cascades and redraw them only when the sun or the static set changes (UE's cached shadow maps / VSM page caching).",
+      "Impostor shadows beyond the impostor distance."
+    ],
+    "acceptance": [
+      "bench H4 shadow passes under 25 % of the GPU frame, view p50 -20 % on the forest",
+      "screenshots of the shadows unchanged within the threshold near the camera"
+    ],
+    "branch": "perf/shadow-cascades",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/shadow-cascades: the GameDeveloperSkill bench measured shadows as the main GPU cost ({evidence}). Cull casters per cascade, coarser LOD and no wind for far casters, cache the far cascades until the sun or static set changes, impostor shadows beyond the impostor distance; switches back to the old code. Done when shadow passes are under 25 % of the GPU frame and the view p50 drops 20 %."
+  },
+  "H5": {
+    "title": "LOD policy: screen-size thresholds and LOD chains for every repeated asset",
+    "files": [
+      "engine/src/renderer/geometry/lod/lodgen.cpp",
+      "engine/src/renderer/geometry/meshes/glscenemodel.cpp",
+      "engine/src/renderer/foliage/foliagelod.cpp"
+    ],
+    "steps": [
+      "Switch LOD by projected screen size (UE's screen size), not distance only, with a per-project bias in the scalability groups.",
+      "Generate LODs for repeated assets even under lodMinTriangles when the instance count is high (the cost is count x triangles).",
+      "GPU LOD (NC_GPU_LOD) on by default once it matches the CPU choice."
+    ],
+    "acceptance": [
+      "bench H5: base within 10 % of lod-coarsest on the far views, no popping visible at the switch distance (dither cross-fade)"
+    ],
+    "branch": "perf/lod-policy",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/lod-policy: the GameDeveloperSkill bench showed a large gap between the default LOD and the coarsest one ({evidence}). Choose LODs by screen size with a scalability bias, generate LODs for heavily instanced small assets, enable GPU LOD by default once it matches the CPU path. Done when base is within 10 % of lod-coarsest on far views without visible popping."
+  },
+  "H6": {
+    "title": "Masked foliage overdraw: depth pre-pass, coverage, card shapes",
+    "files": [
+      "engine/src/renderer/foliage/glfoliage.cpp",
+      "engine/src/renderer/pipeline/glmodern_shaders.cpp (ncCoverage)"
+    ],
+    "steps": [
+      "Pick the NC_PREPASS_MASKED default from the bench (on or off, whichever won).",
+      "Tight card geometry (alpha-fitted polygons instead of quads) to cut discarded pixels.",
+      "Density and distance fade per scalability level; foliage drawn front to back."
+    ],
+    "acceptance": [
+      "bench H6 view p50 -20 % at equal density"
+    ],
+    "branch": "perf/foliage-overdraw",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/foliage-overdraw: the GameDeveloperSkill bench showed the frame pixel bound by masked foliage ({evidence}). Set the masked pre-pass default from the numbers, fit card polygons to the alpha, sort foliage front to back, scale density with the scalability level. Done when view p50 drops 20 % at the same density."
+  },
+  "H7": {
+    "title": "GI with vegetation: cheaper representation of foliage in the GI scene",
+    "files": [
+      "engine/src/renderer/global_illumination/glmodern_gi.inc",
+      "engine/src/renderer/global_illumination/glmodern_lumen.inc"
+    ],
+    "steps": [
+      "Foliage in the GI scene as coarse proxies (or out of it beyond a distance), as UE excludes small instances from Lumen.",
+      "Update the GI probes at a lower rate when the camera is still."
+    ],
+    "acceptance": [
+      "bench H7 gi-off gain halved"
+    ],
+    "branch": "perf/gi-vegetation",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/gi-vegetation: the GameDeveloperSkill bench measured GI as a large share of the frame with vegetation ({evidence}). Represent foliage in the GI scene with coarse proxies or drop it beyond a distance, and slow the probe updates when the camera is still. Done when the cost of GI against gi-off is halved."
+  },
+  "H8": {
+    "title": "Instancing paths: fix the vgeo unified pipeline material bug if it pays",
+    "files": [
+      "engine/src/renderer/geometry/virtual_geometry/glmodern_vgu.inc",
+      "engine/src/renderer/scene/glmodern_retained.inc"
+    ],
+    "steps": [
+      "If the pictures differ, do K1 first.",
+      "If vgeo-unified is faster, fix its material bug and turn it on by default."
+    ],
+    "acceptance": [
+      "pictures equal across the paths, the fastest correct path is the default"
+    ],
+    "branch": "perf/vgeo-unified",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/vgeo-unified: the GameDeveloperSkill bench found the unified virtual geometry pipeline faster ({evidence}). Fix its material bug and make it the default with NC_VGEO_UNIFIED=0 as the way back. Screenshots must match the current path."
+  },
+  "H9": {
+    "title": "CPU / geometry bound frame: draw submission and CPU zones",
+    "files": [
+      "engine/src/renderer/pipeline/glmodern.cpp (uploadItems, frame build)",
+      "engine/src/world/streaming"
+    ],
+    "steps": [
+      "Read the CPU zones of the slowest frames (NC_PROFILE_REPORT).",
+      "Move what dominates off the main thread or into the retained scene."
+    ],
+    "acceptance": [
+      "cpuFrameMs under the GPU frame on the bench views"
+    ],
+    "branch": "perf/cpu-frame",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/cpu-frame: the GameDeveloperSkill bench found the frame CPU or geometry bound ({evidence}). Use NC_PROFILE_REPORT to find the dominant CPU zones and move them off the main thread or into the retained scene."
+  },
+  "H10": {
+    "title": "Material system cost: Default Lit and foliage must not pay for the new models",
+    "files": [
+      "engine/src/renderer/materials/slab.*",
+      "engine/src/renderer/shaders/bsdf/",
+      "engine/src/renderer/pipeline/glmodern.cpp (applyMaterialModel, internMatExt, modelFragment)",
+      "engine/src/renderer/scene/glmodern_scene.inc (fillDrawData)",
+      "engine/src/renderer/geometry/instancing (isetMergeKey, extGroupFor)"
+    ],
+    "steps": [
+      "Read which config wins in the bench: models-off (the record / dispatch costs Default Lit something), sets-off faster (the per-material batch split or the extra bind group per batch costs more than it saves), wpo-off (vertex offset in instanced draws), deferred-models-off (the extended deferred pass).",
+      "Profile the winning case with NC_GPU_PROFILE and PIX: shader permutation actually bound for Default Lit (must be the old text), bind groups per batch, draw count against NC_MATERIAL_MODELS=0.",
+      "Fix so the promise of MATERIAL_SYSTEM.md 'Permutations' holds: a frame of Default Lit and foliage costs the same as before the system (within 2 %)."
+    ],
+    "acceptance": [
+      "bench H10 models-off within 2 % of base on the forest and city views",
+      "pictures of base and models-off equal on a Default Lit scene (pngdiff)"
+    ],
+    "branch": "perf/material-system-cost",
+    "prompt": "In the NucleonEngine repository (follow CLAUDE.md), branch perf/material-system-cost: the GameDeveloperSkill bench measured a cost of the material system of 21 October on scenes that are mostly Default Lit / foliage ({evidence}). Find which part (record and dispatch, per-material batch split in the sets, WPO instanced variants, extended deferred pass) costs it with NC_GPU_PROFILE and PIX, and make Default Lit and foliage frames cost what they cost with NC_MATERIAL_MODELS=0 (within 2 %), keeping the switches. Verify with windows.ps1 -Changed and the bench H10."
+  }
+}

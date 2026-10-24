@@ -278,7 +278,8 @@ Tu fai SOLO il look. Leggi `lookdev.md`, `gds-editor.md`, `GDD.md → lookdev/to
 5. Luci locali: `GDS.VFX.AttachTorches("torch")` per interni; 1 fill light sull'obiettivo.
 6. `read_console` 0 errori. Lint 0. Screenshot Game view `screenshots/035-lookdev.png` (bloom/fog/ombre visibili).
 NON toccare gameplay/UI. NON YAML.
-Gate: `docs/gates/08-lookdev.md` con l'`applied` JSON, preset, PNG, `lint:`.
+**ENGINE=nucleon** (al posto dei passi 1-5, [nucleon-loop.md](nucleon-loop.md) §8a): `ncli session-stop` → `nc_mat.py auto --project P --catalog art/kit-catalog.json --style <GDD style> --name <kit>` → `nc_mat.py assign` (materiali + vento delle piante sul livello) → materiali a mano per le superfici del GDD (`nc_mat.py make glass|water|carPaint|skin|neon ...`) → `nc_mat.py check` su ogni shading model nuovo (fallito = `defaultLit` con le stesse texture + nota in `docs/NUCLEON-ENGINE-NOTES.md`) → `nc_world.py look` → `serve` → shot in Game View.
+Gate: `docs/gates/08-lookdev.md` con l'`applied` JSON (Nucleon: l'output di `auto`/`assign`/`check`), preset, PNG, `lint:`.
 
 ---
 
