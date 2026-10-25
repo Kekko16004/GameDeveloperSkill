@@ -3,7 +3,7 @@
 
 Three jobs, nothing else:
 - point FabCLI at the right binary and download folder
-- copy DesignerSkill into the installed hosts, or leave them alone
+- show the designer install status and update/repair it through the installer
 - read the attached Unity/Godot project
 
 No model viewer. No web server. Stdlib only.
@@ -11,7 +11,6 @@ No model viewer. No web server. Stdlib only.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -19,7 +18,6 @@ import shutil
 import subprocess
 import sys
 import webbrowser
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,41 +25,31 @@ CONFIG_PATH = ROOT / "config.json"
 DEFAULTS_PATH = ROOT / "config" / "defaults.json"
 DOCTOR = ROOT / "scripts" / "doctor.ps1"
 RELEASES = "https://github.com/zirklerite/FabCLI/releases"
+NODE_HINT = "winget install OpenJS.NodeJS.LTS"
 
-SKIP_DIRS = {".git", "__pycache__", ".variant-studio", "node_modules", ".playwright-mcp"}
-
-HOST_DIRS = {
-    "kilo": ("Kilo", [Path.home() / ".config" / "kilo" / "skills" / "real-world-design"]),
-    "claude": ("Claude", [Path.home() / ".claude" / "skills" / "real-world-design"]),
-    "codex": (
-        "Codex",
-        [
-            Path.home() / ".codex" / "skills" / "real-world-design",
-            Path.home() / ".agents" / "skills" / "real-world-design",
-        ],
-    ),
-    "antigravity": (
-        "Antigravity",
-        [
-            Path.home() / ".gemini" / "antigravity" / "skills" / "real-world-design",
-            Path.home() / ".antigravity" / "skills" / "real-world-design",
-        ],
-    ),
-}
+# Every skill lives once in ~/.agents/skills/<name>. Claude, Antigravity and Cline
+# get a junction; every other host reads ~/.agents/skills, so a copy there is a duplicate.
+DUP_ROOTS = (
+    ".codex/skills",
+    ".cursor/skills",
+    ".copilot/skills",
+    ".config/kilo/skills",
+    ".kilo/skills",
+    ".kilocode/skills",
+    ".config/opencode/skills",
+    ".gemini/skills",
+    ".gemini/antigravity/skills",
+    ".antigravity/skills",
+    ".codeium/windsurf/skills",
+    ".roo/skills",
+)
+LEGACY_ROOTS = (".agents/skills", ".claude/skills", ".gemini/config/skills")
 
 SCREENS = ("progetto", "fab", "design")
 RESET = "\x1b[0m"
 ACCENT = "\x1b[38;5;179m"
 DIM = "\x1b[38;5;245m"
 SEL = "\x1b[48;5;236m\x1b[38;5;223m"
-
-HOST_CMDS = {
-    "kilo": [
-        Path.home() / ".config" / "kilo" / "command",
-        Path.home() / ".config" / "kilo" / "commands",
-    ],
-    "claude": [Path.home() / ".claude" / "commands"],
-}
 
 
 def enable_vt() -> None:
@@ -117,13 +105,8 @@ def ensure_shape(cfg: dict) -> None:
         cfg["project"] = project
     project.setdefault("path", "")
 
-    policy = cfg.get("designerSkillPolicy")
-    if not isinstance(policy, dict):
-        policy = {}
-        cfg["designerSkillPolicy"] = policy
-    policy.setdefault("allowUpdate", False)
-    policy.setdefault("lastSync", None)
-    policy.setdefault("source", "")
+    # the installer owns designer now; the old copy policy is dropped on the next save
+    cfg.pop("designerSkillPolicy", None)
 
     paths = cfg.get("paths")
     if not isinstance(paths, dict):
@@ -141,95 +124,100 @@ def fit(text: str, width: int) -> str:
     return "…" + text[-(width - 1) :]
 
 
-def sig(path: Path) -> str | None:
+def read_json(path: Path) -> dict | None:
     if not path.is_file():
         return None
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
-    return digest
-
-
-def resolve_skill_dir(raw: str) -> Path | None:
-    if not raw:
-        return None
-    path = Path(raw)
-    if (path / "SKILL.md").is_file():
-        return path
-    nested = path / "real-world-design"
-    if (nested / "SKILL.md").is_file():
-        return nested
-    return None
-
-
-def skill_source(cfg: dict) -> str:
-    policy = cfg.get("designerSkillPolicy") or {}
-    paths = cfg.get("paths") or {}
-    return str(policy.get("source") or paths.get("designerSkill") or "")
-
-
-def under_home(path: Path) -> bool:
     try:
-        path.resolve().relative_to(Path.home().resolve())
-    except ValueError:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def skill_name(skill_md: Path) -> str:
+    try:
+        raw = skill_md.read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        return ""
+    head = re.match(r"---\s*\r?\n(.*?)\r?\n---", raw, re.S)
+    if not head:
+        return ""
+    match = re.search(r"^name:\s*['\"]?([^'\"\r\n]+)", head.group(1), re.M)
+    return match.group(1).strip() if match else ""
+
+
+def same_dir(a: Path, b: Path) -> bool:
+    try:
+        left = os.path.normcase(os.path.realpath(a))
+        right = os.path.normcase(os.path.realpath(b))
+    except OSError:
         return False
-    return True
+    return left == right
 
 
-def selected_hosts(cfg: dict) -> list[str]:
-    hosts = cfg.get("hosts") or []
-    if not isinstance(hosts, list):
-        return []
-    return [h for h in hosts if h in HOST_DIRS]
+def find_duplicates(home: Path, canonical: Path) -> list[Path]:
+    candidates = []
+    for rel in DUP_ROOTS:
+        for name in ("designer", "real-world-design"):
+            candidates.append(home / rel / name)
+    for rel in LEGACY_ROOTS:
+        candidates.append(home / rel / "real-world-design")
+    hits = []
+    for path in candidates:
+        if not os.path.lexists(path):
+            continue
+        # a junction or symlink onto the canonical folder is how hosts are meant to see it
+        if canonical.is_dir() and same_dir(path, canonical):
+            continue
+        hits.append(path)
+    return hits
 
 
-def design_targets(cfg: dict) -> list[dict]:
-    source = resolve_skill_dir(skill_source(cfg))
-    source_sig = sig(source / "SKILL.md") if source else None
-    rows = []
-    for host in selected_hosts(cfg):
-        label, dirs = HOST_DIRS[host]
-        for dest in dirs:
-            dest_sig = sig(dest / "SKILL.md")
-            if dest_sig is None:
-                state = "assente"
-            elif source_sig is None:
-                state = "presente, sorgente illeggibile"
-            elif dest_sig == source_sig:
-                state = "uguale alla sorgente"
-            else:
-                state = "diversa dalla sorgente"
-            rows.append(
-                {
-                    "host": host,
-                    "label": label,
-                    "dest": dest,
-                    "state": state,
-                    "safe": under_home(dest),
-                }
-            )
-    return rows
+def scan_designer(home: Path | None = None) -> dict:
+    home = home or Path.home()
+    canonical = home / ".agents" / "skills" / "designer"
+    skill_md = canonical / "SKILL.md"
+    receipt_path = home / ".agents" / "skillkit" / "designer.json"
+    present = skill_md.is_file()
+    return {
+        "home": home,
+        "canonical": canonical,
+        "skill": present,
+        "name": skill_name(skill_md) if present else "",
+        "receipt_path": receipt_path,
+        "receipt": read_json(receipt_path),
+        "variant": (home / ".agents" / "skills" / "variant-studio" / "SKILL.md").is_file(),
+        "dups": find_duplicates(home, canonical),
+    }
 
 
-def sync_skill(src: Path, dest: Path) -> tuple[int, int]:
-    if not under_home(dest):
-        raise RuntimeError(f"destinazione fuori dal profilo utente: {dest}")
-    if not (src / "SKILL.md").is_file():
-        raise RuntimeError(f"SKILL.md mancante in {src}")
-    copied = 0
-    kept = 0
-    dest.mkdir(parents=True, exist_ok=True)
-    for dirpath, dirnames, filenames in os.walk(src):
-        dirnames[:] = [name for name in dirnames if name not in SKIP_DIRS]
-        rel = Path(dirpath).relative_to(src)
-        target_dir = dest / rel
-        target_dir.mkdir(parents=True, exist_ok=True)
-        for name in filenames:
-            target = target_dir / name
-            if rel == Path(".") and name == "config.json" and target.exists():
-                kept += 1
-                continue
-            shutil.copy2(Path(dirpath) / name, target)
-            copied += 1
-    return copied, kept
+def designer_installer(info: dict) -> tuple[Path | None, str]:
+    receipt = info.get("receipt") or {}
+    repo = str(receipt.get("repo") or "")
+    if repo:
+        script = Path(repo) / "installer" / "install.mjs"
+        if script.is_file():
+            return script, "repo DesignerSkill dalla ricevuta"
+    # game-developer updates designer as a nested dependency
+    local = ROOT.parent / "installer" / "install.mjs"
+    if local.is_file() and (ROOT.parent / "skillkit.json").is_file():
+        return local, "repo GameDeveloperSkill, designer come dipendenza"
+    gds = read_json(info["home"] / ".agents" / "skillkit" / "game-developer.json") or {}
+    repo = str(gds.get("repo") or "")
+    if repo:
+        script = Path(repo) / "installer" / "install.mjs"
+        if script.is_file():
+            return script, "repo GameDeveloperSkill dalla ricevuta, designer come dipendenza"
+    return None, ""
+
+
+def receipt_hosts(receipt: dict) -> str:
+    hosts = receipt.get("hosts")
+    if isinstance(hosts, list):
+        return ", ".join(str(h) for h in hosts) or "nessuno"
+    if isinstance(hosts, dict):
+        return ", ".join(str(h) for h in hosts) or "nessuno"
+    return str(hosts or "—")
 
 
 def scan_project(path_str: str) -> dict:
@@ -365,6 +353,27 @@ def run_capture(argv: list[str], timeout: int) -> tuple[int, str]:
     return done.returncode, text.strip()
 
 
+def run_foreground(argv: list[str], title: str, cwd: Path | None = None) -> int:
+    # the installer draws its own terminal UI, so it gets the real console
+    leave_screen()
+    try:
+        print(title)
+        print()
+        try:
+            code = subprocess.run(argv, cwd=str(cwd) if cwd else None).returncode
+        except OSError as exc:
+            print(exc)
+            code = 1
+        print()
+        try:
+            input(f"exit {code}. Invio per tornare alla console.")
+        except EOFError:
+            pass
+    finally:
+        enter_screen()
+    return code
+
+
 def probe_fab(cfg: dict) -> dict:
     fab = cfg.get("fab") or {}
     configured = str(fab.get("cli") or "")
@@ -420,6 +429,7 @@ class App:
         self.dirty = False
         self.project = scan_project(str(cfg["project"].get("path") or ""))
         self.fab = probe_fab(cfg)
+        self.designer = scan_designer()
 
     def items(self) -> list[dict]:
         if self.screen == "progetto":
@@ -472,68 +482,64 @@ class App:
                 {"id": "login", "kind": "action", "label": "Accedi", "value": "apre la finestra Epic"},
                 {"id": "releases", "kind": "action", "label": "Apri le release", "value": "se l'eseguibile manca"},
             ]
-        source = skill_source(self.cfg)
-        resolved = resolve_skill_dir(source)
-        policy = self.cfg["designerSkillPolicy"]
-        choice = "consentito" if policy.get("allowUpdate") else "no, le copie restano"
-        last = policy.get("lastSync") or "mai"
+        d = self.designer
+        if d["skill"]:
+            skill = "presente, name: " + (d["name"] or "non scritto nel frontmatter")
+        else:
+            skill = "assente, designer non installato"
         rows = [
-            {"id": "h", "kind": "header", "label": "DesignerSkill"},
-            {"id": "src", "kind": "field", "label": "Sorgente", "value": source or "vuoto"},
+            {"id": "h", "kind": "header", "label": "designer — copia unica"},
+            {"id": "can", "kind": "info", "label": "Cartella", "value": str(d["canonical"])},
+            {"id": "md", "kind": "info", "label": "SKILL.md", "value": skill},
             {
-                "id": "res",
+                "id": "vs",
                 "kind": "info",
-                "label": "SKILL.md",
-                "value": str(resolved) if resolved else "non trovato sotto la sorgente",
+                "label": "Variant Studio",
+                "value": "presente" if d["variant"] else "assente in ~/.agents/skills/variant-studio",
             },
-            {"id": "pol", "kind": "toggle", "label": "Aggiornamento", "value": choice},
-            {"id": "last", "kind": "info", "label": "Ultima copia", "value": str(last)},
             {"id": "gap", "kind": "gap", "label": ""},
-            {"id": "h2", "kind": "header", "label": "Copie installate"},
+            {"id": "h2", "kind": "header", "label": "Ricevuta installer"},
         ]
-        targets = design_targets(self.cfg)
-        if not targets:
+        receipt = d["receipt"]
+        if receipt is None:
             rows.append(
                 {
-                    "id": "none",
+                    "id": "rc",
                     "kind": "info",
-                    "label": "Host",
-                    "value": "nessun host noto in config.hosts",
+                    "label": "Ricevuta",
+                    "value": f"assente  {d['receipt_path']}",
                 }
             )
-        for index, target in enumerate(targets):
-            rows.append(
-                {
-                    "id": f"t{index}",
-                    "kind": "info",
-                    "label": target["label"],
-                    "value": target["state"],
-                }
-            )
-            rows.append(
-                {
-                    "id": f"p{index}",
-                    "kind": "info",
-                    "label": "cartella",
-                    "value": str(target["dest"]),
-                }
+        else:
+            rows.extend(
+                [
+                    {"id": "rv", "kind": "info", "label": "Versione", "value": str(receipt.get("version") or "—")},
+                    {"id": "rr", "kind": "info", "label": "Rev", "value": str(receipt.get("rev") or "—")},
+                    {"id": "rd", "kind": "info", "label": "Data", "value": str(receipt.get("date") or "—")},
+                    {"id": "rp", "kind": "info", "label": "Repo", "value": str(receipt.get("repo") or "—")},
+                    {"id": "rh", "kind": "info", "label": "Host", "value": receipt_hosts(receipt)},
+                ]
             )
         rows.extend(
             [
                 {"id": "gap2", "kind": "gap", "label": ""},
-                {"id": "h3", "kind": "header", "label": "Azioni"},
-                {
-                    "id": "sync",
-                    "kind": "action",
-                    "label": "Aggiorna le copie",
-                    "value": "non tocca config.json né MCP",
-                },
-                {
-                    "id": "leave",
-                    "kind": "action",
-                    "label": "Non aggiornare",
-                    "value": "salva la scelta e non copia",
-                },
+                {"id": "h3", "kind": "header", "label": "Duplicati da togliere"},
+            ]
+        )
+        if not d["dups"]:
+            rows.append({"id": "nodup", "kind": "info", "label": "Duplicati", "value": "nessuno"})
+        for index, dup in enumerate(d["dups"]):
+            rows.append({"id": f"dup{index}", "kind": "info", "label": "ATTENZIONE", "value": str(dup)})
+        script, origin = designer_installer(d)
+        rows.extend(
+            [
+                {"id": "gap3", "kind": "gap", "label": ""},
+                {"id": "h4", "kind": "header", "label": "Azioni"},
+                {"id": "inst", "kind": "info", "label": "Installer", "value": str(script) if script else "non trovato"},
+                {"id": "orig", "kind": "info", "label": "Da", "value": origin or "manca ricevuta e repo"},
+                {"id": "dupdate", "kind": "action", "label": "Aggiorna", "value": "node install.mjs update"},
+                {"id": "drepair", "kind": "action", "label": "Ripara", "value": "node install.mjs doctor --fix"},
+                {"id": "dscan", "kind": "action", "label": "Rileggi il disco", "value": "invio o r"},
             ]
         )
         return rows
@@ -559,7 +565,7 @@ class App:
         width = max(40, width)
         height = max(12, height)
         inner = width - 1
-        title = " GDS   FabCLI, DesignerSkill, progetto aperto"
+        title = " GDS   FabCLI, designer, progetto aperto"
         if self.dirty:
             title += "   modifiche non salvate"
         lines = [ACCENT + fit(title, inner) + RESET]
@@ -571,7 +577,7 @@ class App:
         blurbs = {
             "progetto": "Stato del gioco sul disco. Doctor è l'unica azione che può creare screenshots/.",
             "fab": "FabCLI si scarica dalle release. Qui si imposta il binario, la cartella e il login. Nessun viewer.",
-            "design": "La sorgente è la cartella Desktop. Aggiornare ricopia i file. config.json delle copie resta.",
+            "design": "Sola lettura. designer vive una volta in ~/.agents/skills. Aggiorna e Ripara passano dall'installer.",
         }
         lines.append(fit(" " + blurbs[self.screen], inner))
 
@@ -650,7 +656,7 @@ class App:
         elif name == "fab":
             self.notice = "Il token non viene letto. Si controlla solo se il file c'è."
         else:
-            self.notice = "Aggiornare è una copia di file. Non è un git pull."
+            self.notice = "Nessuna copia da qui. L'installer tiene una sola cartella e i link."
 
     def mark(self) -> None:
         self.dirty = True
@@ -679,7 +685,6 @@ class App:
             "path": str(self.cfg["project"].get("path") or ""),
             "cli": str(self.cfg["fab"].get("cli") or ""),
             "lib": str(self.cfg["fab"].get("library_path") or ""),
-            "src": skill_source(self.cfg),
         }
         self.edit = current.get(self.edit_id, "")
 
@@ -694,9 +699,6 @@ class App:
         elif self.edit_id == "lib":
             self.cfg["fab"]["library_path"] = value
             self.refresh_fab()
-        elif self.edit_id == "src":
-            self.cfg["paths"]["designerSkill"] = value
-            self.cfg["designerSkillPolicy"]["source"] = value
         self.mark()
         self.mode = "main"
         self.notice = "valore in memoria, s per scriverlo su disco"
@@ -710,11 +712,6 @@ class App:
             self.refresh_fab()
             state = "acceso" if self.cfg["fab"]["enabled"] else "spento"
             self.notice = f"FabCLI nel workflow: {state}"
-        elif item["id"] == "pol":
-            policy = self.cfg["designerSkillPolicy"]
-            policy["allowUpdate"] = not bool(policy.get("allowUpdate"))
-            state = "consentito" if policy["allowUpdate"] else "bloccato"
-            self.notice = f"aggiornamento DesignerSkill {state}"
         self.mark()
 
     def ask(self, key: str, text: str) -> None:
@@ -781,52 +778,25 @@ class App:
         self.open_log(f"doctor  exit {code}", text)
         self.rescan()
 
-    def do_sync(self) -> None:
-        source = resolve_skill_dir(skill_source(self.cfg))
-        if source is None:
-            self.notice = "Sorgente senza SKILL.md. Correggi il percorso."
-            return
-        targets = [row for row in design_targets(self.cfg) if row["safe"]]
-        if not targets:
-            self.notice = "Nessuna destinazione. Controlla config.hosts."
-            return
-        copied = 0
-        kept = 0
-        notes = []
-        for row in targets:
-            try:
-                c, k = sync_skill(source, row["dest"])
-            except Exception as exc:
-                notes.append(f"ERRORE {row['dest']}: {exc}")
-                continue
-            copied += c
-            kept += k
-            notes.append(f"{row['label']}  {c} file  config tenuti {k}  {row['dest']}")
-        if copied == 0:
-            self.open_log("copia non riuscita", "\n".join(notes) or "nessun file")
-            return
+    def rescan_designer(self) -> None:
+        self.designer = scan_designer()
+        count = len(self.designer["dups"])
+        self.notice = f"designer riletto, duplicati: {count}" if count else "designer riletto, nessun duplicato"
 
-        self.cfg["designerSkillPolicy"]["allowUpdate"] = True
-        self.cfg["designerSkillPolicy"]["lastSync"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        self.cfg["designerSkillPolicy"]["source"] = skill_source(self.cfg)
-        cmd = source.parent / "command" / "design.md"
-        if cmd.is_file():
-            for host in selected_hosts(self.cfg):
-                for folder in HOST_CMDS.get(host, []):
-                    if not under_home(folder):
-                        continue
-                    folder.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(cmd, folder / "design.md")
-                    notes.append(f"comando /design  {folder / 'design.md'}")
-        self.mark()
-        self.save()
-        self.open_log(f"copia fatta  {copied} file, {kept} config.json lasciati", "\n".join(notes))
-
-    def do_leave(self) -> None:
-        self.cfg["designerSkillPolicy"]["allowUpdate"] = False
-        self.mark()
-        self.save()
-        self.notice = "aggiornamento disattivato e salvato. Nessun file copiato."
+    def do_installer(self, verb: str) -> None:
+        node = shutil.which("node")
+        if not node:
+            self.notice = f"Node non trovato. Installalo con: {NODE_HINT}"
+            return
+        script, origin = designer_installer(self.designer)
+        if script is None:
+            self.notice = "Installer non trovato: niente ricevuta designer né repo GameDeveloperSkill."
+            return
+        args = ["update"] if verb == "update" else ["doctor", "--fix"]
+        title = f"node {script} {' '.join(args)}   ({origin})"
+        code = run_foreground([node, str(script), *args], title, cwd=script.parent.parent)
+        self.designer = scan_designer()
+        self.notice = f"installer {' '.join(args)}  exit {code}"
 
     def activate(self) -> None:
         item = self.current()
@@ -861,10 +831,12 @@ class App:
         elif action == "releases":
             webbrowser.open(RELEASES)
             self.notice = "pagina release aperta nel browser"
-        elif action == "sync":
-            self.ask("sync", "Ricopiare DesignerSkill sugli host in config? config.json esistente resta. y/n")
-        elif action == "leave":
-            self.do_leave()
+        elif action == "dupdate":
+            self.ask("dupdate", "Esegue install.mjs update in primo piano. Continuare? y/n")
+        elif action == "drepair":
+            self.ask("drepair", "Esegue install.mjs doctor --fix in primo piano. Continuare? y/n")
+        elif action == "dscan":
+            self.rescan_designer()
 
     def confirm(self, yes: bool) -> None:
         pending = self.pending
@@ -877,8 +849,10 @@ class App:
             self.do_doctor()
         elif pending == "login":
             self.do_login()
-        elif pending == "sync":
-            self.do_sync()
+        elif pending == "dupdate":
+            self.do_installer("update")
+        elif pending == "drepair":
+            self.do_installer("repair")
         elif pending == "quit":
             raise SystemExit(0)
 
@@ -949,6 +923,8 @@ class App:
             return
         if key == "r" and self.screen == "progetto":
             self.rescan()
+        elif key == "r" and self.screen == "design":
+            self.rescan_designer()
 
     def _edit_key(self, key: str) -> None:
         if key == "enter":
@@ -1041,12 +1017,25 @@ def check_text(cfg: dict) -> str:
         f"fab: enabled={fab['enabled']} exe={fab['exe'] or '(manca)'} version={fab['version']}",
         f"fab download: {fab['library'] or '(vuoto)'} {fab['library_state']}",
         f"fab token: {fab['token']} {fab['token_path']}",
-        f"designer source: {skill_source(cfg) or '(vuoto)'}",
-        f"designer resolved: {resolve_skill_dir(skill_source(cfg)) or '(no SKILL.md)'}",
-        f"designer allowUpdate: {cfg['designerSkillPolicy'].get('allowUpdate')}",
     ]
-    for row in design_targets(cfg):
-        lines.append(f"  {row['label']}: {row['state']} | {row['dest']}")
+    d = scan_designer()
+    skill = f"SKILL.md name={d['name'] or '(non scritto)'}" if d["skill"] else "(manca SKILL.md)"
+    lines.append(f"designer: {d['canonical']} {skill}")
+    receipt = d["receipt"]
+    if receipt is None:
+        lines.append(f"designer ricevuta: (manca) {d['receipt_path']}")
+    else:
+        lines.append(
+            f"designer ricevuta: version={receipt.get('version') or '—'} rev={receipt.get('rev') or '—'}"
+            f" date={receipt.get('date') or '—'} hosts={receipt_hosts(receipt)}"
+        )
+        lines.append(f"designer repo: {receipt.get('repo') or '(vuoto)'}")
+    lines.append(f"variant-studio: {'presente' if d['variant'] else '(manca)'}")
+    script, origin = designer_installer(d)
+    lines.append(f"installer: {script or '(non trovato)'} {origin}".rstrip())
+    lines.append(f"duplicati designer: {len(d['dups'])}")
+    for dup in d["dups"]:
+        lines.append(f"  {dup}")
     return "\n".join(lines)
 
 
@@ -1082,53 +1071,106 @@ def selftest() -> int:
         assert scanned["shots"] == "1 immagini"
         assert "1 glb" in scanned["glbs"]
 
-        src = root / "skill"
-        (src / "references").mkdir(parents=True)
-        (src / "SKILL.md").write_text("skill-v2\n", encoding="utf-8")
-        (src / "references" / "a.md").write_text("a\n", encoding="utf-8")
-        (src / "config.json").write_text('{"from":"source"}\n', encoding="utf-8")
-        dest = root / "homeish"
-        # under_home would reject this dest; test the copy rules directly
-        dest.mkdir()
-        (dest / "config.json").write_text('{"from":"user"}\n', encoding="utf-8")
-        copied = 0
-        kept = 0
-        for dirpath, dirnames, filenames in os.walk(src):
-            dirnames[:] = [n for n in dirnames if n not in SKIP_DIRS]
-            rel = Path(dirpath).relative_to(src)
-            target_dir = dest / rel
-            target_dir.mkdir(parents=True, exist_ok=True)
-            for name in filenames:
-                target = target_dir / name
-                if rel == Path(".") and name == "config.json" and target.exists():
-                    kept += 1
-                    continue
-                shutil.copy2(Path(dirpath) / name, target)
-                copied += 1
-        assert (dest / "SKILL.md").read_text(encoding="utf-8") == "skill-v2\n"
-        assert json.loads((dest / "config.json").read_text(encoding="utf-8"))["from"] == "user"
-        assert kept == 1 and copied >= 2
+        home = root / "home"
+        bare = scan_designer(home)
+        assert bare["skill"] is False and bare["receipt"] is None and bare["dups"] == []
+        assert bare["variant"] is False
 
-        cfg = {"extra": {"keep": True}, "hosts": ["kilo"], "paths": {}}
+        canonical = home / ".agents" / "skills" / "designer"
+        canonical.mkdir(parents=True)
+        (canonical / "SKILL.md").write_text(
+            "---\nname: designer\ndescription: x\n---\nbody\n", encoding="utf-8"
+        )
+        (home / ".agents" / "skills" / "variant-studio").mkdir(parents=True)
+        (home / ".agents" / "skills" / "variant-studio" / "SKILL.md").write_text("vs\n", encoding="utf-8")
+        (home / ".agents" / "skillkit").mkdir(parents=True)
+        fake_repo = root / "DesignerSkill"
+        (fake_repo / "installer").mkdir(parents=True)
+        (fake_repo / "installer" / "install.mjs").write_text("// stub\n", encoding="utf-8")
+        receipt = {
+            "id": "designer",
+            "name": "designer",
+            "version": "2.1.0",
+            "rev": "abc1234",
+            "repo": str(fake_repo),
+            "date": "2026-10-25T10:00:00Z",
+            "hosts": ["claude", "codex"],
+            "components": [],
+            "created": {"skills": [], "links": [], "commands": [], "mcp": [], "repos": []},
+        }
+        (home / ".agents" / "skillkit" / "designer.json").write_text(json.dumps(receipt), encoding="utf-8")
+        for rel in (".codex/skills/real-world-design", ".cursor/skills/designer", ".claude/skills/real-world-design"):
+            (home / rel).mkdir(parents=True)
+            (home / rel / "SKILL.md").write_text("old\n", encoding="utf-8")
+        # an untouched host folder that is not a duplicate
+        (home / ".codex" / "skills" / "other").mkdir(parents=True)
+        linked = False
+        link = home / ".gemini" / "config" / "skills" / "real-world-design"
+        link.parent.mkdir(parents=True)
+        try:
+            if os.name == "nt":
+                import _winapi
+
+                _winapi.CreateJunction(str(canonical), str(link))
+            else:
+                os.symlink(canonical, link, target_is_directory=True)
+            linked = True
+        except (OSError, AttributeError, ImportError):
+            pass
+
+        d = scan_designer(home)
+        assert d["skill"] is True and d["name"] == "designer", d
+        assert d["variant"] is True
+        assert d["receipt"]["version"] == "2.1.0"
+        assert receipt_hosts(d["receipt"]) == "claude, codex"
+        dups = {p.relative_to(home).as_posix() for p in d["dups"]}
+        assert dups == {
+            ".codex/skills/real-world-design",
+            ".cursor/skills/designer",
+            ".claude/skills/real-world-design",
+        }, dups
+        if linked:
+            assert link not in d["dups"]
+        script, origin = designer_installer(d)
+        assert script == fake_repo / "installer" / "install.mjs", script
+        assert "ricevuta" in origin
+        no_repo = dict(d, receipt={"repo": str(root / "nope")})
+        script, _origin = designer_installer(no_repo)
+        assert script != fake_repo / "installer" / "install.mjs"
+
+        cfg = {
+            "extra": {"keep": True},
+            "hosts": ["kilo"],
+            "paths": {},
+            "designerSkillPolicy": {"allowUpdate": True, "lastSync": None, "source": "x"},
+        }
         ensure_shape(cfg)
+        assert "designerSkillPolicy" not in cfg
         assert cfg["extra"]["keep"] is True
         assert cfg["fab"]["enabled"] is False
         assert cfg["project"]["path"] == ""
         cfg["project"]["path"] = str(proj)
-        found = find_fabcli(str(src / "SKILL.md"))
-        assert found == str(src / "SKILL.md")
+        marker = canonical / "SKILL.md"
+        found = find_fabcli(str(marker))
+        assert found == str(marker)
         assert find_fabcli("") in {"", shutil.which("fabcli") or ""}
         cfg["fab"]["cli"] = ""
 
         app = App(cfg)
-        text = plain(app, 96)
+        app.designer = d
+        text = plain(app, 120)
         assert "Osteria" in text
         assert "6000.3.2f1" in text
         assert "FabCLI" in text
-        assert "config.json" in text
         assert "Fissa trovato" in text
         assert "Fissa eseguibile t" not in text
+        assert "name: designer" in text
+        assert "2.1.0" in text and "abc1234" in text
+        assert "cursor" in text and "ATTENZIONE" in text
+        assert "Aggiorna" in text and "Ripara" in text
+        assert "Copie installate" not in text and "/design" not in text
 
+        app.handle("1")
         app.handle("e")
         assert app.mode == "edit"
         app.edit = str(proj)
@@ -1154,10 +1196,21 @@ def selftest() -> int:
         app.handle("n")
         assert app.mode == "main"
 
-    installed = Path.home() / ".agents" / "skills" / "real-world-design"
-    if installed.is_dir():
-        found = resolve_skill_dir(str(installed))
-        assert found is not None and (found / "SKILL.md").is_file()
+        app.handle("3")
+        assert app.screen == "design"
+        assert app.current()["id"] == "dupdate"
+        app.handle("enter")
+        assert app.mode == "confirm" and app.pending == "dupdate"
+        app.handle("n")
+        assert app.mode == "main"
+        app.handle("down")
+        assert app.current()["id"] == "drepair"
+        app.handle("e")
+        assert app.mode == "main", "design screen must stay read-only"
+
+    real = scan_designer()
+    if (real["canonical"] / "SKILL.md").is_file():
+        assert real["skill"] is True
     print("selftest ok")
     return 0
 

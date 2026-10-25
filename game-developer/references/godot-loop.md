@@ -21,5 +21,5 @@ Rare path: kept small on purpose. Same GDD, workers, contract, gates; no GDS det
 ## Phase notes
 
 - Y up, meters. 2D: TileMapLayer + Kenney 2D/itch CC0 tilesets.
-- UI: real-world-design mock → Control scene (`.tscn`) built by script; themes in a `Theme` resource. The user still picks a variant per screen.
+- UI: designer mock → Control scene (`.tscn`) built by script; themes in a `Theme` resource. The user still picks a variant per screen.
 - Systems in GDScript, one verb = script + GUT test.

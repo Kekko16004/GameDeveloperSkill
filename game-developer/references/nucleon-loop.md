@@ -113,7 +113,7 @@ Copied by `ncli setup` (phase project). Off unless `NC_GDS_TEST` is set. Each ve
 - Telemetry (opt-in): `gds_telemetry.lua` + `scripts/telemetry_report.py` (playtest.md).
 - Feel baseline (playtest.md): the same harness measures the core verb in the real level (distance, time to apex, stop distance) and prints it with `t.feel({...})` (one `GDS-FEEL {json}` line); the worker stores it in `docs/tests/feel-baseline.json`.
 
-## 7. UI: real-world-design → RmlUi
+## 7. UI: designer → RmlUi
 
 Mock HTML (user picks a variant per screen, unchanged rule) → `python SKILL/scripts/html2rml.py mock.html PROJECT/UI/<screen>.rml --model <screen>` → `.rml` + `.rcss` + `.preview.lua`; it reports every change (`px→dp`, grid → flex wrap, shadows dropped, `href/onclick` dropped: bind buttons by id in Lua). Open it in the UI editor to check (`NC_EDITOR_UI_DOCUMENT=UI/<screen>.rml NC_EDITOR_SCREENSHOT=docs/screens/<screen>.png NucleonEditor <project>`). Show/bind with the natives of the Game UI category (`CreateUIModel`, documents shown by the game script, see the sample `Content/Scripts/game.lua`). Pause menu and options: the templates ship `nc.pause` and `UI/options.rml` (graphics options already wired): reuse them, restyle them, do not rebuild them.
 

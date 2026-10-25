@@ -34,7 +34,7 @@
 
 ## Block C — Presentation
 
-14. **UI screens** (built with real-world-design, the user picks among 3-4 variants for EACH screen): Main Menu, HUD (vitals, objective text, prompt `[E]`, minimap?), Pause, Game Over / Victory, plus inventory/crafting/dialogue if the loop needs them. Tone of UI (diegetic, minimal, chunky, elegant).
+14. **UI screens** (built with designer, the user picks among 3-4 variants for EACH screen): Main Menu, HUD (vitals, objective text, prompt `[E]`, minimap?), Pause, Game Over / Victory, plus inventory/crafting/dialogue if the loop needs them. Tone of UI (diegetic, minimal, chunky, elegant).
 15. **Audio**: ambience loop, music mood (calm, tense, epic), SFX for each verb; voice lines no/yes (TTS).
 16. **Game feel extras**: hit-stop, camera shake, particles on every action, screen effects (vignette on damage). Default: yes to all, subtle.
 

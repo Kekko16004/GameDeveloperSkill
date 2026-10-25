@@ -18,7 +18,7 @@ Recommended (free, unlimited, already wired):
 | Enemies / AI | skill `initialize-ai-navigation` + `NavMeshAgent` | Already installed |
 | VFX | `GDS.VFX` + `manage_vfx` (+ Cartoon FX Free if Q21 yes) | Stylized prefabs from code |
 | Voxel games | VoxelAI MCP | Only if GDD style=voxel |
-| UI | `real-world-design` → UI Toolkit | Mock HTML first, always |
+| UI | `designer` → UI Toolkit | Mock HTML first, always |
 | Audio | Kenney Audio CC0 + `AudioManager` | [audio-pipeline.md](audio-pipeline.md) |
 | QA | `GDS.SceneLint` (issues 0) + Unity Play Mode + TerminalMCP WASD | Numbers, then real input |
 | Blender client | `uvx mcp-for-blender` stdio → TCP `9876` | **Not** `http://localhost:9876/mcp` |

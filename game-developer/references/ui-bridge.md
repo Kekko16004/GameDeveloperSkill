@@ -1,6 +1,6 @@
 # UI Bridge — Da DesignerSkill a Unity UI Toolkit
 
-Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (skill `real-world-design`, percorso in `paths.designerSkill` di `config.json`) in UI native Unity UI Toolkit.
+Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (skill `designer`, percorso in `paths.designerSkill` di `config.json`) in UI native Unity UI Toolkit.
 
 ## 3b. Transpilazione Nucleon (RmlUi)
 1. `python scripts/html2rml.py <mock.html> "<project>/UI/<screen>.rml" --model <screen>` → `.rml` + `.rcss` + `.preview.lua`; il JSON di output elenca ogni cambio (px→dp, grid→flex wrap, ombre tolte, `onclick`/`href` tolti).
@@ -17,7 +17,7 @@ Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Men
 Worker isolato per schermata (vedi `workers.md`). Non fare le 4 UI nello stesso Task.
 
 ## 1. Le 4 Schermate Fondamentali del Gioco
-L'agente deve progettare ciascuna delle 4 schermate attraverso il protocollo `real-world-design`:
+L'agente deve progettare ciascuna delle 4 schermate attraverso il protocollo `designer`:
 
 1. **Main Menu (`MainMenu`)**:
    - Titolo stilizzato, sfondo d'atmosfera o vista della scena.
@@ -42,7 +42,7 @@ L'agente deve progettare ciascuna delle 4 schermate attraverso il protocollo `re
 
 ## 2. Flusso DesignerSkill (NON OPZIONALE — SCELTA UTENTE PER OGNI SCHERMATA)
 
-Saltare `real-world-design` = FAIL della macrotask UI. UXML scritto a mano come primo passo = FAIL.
+Saltare `designer` = FAIL della macrotask UI. UXML scritto a mano come primo passo = FAIL.
 
 ### REGOLA TASSATIVA: VARIANT STUDIO E SCELTA UTENTE PER OGNI SCHERMATA
 **È VIETATO auto-scegliere o generare direttamente HUD, Pausa o GameOver basandosi sul Main Menu senza presentare le opzioni all'utente.**

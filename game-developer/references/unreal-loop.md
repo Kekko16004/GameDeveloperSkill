@@ -54,7 +54,7 @@ Presets: `realistic-overcast`, `realistic-golden`, `realistic-noon`, `realistic-
 | lookdev | `gds_ue.lookdev(preset)` + Lumen/VSM check in Project Settings |
 | characters | template character / MetaHuman + State Tree for enemies |
 | systems | Blueprints (MCP Blueprint toolset) or C++; automation tests via the tests toolset |
-| ui | real-world-design (user picks a variant) → UMG widget built with the widget toolset |
+| ui | designer (user picks a variant) → UMG widget built with the widget toolset |
 | juice | Niagara toolset, MetaSounds |
 | playtest / art review | PIE + screenshots toolset + `gds_ue.lint` + [art-direction.md](art-direction.md) |
 

@@ -28,6 +28,6 @@
 | TASK-050 | LOOK | Palette + `gds_lookdev stylized-day` + torce VFX | `Assets/_Game/Settings/LookDev_*.asset` | PNG con fog/bloom/ombre + lint 0 | 021, 030 | sì | [ ] | | | |
 | TASK-051 | REVIEW | Art review #1 (`gds_sheet`, rubric R1-R7) | `docs/gates/art-review-1.md` | media ≥ 4, nessun voto < 3 | 050 | sì | [ ] | | | |
 | TASK-060 | SYS | Interact: `IInteractable` + `DoorInteractable` (slerp) + raycast nel controller + prompt HUD `[E] Apri` + test `Interact_OpensDoor` | `Scripts/Interaction/*` | test verde + console 0 | 010 | sì | [ ] | | | |
-| TASK-070 | UI | Main Menu — real-world-design, 3-4 varianti (in parallelo con le altre schermate, scelta utente unica), UI Toolkit / RmlUi | `ui/main-menu/`, `Assets/_Game/UI/MainMenu.*` | mock HTML + PNG Play Mode | 001 | no | [ ] | | | |
+| TASK-070 | UI | Main Menu — designer, 3-4 varianti (in parallelo con le altre schermate, scelta utente unica), UI Toolkit / RmlUi | `ui/main-menu/`, `Assets/_Game/UI/MainMenu.*` | mock HTML + PNG Play Mode | 001 | no | [ ] | | | |
 | TASK-090 | QA | Playtest completo (menu → obiettivo → win/fail) | `docs/gates/playtest.md` | PNG Play Mode con HUD + tutti i test verdi | tutti | sì | [ ] | | | |
 | TASK-091 | SLICE | Recap gate e report slice | `docs/gates/slice.md` | tutti i gate PASS | 090 | no | [ ] | | | |

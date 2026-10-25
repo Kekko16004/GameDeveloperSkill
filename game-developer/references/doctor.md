@@ -14,10 +14,10 @@ Run `scripts/doctor.ps1` from the skill folder (or pass `-ProjectPath`). Prints 
 | blender-socket | TCP 9876 (WARN if Blender closed) |
 | voxelai | folder with `mcp_server` |
 | playwright | skip if kilo already has MCP playwright |
-| design-skill | `real-world-design` skill folder |
+| design-skill | `designer` skill folder |
 | gdd | if projectPath set: GDD status |
 | screenshots-dir | create if missing when projectPath set |
 
 Godot FAIL is OK when engine is Unity.
 
-Installer writes `last-doctor.txt` next to the installed skill.
+The installer runs this script at the end of every install/update and shows the PASS/WARN/FAIL counts. Install-level checks (canonical copy, host links, duplicate copies, commands, MCP entries) are a separate command: `node <repo>/installer/install.mjs doctor [--fix]`.

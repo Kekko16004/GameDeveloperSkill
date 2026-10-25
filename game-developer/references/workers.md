@@ -87,7 +87,7 @@ Track che girano in parallelo dopo il greybox (ognuno con i suoi `OWNS`):
 ```
 ART      kit-fetch → world-gen → building-gen (batch) → level-build ×N (JSON in parallelo, build in coda) → hero-asset ×N → lookdev → art-review
 CODE     systems: un verbo = script + test (scritti fuori dall'editor) → compile/test in coda → feel-baseline
-UI       mock real-world-design di TUTTE le schermate → scelta utente unica → UXML / RML / UMG → baseline-ui
+UI       mock designer di TUTTE le schermate → scelta utente unica → UXML / RML / UMG → baseline-ui
 AUDIO    fetch CC0 + AudioManager / suoni Nucleon → juice
 QUALITY  baseline-* (loc, a11y, playtest-kit, store-capture) appena il suo sistema esiste
 ```
@@ -354,7 +354,7 @@ Nelle sezioni qui sotto "MOSTRA ALL'UTENTE E ATTENDI LA SCELTA" = la domanda uni
 ## PHASE ui-main-menu
 
 Tu fai SOLO il Main Menu.
-OBBLIGO Skill tool `real-world-design` mode=game. Vietato inventare UXML a mano come primo passo. Vietato saltare Variant Studio / mock HTML + Playwright.
+OBBLIGO Skill tool `designer` mode=game. Vietato inventare UXML a mano come primo passo. Vietato saltare Variant Studio / mock HTML + Playwright.
 Flusso: tokens (palette GDD + preset lookdev) → 3-4 varianti HTML con layout distinti → screenshot gallery 1440x900 `screenshots/040-ui-main-menu-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)** → solo dopo la scelta: transpiler dell'engine (Unity `ui-transpiler.mjs` → UXML/USS + UIDocument + PanelSettings; Nucleon `html2rml.py` → RML mostrato da `Content/Scripts/game.lua`).
 Unity: scena MainMenu **build index 0**; Nucleon: il menu RmlUi è la prima cosa che `game.lua` mostra (modo `menu`, come il sample). Sfondo: screenshot lookdev o camera sul livello con Volume. Spawn FP nel livello = FAIL.
 Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
@@ -363,7 +363,7 @@ Gate: mock HTML su disco + UXML + PNG + `docs/gates/11-ui-main-menu.md`.
 
 ## PHASE ui-hud
 
-Tu fai SOLO HUD. Skill `real-world-design` mode=game OBBLIGATORIA.
+Tu fai SOLO HUD. Skill `designer` mode=game OBBLIGATORIA.
 REGOLA SCELTA UTENTE TASSATIVA: È VIETATO auto-generare l'HUD senza varianti. Mantieni i token di stile consolidati nel Main Menu (`ui/tokens.css`), ma devi SEMPRE creare 3-4 varianti di layout diverse (es. diegetico, barre angolari survival, bottom-bar compatta, minimal immersivo) in Variant Studio.
 Screenshot gallery 1440x900 `screenshots/041-ui-hud-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta dell'utente: `ui-transpiler.mjs` → UXML/USS + PanelSettings.
@@ -374,7 +374,7 @@ Screenshot Play Mode `screenshots/041-ui-hud.png`. Gate `docs/gates/11-ui-hud.md
 
 ## PHASE ui-pause
 
-Tu fai SOLO Pause. Skill `real-world-design` obbligatoria.
+Tu fai SOLO Pause. Skill `designer` obbligatoria.
 REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti di layout (sidebar laterale, modale centrale, registro/libro diegetico, minimal).
 Screenshot gallery `screenshots/042-ui-pause-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta: transpiler UXML + controller (Esc, timeScale 0, Riprendi / Menu).
@@ -384,7 +384,7 @@ Screenshot `screenshots/042-ui-pause.png`. Gate `docs/gates/11-ui-pause.md`.
 
 ## PHASE ui-gameover
 
-Tu fai SOLO Game Over / Victory. Skill `real-world-design` obbligatoria.
+Tu fai SOLO Game Over / Victory. Skill `designer` obbligatoria.
 REGOLA SCELTA UTENTE TASSATIVA: Mantieni i token del Main Menu, ma genera 3-4 varianti (pergamena/certificato, epitaffio scuro, statistiche dettagliate, cinematico).
 Screenshot gallery `screenshots/043-ui-gameover-variants.png` → **MOSTRA ALL'UTENTE E ATTENDI LA SCELTA (domanda unica del parent con tutte le schermate)**.
 Solo dopo la scelta: transpiler UXML + pulsante Riprova/Menu.

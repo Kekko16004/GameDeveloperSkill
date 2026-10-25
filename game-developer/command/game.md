@@ -13,7 +13,7 @@ You are PARENT only. For: $ARGUMENTS
 5. Bridge = the engine row of engines.md: Unity CLI `unity command gds_*` · Nucleon `python SKILL/scripts/ncli.py` (ping/build/lint/shot/play-test/lock; never load the MCP schemas in workers) · Unreal 5.8 MCP + gds_ue.py · Godot headless. Worlds/levels = JSON specs built by the deterministic layer; placing walls one by one = FAIL. Every scene-touching gate needs `lint: {"issues":0}`. Editor work only under the lock.
 6. Art = ONE family. Hero props = Blender MCP native tools (Poly Pizza → Poly Haven → Sketchfab CC0 → gen3d tier from GDD only). No execute_blender_code modelling (only wipe + sanitize). Forbidden http://localhost:9876/mcp — use uvx mcp-for-blender stdio. GLB <15KB = FAIL.
 7. Look = lookdev preset before any UI/playtest screenshot. Flat grey scene = FAIL. Art review scores the screenshots: average ≥ 4 or fix list → rebuild.
-8. UI: Skill `real-world-design` required; variants of all screens in parallel, one question to the user, then engine transpiler (Unity ui-transpiler.mjs, Nucleon html2rml.py). Hand-written UXML/RML first = FAIL.
+8. UI: Skill `designer` required; variants of all screens in parallel, one question to the user, then engine transpiler (Unity ui-transpiler.mjs, Nucleon html2rml.py). Hand-written UXML/RML first = FAIL.
 9. Claiming a building without `art/blueprints/<name>.json` + `docs/lint/build-<name>.json` = FAIL. Claiming Blender without `screenshots/blender-*.png` = FAIL.
 
 Crash or closed client = `/resumegame` (resumes the scheduler from disk).

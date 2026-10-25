@@ -1,6 +1,6 @@
 ---
 name: game-developer
-description: Pipeline autonoma da idea a vertical slice beta-ready, qualsiasi genere e stile, sempre continua e in parallelo (scheduler a ondate di subagent). Engine scelto dall'utente alla prima domanda — Unity 6 URP, Nucleon (MCP dell'editor via ncli.py: build da spec, lint, screenshot, test Lua in Play), Unreal 5.8 (MCP ufficiale), Godot. Intervista GDD approfondita e adattiva, poi worker isolati con contratto. Ponte Unity CLI (`unity command gds_*`, eval, test, play, screenshot). Mondi procedurali seedati (terreno, isola, dungeon, caverna, voxel), case Blender procedurali, livelli da blueprint, lint scena deterministico, lookdev, art review a punteggio, personaggi, VFX, UI via real-world-design. Dopo la slice: design review (mappa del gioco dal codice, schermate e orfani, run simulate a tempi) e gate di iterazione con header leggibile da macchina; collabora con game-launch-strategist (ondate → gate → issue_status/TODO) ma funziona anche da sola. Trigger: idea di gioco, /game, /gdd, /playtest, /resumegame, mondo procedurale, Unity, Nucleon, NucleonEngine, Unreal, Godot, Blender, Voxel, gate, fix dal focus group, design review.
+description: Pipeline autonoma da idea a vertical slice beta-ready, qualsiasi genere e stile, sempre continua e in parallelo (scheduler a ondate di subagent). Engine scelto dall'utente alla prima domanda — Unity 6 URP, Nucleon (MCP dell'editor via ncli.py: build da spec, lint, screenshot, test Lua in Play), Unreal 5.8 (MCP ufficiale), Godot. Intervista GDD approfondita e adattiva, poi worker isolati con contratto. Ponte Unity CLI (`unity command gds_*`, eval, test, play, screenshot). Mondi procedurali seedati (terreno, isola, dungeon, caverna, voxel), case Blender procedurali, livelli da blueprint, lint scena deterministico, lookdev, art review a punteggio, personaggi, VFX, UI via designer. Dopo la slice: design review (mappa del gioco dal codice, schermate e orfani, run simulate a tempi) e gate di iterazione con header leggibile da macchina; collabora con game-launch-strategist (ondate → gate → issue_status/TODO) ma funziona anche da sola. Trigger: idea di gioco, /game, /gdd, /playtest, /resumegame, mondo procedurale, Unity, Nucleon, NucleonEngine, Unreal, Godot, Blender, Voxel, gate, fix dal focus group, design review.
 ---
 
 # Game Developer Orchestrator
@@ -35,7 +35,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | Dimensioni | Geometra | [geometra.md](references/geometra.md) |
 | Ponte Unity (primario) | Unity CLI + Pipeline: `gds_*`, `eval`, `run_tests`, `editor_play`, `screenshot` | [unity-cli.md](references/unity-cli.md) + [unity-loop.md](references/unity-loop.md) |
 | Ponte Unity (secondario) | CoplayDev unity-mcp (`execute_code`, `manage_ui`, `generate_model`) | [unity-loop.md](references/unity-loop.md) |
-| Nucleon | `scripts/ncli.py` (client dell'MCP dell'editor: build/cycle con cache, lint in Play, serve, lua-check, affected, capture, tools-check) + `nc_gds.py` (kit catalog, stanze kit, kitScale) + `nc_world.py` (terreno/isola/villaggio/dungeon/caverna, look) + `nc_mat.py` (materiali: 14 shading model dell'engine per ruolo, ORM, vento delle piante, assegnazione al livello, check dei modelli mai eseguiti) + `tools/nucleon-bench` (benchmark → piano di esecuzione per l'engine) + `templates/nucleon/` (test, sonda, capture, telemetria) + `html2rml.py` | [nucleon-loop.md](references/nucleon-loop.md) + bug noti dell'engine [docs/NUCLEON-ENGINE-NOTES.md](../docs/NUCLEON-ENGINE-NOTES.md) |
+| Nucleon | `scripts/ncli.py` (client dell'MCP dell'editor: build/cycle con cache, lint in Play, serve, lua-check, affected, capture, tools-check) + `nc_gds.py` (kit catalog, stanze kit, kitScale) + `nc_world.py` (terreno/isola/villaggio/dungeon/caverna, look) + `nc_mat.py` (materiali: 14 shading model dell'engine per ruolo, ORM, vento delle piante, assegnazione al livello, check dei modelli mai eseguiti) + `tools/nucleon-bench` (benchmark → piano di esecuzione per l'engine) + `templates/nucleon/` (test, sonda, capture, telemetria) + `html2rml.py` | [nucleon-loop.md](references/nucleon-loop.md) + bug noti dell'engine [docs/NUCLEON-ENGINE-NOTES.md](docs/NUCLEON-ENGINE-NOTES.md) |
 | Unreal | Unreal 5.8 MCP ufficiale + `gds_ue.py` + Megascans/Fab + PCG | [unreal-loop.md](references/unreal-loop.md) |
 | Godot (raro) | headless + addon MCP se c'è | [godot-loop.md](references/godot-loop.md) |
 | Mondo procedurale | `gds_world` (terrain / island / dungeon / cave / voxel) | [world-gen.md](references/world-gen.md) + [environments.md](references/environments.md) |
@@ -51,7 +51,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | Hero prop | **Script Blender procedurale headless** (`blender -b -P Tools/<asset>_build.py`, `scripts/blender/hero_kit.py`) dal riferimento → GLB → import nel motore (Nucleon: `ncli asset_import` + spec + `shot`). Fallback solo per organico (persone, animali) o se l'utente lo chiede: Poly Pizza → Poly Haven → Sketchfab CC0 → tier gen3d | [hero-procedural.md](references/hero-procedural.md) (+ [blender-mcp.md](references/blender-mcp.md), [gen3d.md](references/gen3d.md) per il fallback) |
 | Voxel hero model | VoxelAI | [voxelai.md](references/voxelai.md) |
 | OS / input / browser | TerminalMCP stdio | [terminalmcp.md](references/terminalmcp.md) |
-| HUD/Menu | real-world-design → UI Toolkit / RmlUi / UMG (**obbligatorio**, varianti di tutte le schermate in parallelo, scelta utente in una domanda unica) | [ui-bridge.md](references/ui-bridge.md) |
+| HUD/Menu | designer → UI Toolkit / RmlUi / UMG (**obbligatorio**, varianti di tutte le schermate in parallelo, scelta utente in una domanda unica) | [ui-bridge.md](references/ui-bridge.md) |
 | Audio | Kenney CC0 + AudioManager | [audio-pipeline.md](references/audio-pipeline.md) |
 | QA | Play Mode + test + lint; repro-first dei bug (`test_bug_*`), `gds_bisect.py`, budget di performance, telemetria opt-in (`telemetry_report.py`), catture store/trailer | [playtest.md](references/playtest.md) + [gates.md](references/gates.md) |
 | Microtask / memoria | task atomici, snapshot su disco, `/resumegame` | [task-decomposition.md](references/task-decomposition.md) + [context-management.md](references/context-management.md) |
@@ -65,15 +65,15 @@ Vietato modellare a mano in `execute_blender_code` (ammesso: wipe, sanitize, `gd
 
 ## Console
 
-`start-dashboard.bat` apre la TUI (`tools/tui/gds_tui.py`): progetto, FabCLI, DesignerSkill.
+`start-dashboard.bat` apre la TUI (`tools/tui/gds_tui.py`): progetto, FabCLI, stato di designer (aggiorna/ripara passano dall'installer).
 
 - `project.path` vuoto → chiedi il percorso e salvalo.
 - `fab.enabled` false/assente → niente Fab. true: `fab.cli` o `fabcli` sul PATH; `fabcli auth status`; `fabcli download <uid> -o "<fab.library_path>"`. Solo per il realistico o per la libreria personale dell'utente.
-- `designerSkillPolicy.allowUpdate` false → non ricopiare DesignerSkill (`paths.designerSkill`).
+- designer non si copia mai a mano: è una skill installata una volta in `~/.agents/skills/designer` (`paths.designerSkill`).
 
 ## Aggiornamento
 
-Se l'utente chiede di aggiornare la skill: `scripts/update.bat` (git pull del repo + reinstallazione con host e moduli salvati in `config.json`; i valori già impostati restano). Poi va riavviato il client.
+Se l'utente chiede di aggiornare la skill: `node scripts/update.mjs` (git pull del repo, dipendenze GitHub all'ultima versione, reinstallazione con le scelte salvate; `config.json` resta). Controllo: `node <repo>/installer/install.mjs doctor`. Poi va riavviato il client.
 
 ## Cosa fa il parent
 
@@ -85,7 +85,7 @@ Se l'utente chiede di aggiornare la skill: `scripts/update.bat` (git pull del re
 6. **Da qui in poi tutto in parallelo per track** (ART / CODE / UI / AUDIO / QUALITY, [workers.md](references/workers.md) "Scheduler a ondate"); i numeri sotto sono le dipendenze dentro ogni track. Worker **kit-fetch** → **world-gen** (se mondo procedurale) → **building-gen** (batch 5, se edifici esterni) → **level-build** (1 blueprint per worker, tutti in parallelo, build in coda sul lock) → **village** (solo insediamenti) → **hero-asset** (batch 3) → **import-art**. Ogni gate con `lint: issues 0`.
 7. Worker **lookdev** → **art-review** (media ≥ 4, altrimenti fix list e rilancio, max 2 giri).
 8. Worker **characters** (+ NavMesh se nemici) → **systems** (un verbo = script + test) → **feel-baseline** (sim del verbo core nella scena vera).
-9. **ui-tokens** → worker **variants** di tutte le schermate in parallelo (real-world-design, 3-4 varianti ciascuna) → **una domanda unica all'utente** con tutte le gallerie → worker **implement** per schermata in parallelo (Unity UXML, Nucleon RML con `html2rml.py`). Il track UI parte subito dopo il project, non aspetta l'art.
+9. **ui-tokens** → worker **variants** di tutte le schermate in parallelo (designer, 3-4 varianti ciascuna) → **una domanda unica all'utente** con tutte le gallerie → worker **implement** per schermata in parallelo (Unity UXML, Nucleon RML con `html2rml.py`). Il track UI parte subito dopo il project, non aspetta l'art.
 10. Worker **baseline-*** (essenziali sempre, opzionali dal blocco E) → **juice** → **art-review** (seconda passata) → **playtest** → **slice** solo se tutti i gate PASS.
 11. **Dopo la slice: iterazione** (ondate del focus group o note del proprietario). Worker **design-review** (mappa del gioco, mappa schermate, run a tempi: [design-review.md](references/design-review.md)) → **piano dei gate** `docs/gates/plan-wNN.md` con le sole proposte approvate (un gate = un blocco coerente, in ordine, con le ore: [launch-link.md](references/launch-link.md) §5) → un worker **iterate-gate** per gate → `gate_link.py check` + `apply-status --write` + `todo --run` → review "dopo" e controllo orfani. Prima della prossima ondata: `gate_link.py since --out docs/design-review/changes-since-wNN.md`.
 
@@ -123,7 +123,7 @@ Se l'utente chiede di aggiornare la skill: `scripts/update.bat` (git pull del re
 
 - Primitive (Unity cubi, Nucleon shape) solo nel greybox (`ncli lint --no-primitives` dopo). Poi ogni cosa visibile = kit / mondo GDS / ProBuilder con palette / GLB.
 - Una famiglia di asset per slice (riga di styles.md).
-- UI: `real-world-design` sempre, Variant Studio 3-4 opzioni, scelta dell'utente per ogni schermata, coerenza token col Main Menu. UXML a mano come primo passo = FAIL.
+- UI: `designer` sempre, Variant Studio 3-4 opzioni, scelta dell'utente per ogni schermata, coerenza token col Main Menu. UXML a mano come primo passo = FAIL.
 - Dopo script o copia GDS: `recompile` → `recompile_status` → `console` 0 errori, poi usa (Nucleon: `.ncbp` → `ncli exe compile-blueprints` 0 failed; `ncli log` 0 errori).
 - Niente YAML `.unity`/`.prefab` né `.nclevel` a mano con l'editor aperto (lo riscrive al salvataggio).
 - Feel del verbo core: sim nella **geometria vera** del livello, baseline `docs/tests/feel-baseline.json`; peggio della baseline = gate FAIL salvo ok del proprietario ([playtest.md](references/playtest.md)).

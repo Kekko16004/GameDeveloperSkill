@@ -24,3 +24,8 @@ Desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# local tool state
+.terminalmcp/
+.variant-studio/
+.playwright-mcp/

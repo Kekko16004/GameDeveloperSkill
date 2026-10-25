@@ -1,0 +1,99 @@
+{
+  "$comment": "Manifest of the skillkit installer (installer/install.mjs). Skills are installed once in ~/.agents/skills, hosts that do not read that folder get a link, external dependencies come from their GitHub repos at the latest commit.",
+  "id": "game-developer",
+  "name": "game-developer",
+  "version": "4.0.0",
+  "repo": "https://github.com/Kekko16004/GameDeveloperSkill.git",
+  "brand": {
+    "mark": "[▲]",
+    "accent": "#3fc98a",
+    "tagline": { "it": "dall'idea alla vertical slice", "en": "idea to vertical slice" }
+  },
+  "hooks": "installer/hooks.mjs",
+  "requires": [
+    { "id": "node", "label": "Node.js", "min": "18", "required": true,
+      "install": { "win": "winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements", "mac": "brew install node", "linux": "sudo apt install -y nodejs npm" } },
+    { "id": "git", "label": "git", "required": false, "offer": true,
+      "why": { "it": "aggiornamenti delle dipendenze (senza: zip da GitHub)", "en": "dependency updates (without: GitHub zip)" },
+      "install": { "win": "winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements", "mac": "xcode-select --install", "linux": "sudo apt install -y git" } },
+    { "id": "python", "cmds": ["python", "python3", "py"], "label": "Python", "min": "3.9", "required": false,
+      "why": { "it": "Nucleon (ncli.py), design review, VoxelAI", "en": "Nucleon (ncli.py), design review, VoxelAI" },
+      "install": { "win": "winget install --id Python.Python.3.12 -e", "mac": "brew install python", "linux": "sudo apt install -y python3" } },
+    { "id": "uvx", "label": "uv", "required": false,
+      "why": { "it": "Blender MCP", "en": "Blender MCP" },
+      "install": { "win": "powershell -ExecutionPolicy Bypass -c \"irm https://astral.sh/uv/install.ps1 | iex\"", "mac": "brew install uv", "linux": "curl -LsSf https://astral.sh/uv/install.sh | sh" } }
+  ],
+  "skills": [
+    {
+      "name": "game-developer",
+      "path": "game-developer",
+      "legacy": [],
+      "exclude": ["install.ps1", "install-mcp.ps1", "install.bat", "config.json", "art/exports"],
+      "keep": ["config.json"],
+      "include": [["tools/nucleon-bench", "tools/nucleon-bench"], ["docs/NUCLEON-ENGINE-NOTES.md", "docs/NUCLEON-ENGINE-NOTES.md"]]
+    }
+  ],
+  "commands": [
+    { "name": "game", "file": "game-developer/command/game.md" },
+    { "name": "gdd", "file": "game-developer/command/gdd.md" },
+    { "name": "playtest", "file": "game-developer/command/playtest.md" },
+    { "name": "resumegame", "file": "game-developer/command/resumegame.md" }
+  ],
+  "commandMarker": "game-developer|GDD|Unity|Nucleon|playtest",
+  "components": [
+    {
+      "id": "designer",
+      "kind": "skillkit",
+      "repo": "https://github.com/Kekko16004/DesignerSkill.git",
+      "label": { "it": "designer", "en": "designer" },
+      "hint": { "it": "UI di gioco anti-slop + Variant Studio (obbligatoria per HUD e menu)", "en": "anti-slop game UI + Variant Studio (required for HUD and menus)" },
+      "recommended": true
+    },
+    {
+      "id": "game-launch-strategist",
+      "kind": "skillkit",
+      "repo": "https://github.com/Kekko16004/GameLaunchAnalyzer.git",
+      "label": { "it": "game-launch-strategist", "en": "game-launch-strategist" },
+      "hint": { "it": "strategia di lancio con dati reali; dopo la slice le due skill si passano il lavoro", "en": "launch strategy on real data; after the slice the two skills hand work to each other" },
+      "recommended": "ifInstalled"
+    },
+    {
+      "id": "unitySkills",
+      "kind": "repo",
+      "repo": "https://github.com/Unity-Technologies/skills.git",
+      "skills": "*",
+      "label": { "it": "Skill ufficiali Unity", "en": "Unity official skills" },
+      "hint": { "it": "unity-cli, UI Toolkit, URP, navigazione… (Unity-Technologies/skills)", "en": "unity-cli, UI Toolkit, URP, navigation… (Unity-Technologies/skills)" },
+      "recommended": true
+    },
+    {
+      "id": "terminalmcp",
+      "kind": "repo",
+      "repo": "https://github.com/Fonlogen/TerminalMCP.git",
+      "skills": ["skills/terminalmcp"],
+      "label": { "it": "TerminalMCP", "en": "TerminalMCP" },
+      "hint": { "it": "schermo, input, browser, shell per i playtest (Fonlogen/TerminalMCP)", "en": "screen, input, browser, shell for playtests (Fonlogen/TerminalMCP)" },
+      "mcp": { "name": "terminal", "command": "node", "args": ["${terminalmcp.dir}/bin/terminalmcp.js", "--tools", "all"], "adopt": "terminalmcp\\.js" },
+      "recommended": true
+    },
+    {
+      "id": "blenderMcp",
+      "kind": "mcp",
+      "needs": ["cmd:uvx"],
+      "label": { "it": "Blender MCP", "en": "Blender MCP" },
+      "hint": { "it": "edifici e hero prop (uvx mcp-for-blender + addon)", "en": "buildings and hero props (uvx mcp-for-blender + addon)" },
+      "mcp": { "name": "blender", "command": "uvx", "args": ["mcp-for-blender"], "env": { "BLENDER_HOST": "localhost", "BLENDER_PORT": "9876" }, "adopt": "mcp-for-blender|blender-mcp" },
+      "recommended": true
+    },
+    {
+      "id": "voxelai",
+      "kind": "repo",
+      "repo": "https://github.com/Kekko16004/VoxelAIArtist.git",
+      "useLocal": "paths.voxelai",
+      "label": { "it": "VoxelAI MCP", "en": "VoxelAI MCP" },
+      "hint": { "it": "modelli voxel (checkout locale se c'è, altrimenti dal repo)", "en": "voxel models (local checkout if present, else from the repo)" },
+      "mcp": { "name": "voxelai", "command": "${python}", "args": ["${voxelai.dir}/mcp_server"], "adopt": "mcp_server" },
+      "recommended": "ifLocal"
+    }
+  ]
+}

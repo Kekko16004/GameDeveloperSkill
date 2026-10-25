@@ -110,17 +110,15 @@ if (Test-Path -LiteralPath (Join-Path $voxelDefault "mcp_server")) {
 else { Row "FAIL" "voxelai" "Set paths.voxelai in config.json (folder with mcp_server)" }
 
 $designCandidates = @(
-  (Join-Path $env:USERPROFILE ".claude\skills\real-world-design\SKILL.md"),
-  (Join-Path $env:USERPROFILE ".gemini\config\skills\real-world-design\SKILL.md"),
-  (Join-Path $env:USERPROFILE ".config\kilo\skills\real-world-design\SKILL.md"),
-  (Join-Path $env:USERPROFILE ".agents\skills\real-world-design\SKILL.md")
+  (Join-Path $env:USERPROFILE ".agents\skills\designer\SKILL.md"),
+  (Join-Path $env:USERPROFILE ".claude\skills\designer\SKILL.md")
 )
 $foundDesign = $null
 foreach ($dc in $designCandidates) {
   if (Test-Path -LiteralPath $dc) { $foundDesign = $dc; break }
 }
 if ($foundDesign) { Row "PASS" "design-skill" $foundDesign }
-else { Row "WARN" "design-skill" "Install DesignerSkill (real-world-design) before HUD work" }
+else { Row "WARN" "design-skill" "designer missing: install.bat (component designer) or the DesignerSkill installer" }
 
 if ($ProjectPath -and (Test-Path -LiteralPath $ProjectPath)) {
   $shots = Join-Path $ProjectPath "screenshots"
@@ -159,7 +157,7 @@ Row "PASS" "playwright" "Use existing Kilo MCP playwright if configured"
 
 $gds = Join-Path $SkillRoot "templates\Editor\GDS\GDS.Editor.asmdef"
 if (Test-Path -LiteralPath $gds) { Row "PASS" "gds-editor" "templates/Editor/GDS present (install-gds-editor.ps1 -ProjectPath <project>)" }
-else { Row "FAIL" "gds-editor" "templates/Editor/GDS missing: re-run install.ps1" }
+else { Row "FAIL" "gds-editor" "templates/Editor/GDS missing: re-run install.bat" }
 if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Assets\_Game\Editor\GDS\GDS.Editor.asmdef"))) { Row "PASS" "gds-project" "GDS scripts installed in project" }
 elseif ($ProjectPath) { Row "WARN" "gds-project" "powershell -File scripts/install-gds-editor.ps1 -ProjectPath $ProjectPath" }
 

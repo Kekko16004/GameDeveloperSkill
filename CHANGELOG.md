@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-25: nuovo installer (skillkit 1.1) e aggiornamento
+
+Lo stesso installer gira anche in DesignerSkill e GameLaunchAnalyzer. Prima la skill compariva due volte in Claude, Codex e Kilo, e alcune copie restavano indietro di versione.
+
+| Cosa | Dove |
+|---|---|
+| App da terminale (rail verticale, multiselect con le frecce, spinner, riepilogo; truecolor/256/16 colori, glifi full/cp437/ascii, it/en) | `installer/`, `installer/DESIGN.md` |
+| Una copia in `~/.agents/skills`; link solo per Claude Code, Antigravity e Cline; copie doppie e nomi vecchi (`real-world-design`) spostati in un backup | `installer/lib/hosts.mjs` |
+| Dipendenze dai loro repo, sempre all'ultimo commit: designer, game-launch-strategist (opzionale, proposta in tutte e due le direzioni), skill ufficiali Unity, TerminalMCP (Fonlogen/TerminalMCP: skill + MCP `terminal`), Blender MCP, VoxelAI | `skillkit.json` |
+| MCP scritti nel formato di ogni host (Claude CLI, JSON/JSONC, TOML di Codex); le voci dell'utente non vengono toccate; le chiavi restano riferimenti a variabili d'ambiente | `installer/lib/mcp.mjs` |
+| `update` (pull + dipendenze + reinstalla), `doctor [--fix]`, `uninstall`, `--dry-run`, `--dev`, ricevuta in `~/.agents/skillkit/game-developer.json` | `install.bat`, `update.bat`, `install.sh`, `update.sh` |
+| `scripts/update.mjs` aggiorna dalla skill installata; console: la schermata design mostra lo stato e ha i pulsanti Aggiorna e Ripara | `game-developer/scripts/update.mjs`, `tools/tui/gds_tui.py` |
+| Rimossi `install.ps1`, `install-mcp.ps1` e `scripts/update.ps1` | |
+
 ## 2026-10-24: Nucleon aggiornato a `5cf63bb` (sistema materiali in stile UE)
 
 L'engine ha ricevuto 138 commit: il sistema materiali (14 shading model come preset di uno slab Substrate, layer e layer function,

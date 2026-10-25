@@ -98,7 +98,7 @@ Senza questo file la fase non e fatta. Chat "fatto" non conta. Senza riga `lint:
 | GLB < 15KB su riga hero | retry. E un cubo |
 | Gate senza `lint: issues 0` | FAIL retry (`RunJson(autoFix:true)` poi `RunJson()`) |
 | Screenshot lookdev senza Volume/fog/ombre (scena piatta) | retry lookdev |
-| UI senza mock HTML real-world-design | retry ui. UXML a mano = FAIL |
+| UI senza mock HTML designer | retry ui. UXML a mano = FAIL |
 | Gioco parte in FP senza menu | retry ui-main-menu. Slice bloccata |
 | Screenshot illeggibile | retry hud + playtest |
 | Worker ha fatto 3 fasi in un turno | scarta il lavoro extra |

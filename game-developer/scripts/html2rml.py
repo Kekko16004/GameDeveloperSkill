@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""html2rml: a real-world-design HTML mock -> a Nucleon game UI document (RmlUi .rml + .rcss), standard library only.
+"""html2rml: a designer HTML mock -> a Nucleon game UI document (RmlUi .rml + .rcss), standard library only.
 
   python html2rml.py mock.html PROJECT/UI/menu.rml [--model menu] [--skin skin:skin.rcss]
 

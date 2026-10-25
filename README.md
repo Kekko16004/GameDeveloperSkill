@@ -23,10 +23,12 @@ Gen8 + Gen9), 100% pilotabile da Python. Vedi [fivem-sollumz/README.md](fivem-so
 ## Avvio
 
 ```bat
-install.bat            :: rileva host e tool, installa la skill una volta e la collega a ogni host
-update.bat             :: git pull + reinstalla con host e moduli salvati (anche game-developer\scripts\update.bat)
-start-dashboard.bat    :: console: progetto, FabCLI, DesignerSkill
+install.bat            :: installer da terminale: una copia in ~/.agents/skills, link solo dove serve, niente duplicati
+update.bat             :: git pull + dipendenze GitHub all'ultima versione + reinstalla con le scelte salvate
+start-dashboard.bat    :: console: progetto, FabCLI, stato di designer
 ```
+
+macOS / Linux: `./install.sh`, `./update.sh`. Dettagli, opzioni, `doctor` e `uninstall`: [INSTALL.md](INSTALL.md).
 
 Poi nel client: `/game <idea>` (o `/gdd`, `/playtest`, `/resumegame` dopo un crollo).
 
