@@ -67,6 +67,10 @@ L'utente DEVE SEMPRE avere la scelta tra 3-4 varianti per CIASCUNA schermata (Ma
 2. **Setup PanelSettings Obbligatorio**:
    - Verificare che il GameObject contenente `UIDocument` abbia assegnato un `PanelSettings` valido (Match 1920x1080 o Reference Resolution attiva). Senza `PanelSettings`, Unity non disegna nulla a schermo!
    - Assegnare il controller C# generato per gestire il binding di click ed eventi di gioco.
+3. **Game slot (parti di gioco dentro la UI)**: se il designer ha scritto `design/ui-slots.json` (`game-slots.mjs scan`), ogni slot è un punto dove va un render del gioco, non UI (ritratto/corpo del giocatore, item, veicolo, minimappa, mondo dietro).
+   - Per ogni slot crea la sorgente nel motore: camera dedicata + `RenderTexture` (Unity) / `SceneCapture2D` (Unreal) / `SubViewport` (Godot), inquadratura come da `framing`, soggetto come da `subject`.
+   - Sostituisci il placeholder (`slot-<id>`, classe `game-slot`) con la texture: `style.backgroundImage = Background.FromRenderTexture(rt)`. Lo slot `world` resta trasparente con `picking-mode="Ignore"`: il mondo è la scena 3D dietro.
+   - Rifai lo screenshot e verifica che non resti nessun placeholder tratteggiato visibile.
 
 ---
 
