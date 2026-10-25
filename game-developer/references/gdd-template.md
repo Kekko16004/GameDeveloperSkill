@@ -61,6 +61,7 @@ family: kenney          # kenney | kaykit | quaternius-standard | synty-starter 
 fill: polypizza         # hero props: polypizza → polyhaven-models → sketchfab-cc0 → gen3d tier
 blender: import-sanitize-only
 ui: designer
+ui-route: direct          # Q14: concept | direct | both (concept = image-gen prompts → images → HTML replica)
 audio: kenney-cc0
 blender-mcp: uvx-stdio-9876
 parallel: 6               # Q18: max workers at once (editor work is always one driver, engines.md lock)

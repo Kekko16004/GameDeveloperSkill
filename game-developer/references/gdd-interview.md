@@ -35,6 +35,7 @@
 ## Block C — Presentation
 
 14. **UI screens** (built with designer, the user picks among 3-4 variants for EACH screen): Main Menu, HUD (vitals, objective text, prompt `[E]`, minimap?), Pause, Game Over / Victory, plus inventory/crafting/dialogue if the loop needs them. Tone of UI (diegetic, minimal, chunky, elegant).
+    **Route for the variants** (ask only when an image-generation tool is reachable: Canva `generate-image` and other claude.ai connectors are often deferred, so run ToolSearch `generate-image` first; none → `direct` without asking): `concept` (concept images from designer's detailed per-screen prompts, shown as variants, then the chosen one is rebuilt in HTML) | `direct` (HTML variants from the prompts, the usual way) | `both` (concept for Main Menu/HUD, direct for the rest). May use credits of that service. → `ui-route` in the GDD and DECISIONI.md.
 15. **Audio**: ambience loop, music mood (calm, tense, epic), SFX for each verb; voice lines no/yes (TTS).
 16. **Game feel extras**: hit-stop, camera shake, particles on every action, screen effects (vignette on damage). Default: yes to all, subtle.
 
