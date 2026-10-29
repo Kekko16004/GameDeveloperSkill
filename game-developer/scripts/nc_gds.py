@@ -347,6 +347,75 @@ def kit_room_calls(room, cat, rng, defaults, ks=1.0):
     return calls, warnings
 
 
+# ------------------------------------------------------------------------------------------------ cameras, render flags
+CAMERA_KEYS = {"physical": "physical", "fov": "fov", "focalLength": "focal_length", "sensorWidth": "sensor_width",
+               "sensorHeight": "sensor_height", "aspect": "aspect", "depthOfField": "depth_of_field", "fStop": "f_stop",
+               "focusDistance": "focus_distance", "manualExposure": "manual_exposure", "ev100": "ev100", "defaultView": "default_view"}
+FLAG_KEYS = {"castShadow": "cast_shadow", "visibleInRayTracing": "visible_in_ray_tracing", "affectGI": "affect_indirect_lighting",
+             "affectIndirectLighting": "affect_indirect_lighting", "hiddenInGame": "hidden_in_game", "lightingChannels": "lighting_channels"}
+
+
+def flags_of(piece, args, warnings=None):
+    """`renderFlags` of a spec piece -> the MCP `render_flags` of the entity (castShadow, visibleInRayTracing, affectGI, hiddenInGame,
+    lightingChannels; snake_case works too). castShadow exists on models and instances only (docs/engine/RENDER_FLAGS.md): on a
+    shape it is dropped with a warning; a camera has no render flags."""
+    rf = piece.get("renderFlags", piece.get("render_flags"))
+    if not rf:
+        return
+    flags = {FLAG_KEYS.get(k, k): v for k, v in rf.items()}
+    if args.get("type") == "camera":
+        flags = {}
+        if warnings is not None:
+            warnings.append("%s: a camera has no render flags (ignored)" % args.get("name"))
+    elif args.get("type") == "shape" and "cast_shadow" in flags:
+        flags.pop("cast_shadow")
+        if warnings is not None:
+            warnings.append("%s: castShadow exists on models and instances only (dropped for the shape)" % args.get("name"))
+    if flags:
+        args["render_flags"] = flags
+
+
+def look_rotation(pos, target):
+    """[pitch, roll, yaw] in degrees for a camera at pos looking at target (display axes: yaw is counter-clockwise seen from above,
+    0 faces +Y; pitch > 0 looks up)."""
+    dx, dy, dz = (target[i] - pos[i] for i in range(3))
+    return [round(math.degrees(math.atan2(dz, math.hypot(dx, dy))), 3), 0.0, round(math.degrees(math.atan2(-dx, dy)) % 360, 3)]
+
+
+def camera_call(cam, i, place, yaw, warnings=None):
+    """A `cameras` entry of a spec: {name, position, target | rotation, fov | focalLength, depthOfField, fStop, focusDistance, ...,
+    renderFlags}. `target` is a point to look at (computed to rotation); the lens keys are the Camera entity's (docs/engine/CAMERA.md)."""
+    pos = place(*cam.get("position", [0, 0, 2]))
+    if "target" in cam:
+        rot = look_rotation(pos, place(*cam["target"]))
+    else:
+        r = cam.get("rotation", [0, 0, 0])
+        rot = [r[0], r[1], r[2] + yaw]
+    args = {"type": "camera", "name": cam.get("name", "Camera%d" % i), "position": pos, "rotation": rot}
+    lens = {CAMERA_KEYS[k]: v for k, v in cam.items() if k in CAMERA_KEYS}
+    lens.update({k: v for k, v in cam.items() if k in CAMERA_KEYS.values()})
+    if lens:
+        args["camera"] = lens
+    flags_of(cam, args, warnings)
+    return args
+
+
+def post_volume_call(pv, i, place):
+    """A `postVolumes` entry of a spec: {name, position, size, unbound, priority, blendRadius, weight, settings: {lighting key: value},
+    blendables: [{material: "Content/Materials/PP_x.ncmat", weight}]} -> entity_add post_volume (docs/rendering/POSTPROCESS.md). The size is the box
+    in metres (the entity scale); an `unbound` volume covers the whole level."""
+    body = {}
+    for src, dst in (("enabled", "enabled"), ("unbound", "unbound"), ("priority", "priority"), ("blendRadius", "blend_radius"),
+                     ("weight", "weight"), ("settings", "settings"), ("blendables", "blendables")):
+        if src in pv:
+            body[dst] = pv[src]
+    args = {"type": "post_volume", "name": pv.get("name", "PostVolume%d" % i), "position": place(*pv.get("position", [0, 0, 0])),
+            "post_volume": body}
+    if "size" in pv:
+        args["scale"] = pv["size"]
+    return args
+
+
 # ------------------------------------------------------------------------------------------------ spec -> calls
 def build_calls(spec, catalog=None):
     """MCP entity_add arguments (without parent) for a blueprint spec, in world display coordinates; and warnings."""
@@ -390,6 +459,7 @@ def build_calls(spec, catalog=None):
                 "rotation": [r[0], r[1], r[2] + yaw], "shape": s["shape"]}
         if "scale" in s:
             args["scale"] = s["scale"]
+        flags_of(s, args, warnings)
         calls.append(args)
     for i, pc in enumerate(spec.get("pieces", [])):
         r = pc.get("rotation", [0, 0, 0])
@@ -410,6 +480,7 @@ def build_calls(spec, catalog=None):
             args["scale"] = sc_
         if "properties" in pc:
             args["properties"] = pc["properties"]
+        flags_of(pc, args, warnings)
         calls.append(args)
     for si, sc in enumerate(spec.get("scatter", [])):
         if "assets" in sc:
@@ -436,6 +507,10 @@ def build_calls(spec, catalog=None):
         if "rotation" in li:
             args["rotation"] = li["rotation"]
         calls.append(args)
+    for i, cam in enumerate(spec.get("cameras", [])):
+        calls.append(camera_call(cam, i, place, yaw, warnings))
+    for i, pv in enumerate(spec.get("postVolumes", [])):
+        calls.append(post_volume_call(pv, i, place))
     ps = spec.get("playerStart")
     if ps:
         calls.append({"type": "playerstart", "name": ps.get("name", "PlayerStart"), "position": place(*ps["position"]),
@@ -503,6 +578,11 @@ def main():
     else:
         print(spec_hash(a.spec, a.catalog))
 
+
+# BEGIN NUCLEON GDS PERFORMANCE EXTENSION
+from nc_gds_performance import install as _install_nc_gds_performance
+_install_nc_gds_performance(globals())
+# END NUCLEON GDS PERFORMANCE EXTENSION
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -2,4 +2,5 @@
  "rooms":[{"name":"main","x":0,"y":0,"w":8,"d":6,"h":3,"doors":[{"side":"S","at":0.5,"width":1.2,"height":2.2}],"windows":[{"side":"E","at":0.5,"width":1.5}]}],
  "pieces":[{"asset":"Content/Models/Box.glb","position":[2,2,0]}],
  "scatter":[{"name":"crates","asset":"Content/Models/Box.glb","count":5,"area":[-6,-8,-1,-2],"minDist":1.5,"scale":[0.8,1.2]}],
- "lights":[{"type":"point","position":[4,3,2.5],"intensity":400,"range":8}]}
+ "lights":[{"type":"point","position":[4,3,2.5],"intensity":60,"unit":"cd","range":8}],
+ "cameras":[{"name":"Overview","position":[4,-10,6],"target":[4,3,1],"fov":60}]}

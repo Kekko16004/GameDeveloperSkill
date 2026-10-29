@@ -126,7 +126,7 @@ def terrain_field(w):
     scale = float(t.get("scale", 3.0 / size))
     warp = float(t.get("warp", 1.0 + coast))
     sea = float(t.get("seaLevel", 0.14 if island else 0.0))
-    flats = t.get("flat", [])
+    flats = [dict(f, y=f.get("y", f.get("z", 0.0))) for f in t.get("flat", [])]   # "z" is accepted as the old spelling of y (north)
     nz = Noise(w.get("seed", 1))
     half = (res - 1) / 2
     def raw(X, Y):

@@ -6,7 +6,7 @@
     "size": 400, "height": 60, "resolution": 513,
     "scale": 0.006, "octaves": 5, "warp": 1.5, "mountains": 0.45, "erosion": 20,
     "seaLevel": 0.12,
-    "flat": [ { "x": 0, "z": 0, "r": 35, "village": "" } ]
+    "flat": [ { "x": 0, "y": 0, "r": 35, "village": "" } ]
   },
   "layers": [
     { "name": "sand",  "color": "#D6C38E", "maxHeight": 0.15 },

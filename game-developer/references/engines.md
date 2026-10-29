@@ -15,14 +15,14 @@ Every phase in [workers.md](workers.md) talks to the engine only through these e
 
 | verb | unity | nucleon | unreal | godot |
 |---|---|---|---|---|
-| **ping** | `unity command gds_ping` | `ncli ping` | MCP `list_toolsets` + `gds_ue` import | `godot --headless --version` |
-| **build** (spec → scene) | `gds_build` / `gds_world` / `gds_village` | `ncli build spec.json` (+ `exe run-lua` world scripts) | `gds_ue` + PCG | script writes `.tscn` |
+| **ping** | `unity command gds_ping` | `ncli ping` (`state`: the raw editor state) | MCP `list_toolsets` + `gds_ue` import | `godot --headless --version` |
+| **build** (spec → scene) | `gds_build` / `gds_world` / `gds_village` | `ncli build spec.json` / `cycle` (+ `exe run-lua` world scripts; `entity add` for one-offs; cameras, `instances`, render flags in the spec) | `gds_ue` + PCG | script writes `.tscn` |
 | **lint** → `{"issues":0}` | `gds_lint` | `ncli lint --write docs/lint/scene-lint.json` | `gds_ue.lint` | `godot --headless --check-only` + scene scan |
-| **shot** | `gds_shot` / `screenshot` | `ncli shot` | `gds_ue.shot` | `--write-movie` frame / viewport capture |
-| **test** | `run_tests` (EditMode/PlayMode) | `NC_GDS_TEST=1` + `ncli play-test --expect "GDS-TEST DONE ... fail=0"` | automation tests toolset | GUT / `godot --headless -s` |
+| **shot** | `gds_shot` / `screenshot` | `ncli shot` / `camera shot NAME out.png` | `gds_ue.shot` | `--write-movie` frame / viewport capture |
+| **test** | `run_tests` (EditMode/PlayMode) | `NC_GDS_TEST=1` + `ncli play-test --expect "GDS-TEST DONE ... fail=0"`; on a package `ncli run-game <dir> --gds-test` | automation tests toolset | GUT / `godot --headless -s` |
 | **play** | `editor_play` | `ncli play-test` | PIE toolset | `godot --headless` run |
 | **lock** | `scripts/unity-lock.ps1` | `ncli lock` | one MCP client (same rule) | one editor |
-| **package** (only if asked) | Unity build | `ncli exe package` | UAT | `godot --export-release` |
+| **package** (only if asked) | Unity build | `ncli exe package --config Development\|Shipping` + `run-game` | UAT | `godot --export-release` |
 
 Gates are identical across engines: the same `docs/gates/NN-*.md`, the same `lint:` line, the same evidence rules. "Engine X does not support Y" is written in the gate as `engine_gap:` with the workaround; it never silently lowers the bar.
 

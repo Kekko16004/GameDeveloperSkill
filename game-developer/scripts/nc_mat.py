@@ -534,15 +534,25 @@ def cmd_assign(a):
 
 
 def image_stats(png):
+    """Mean / std of the preview side of the Material document. When the big preview is empty (the D3D12 editor draws it blank in
+    a window shot: engine notes, D2) the strip of model spheres under it is measured instead: it is rendered by the same
+    thumbnails, once per shading model, with the models on or off."""
     try:
         from PIL import Image, ImageStat
     except ImportError:
         return None
     im = Image.open(png).convert("RGB")
     w, h = im.size
-    crop = im.crop((int(w * 0.05), int(h * 0.1), int(w * 0.45), int(h * 0.7)))   # the preview side of the Material document
-    st = ImageStat.Stat(crop)
-    return {"mean": [round(x, 1) for x in st.mean], "std": [round(x, 1) for x in st.stddev]}
+
+    def stat(box):
+        st = ImageStat.Stat(im.crop(tuple(int(v) for v in box)))
+        return {"mean": [round(x, 1) for x in st.mean], "std": [round(x, 1) for x in st.stddev]}
+    main = stat((w * 0.03, h * 0.2, w * 0.44, h * 0.82))
+    if max(main["std"]) >= 3:
+        return main
+    strip = stat((w * 0.0, h * 0.84, w * 0.45, h * 0.96))
+    strip["region"] = "model strip (the big preview is blank)"
+    return strip
 
 
 def cmd_check(a):
@@ -560,7 +570,12 @@ def cmd_check(a):
             env = dict(os.environ, NC_EDITOR_MATERIAL="%s:%s" % (rel, a.shape), NC_EDITOR_SCREENSHOT=png, NC_EDITOR_PREF_DIR=pref,
                        NC_EDITOR_MATERIAL_CUTAWAY="0", **extra)
             cmd = [a.editor, proj]
-            if sys.platform != "win32" and not os.environ.get("DISPLAY") and shutil_which("xvfb-run"):
+            runner = os.path.join(os.path.dirname(os.path.abspath(a.editor)), "nc_desktop_run.exe")
+            if sys.platform == "win32" and os.path.isfile(runner) and not os.environ.get("NCLI_VISIBLE"):
+                # never a window on the desktop the owner works on: the editor runs on a hidden Win32 desktop (like ncli)
+                cmd = [runner, "--desktop", "gds-mat-%d" % os.getpid(), "--"] + cmd
+                env["NC_UNATTENDED"] = "1"
+            elif sys.platform != "win32" and not os.environ.get("DISPLAY") and shutil_which("xvfb-run"):
                 cmd = ["xvfb-run", "-a", "-s", "-screen 0 1600x900x24"] + cmd
             try:
                 p = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=a.timeout)

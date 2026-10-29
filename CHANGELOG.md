@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-10-29: lato Nucleon riallineato all'engine attuale (`quality/q1@8e847b7d`, D3D12) e provato davvero
+
+Tutto provato su un editor reale (Windows 11, D3D12, RTX 5060) pilotato da `ncli` su un progetto di prova, con l'editor **sempre su un desktop nascosto** e
+preferenze in una cartella scratch.
+
+| Cosa | Dove |
+|---|---|
+| Riconciliata la copia installata (Oct 24) con il repo: il lavoro Nucleon che esisteva solo nell'installata (`nc_gds_performance.py`, `instances`, `flat_under`/`ground`, sonda `gds_probe.lua`, test unitari) e' ora nel repo; i file solo installati (`config.json`, `install*.ps1`) restano fuori | `game-developer/scripts/`, `scripts/tests/` |
+| **Editor sempre su desktop nascosto**: `nc_desktop_run.exe` + `NC_UNATTENDED=1` per stdio, `exe`, `run-game` e `nc_mat.py check` (prima `check` apriva una finestra sul desktop del proprietario); opzioni globali `--pref-dir` (mai le preferenze del proprietario), `--env K=V`, `--visible`, `--launcher` | `scripts/ncli.py`, `scripts/nc_mat.py` |
+| Nuovi comandi `ncli`: `entities`, `entity get/set/add/rm/select`, `camera list/add/pilot/stop/shot`, `post list/add/set`, `material domain`, `assets`, `import`, `commands`, `command`, `input`, `docs`, `play`, `lua`, `profile`, `resources`, `tools`, `run-game` (gioco impacchettato, `--gds-test`); `exe` ora copre new-project, compile-blueprints, package (config/piattaforma/report), run-lua, migrate, hlod, build-gi, optimize-level, upgrade-ddc, raw | `scripts/ncli.py` |
+| Spec: `cameras` (target o rotazione, lente fov / fisica, DOF), `postVolumes` (impostazioni, blendable), `renderFlags` su shapes/pieces, `instances` con collisione `box`/`capsule`; `flat.z` letto come `y` nei world JSON (i template usavano `z`, il codice `y`: KeyError) | `scripts/nc_gds.py`, `nc_gds_performance.py`, `nc_world.py`, `templates/world/` |
+| Fix di ncli trovati provando: `lint --play` non va piu' in timeout (bug engine D1, aggira con collisione `none` temporanea), ack di `capture` atomico, `cycle` conta solo gli errori del proprio giro, lettere di livello del `log`, `lua-check --engine-syntax` senza `luac`, `--pos -12,-14,8` | `scripts/ncli.py` |
+| Snapshot rinfrescati: 27 tool MCP (`profile_capture`, `camera_pilot`, `material_domain`, campi `wind`/`transforms`/`camera`/`render_flags`/`post_volume`), 404 natives (`api-refresh --from-editor` legge il registro dell'editor compilato: il `natives.json` dell'engine e' indietro di 5 natives Camera) | `scripts/data/` |
+| Luci in unita' fisiche: l'esempio passa da 400 a 60 cd (400 cd bruciava la scena); guida a candele / lux nel loop | `templates/nucleon/specs/house_example.json`, `references/nucleon-loop.md` |
+| `nucleon-loop.md` riscritto sulle parti vecchie (24 tool, 382 natives, verifica del 21/10): trasporti, desktop nascosto, tabella comandi, `instances`, camere, flag di render, post volume, Player Start / game mode, level streaming (sperimentale), pacchetti Development/Shipping + `run-game`, console solo Debug/Development, check materiali; `engines.md` e `SKILL.md` allineati | `references/`, `SKILL.md` |
+| Note engine rifatte voce per voce sul sorgente attuale (aperte / corrette) con file:riga e nuovi bug **D1-D4** (`Raycast` rotto con `instances` che hanno collisione, default `mesh` non supportato, anteprima materiale vuota su D3D12, piccoli difetti) | `docs/NUCLEON-ENGINE-NOTES.md` |
+| Nessun file dell'engine e' stato toccato | |
+
 ## 2026-10-26: UI concept-first e fix asmdef CLI
 
 | Cosa | Dove |

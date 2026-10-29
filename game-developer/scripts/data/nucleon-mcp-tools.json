@@ -15,6 +15,10 @@
     "entity_modify": [
       "audio_emitter",
       "audio_volume",
+      "camera",
+      "cast_shadows",
+      "collision",
+      "cull_distance",
       "id",
       "light",
       "locked",
@@ -23,30 +27,42 @@
       "parent",
       "player_start",
       "position",
+      "post_volume",
       "properties",
       "reflection",
+      "render_flags",
       "rotation",
       "scale",
       "shape",
-      "visible"
+      "transforms",
+      "visible",
+      "wind"
     ],
     "entity_add": [
       "asset",
       "audio_emitter",
       "audio_volume",
+      "camera",
+      "cast_shadows",
+      "collision",
+      "cull_distance",
       "light",
       "locked",
       "name",
       "parent",
       "player_start",
       "position",
+      "post_volume",
       "properties",
       "reflection",
+      "render_flags",
       "rotation",
       "scale",
       "shape",
+      "transforms",
       "type",
-      "visible"
+      "visible",
+      "wind"
     ],
     "entity_remove": [
       "ids",
@@ -54,6 +70,13 @@
     ],
     "scene_select": [
       "ids"
+    ],
+    "material_domain": [
+      "decal_blend",
+      "domain",
+      "path",
+      "post_location",
+      "sky_blend"
     ],
     "asset_search": [
       "limit",
@@ -103,6 +126,11 @@
       "target",
       "view_mode"
     ],
+    "camera_pilot": [
+      "id",
+      "name",
+      "stop"
+    ],
     "capture_viewport": [
       "max_width",
       "target"
@@ -112,6 +140,10 @@
     ],
     "migrate_project": [
       "dry_run"
+    ],
+    "profile_capture": [
+      "action",
+      "path"
     ],
     "save_scene": [
       "path"
