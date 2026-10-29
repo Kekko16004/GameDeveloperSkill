@@ -2,11 +2,13 @@
 
 Ponte per progettare e convertire l'intera suite di schermate di gioco (Main Menu, HUD diegetico, Pausa, Game Over) create con `DesignerSkill` (skill `designer`, percorso in `paths.designerSkill` di `config.json`) in UI native Unity UI Toolkit.
 
-## 3b. Transpilazione Nucleon (RmlUi)
-1. `python scripts/html2rml.py <mock.html> "<project>/UI/<screen>.rml" --model <screen>` → `.rml` + `.rcss` + `.preview.lua`; il JSON di output elenca ogni cambio (px→dp, grid→flex wrap, ombre tolte, `onclick`/`href` tolti).
-2. Bottoni per `id`: il controller è `Content/Scripts/game.lua` (o `ui_<screen>.lua`) con le native della categoria Game UI (`CreateUIModel`, documenti mostrati/nascosti come nel sample `ThirdPersonDemo`); niente logica nell'HTML.
-3. Controllo: `NC_EDITOR_UI_DOCUMENT=UI/<screen>.rml NC_EDITOR_SCREENSHOT=docs/screens/<screen>.png NucleonEditor <project>` (0 righe `error` nel log) e screenshot in Play con `ncli play-test --shot`.
-4. Pausa e opzioni: i template hanno già `nc.pause` e `UI/options.rml` (opzioni grafiche cablate): si restyla, non si rifà.
+## 3b. Nucleon: pagina web (NUI su CEF, come FiveM); RmlUi solo legacy
+Dal 2026-10-29 la UI di gioco dell'engine è una pagina Chromium vera (NUI/DUI): il mock HTML scelto dall'utente è già la schermata, **nessuna transpilazione** (flex/grid, animazioni CSS, web font, SVG, JS e `backdrop-filter` sul gioco funzionano). Dettaglio in [nucleon-loop.md](nucleon-loop.md) §7.
+1. Il template ha `UI/index.html` (una pagina: `#hud` tuo, `#nc-menu` pausa/titolo/impostazioni). Metti la variante scelta nelle sezioni della pagina (HUD in `#hud`; game over, negozio... come `<section>` mostrate da messaggi), copia il CSS del mock quasi tale e quale; `body` trasparente, `pointer-events: none` sull'HUD; font e librerie dentro `UI/` (niente URL esterni).
+2. Lua → pagina `SendNUIMessage({type = "...", ...})`; pagina → Lua `fetch("https://" + GetParentResourceName() + "/nome", {method:"POST", body: JSON.stringify(dati)})` + `RegisterNUICallback("nome", function(dati, risposta) risposta("ok") end)`; `SetNuiFocus(true, true)` solo con un menu aperto. Controller: `Content/Scripts/game.lua` (o `ui_<screen>.lua`); niente regole di gioco nel JS della pagina.
+3. Pausa e opzioni: `nc.pause` e `nc.graphics_options.bindWeb()` pilotano già `#nc-menu` (opzioni grafiche cablate): si restyla con le variabili CSS di `nc-menu.css`, non si rifà.
+4. Controllo: Play e `ncli play-test --shot` (la pagina si vede nell'immagine del gioco), `ncli call web_ui '{"action":"status"}'` (browser, pagina aperta, focus), `nui_eval` per il JS; guarda sempre il PNG. `IsWebBrowserAvailable()` deve essere true (la build congelata ha CEF).
+5. Legacy RmlUi, solo per progetti che hanno già `.rml`: `python scripts/html2rml.py <mock.html> "<project>/UI/<screen>.rml" --model <screen>` (JSON dei cambi; `NC_EDITOR_UI_DOCUMENT=...` per il controllo). Un gioco nuovo non lo usa.
 
 ---
 

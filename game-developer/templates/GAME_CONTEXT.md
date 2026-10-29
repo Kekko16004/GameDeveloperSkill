@@ -32,7 +32,7 @@
 ## 2. Architettura Tecnica & Setup Engine
 - **Engine:** `[unity 6000.x | nucleon 0.x | unreal 5.8 | godot 4.x]` — scelta dell'utente (GDD Q0, engines.md); loop: `[unity-loop | nucleon-loop | unreal-loop | godot-loop].md`
 - **Percorso Assoluto Progetto:** `[Path cartella Unity sul disco]`
-- **Avvio:** Unity `Index 0` `Assets/_Game/Scenes/MainMenu.unity` · `Index 1` `MainGame.unity` | Nucleon `startupLevel` in `project.ncproject` + menu RmlUi mostrato da `Content/Scripts/game.lua` (Main Menu obbligatorio in entrambi)
+- **Avvio:** Unity `Index 0` `Assets/_Game/Scenes/MainMenu.unity` · `Index 1` `MainGame.unity` | Nucleon `startupLevel` in `project.ncproject` + menu NUI (`UI/index.html`) mostrato da `Content/Scripts/game.lua` (Main Menu obbligatorio in entrambi)
 - **Ponte engine:** Unity CLI (`unity command gds_*`) · Nucleon `python SKILL/scripts/ncli.py` (ping/build/lint/shot/play-test, lock) · Unreal MCP 5.8 · Godot headless
 - **Art:** famiglia `[kenney|kaykit|quaternius|synty]` in `art/cc0/` + `art/kit-catalog.json`; hero prop via Blender MCP (`uvx mcp-for-blender` stdio); gen3d solo se il GDD lo permette
 - **Look:** preset `[gds_lookdev preset]`, palette `[hex...]`

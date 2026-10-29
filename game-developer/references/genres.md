@@ -18,6 +18,21 @@ Task-decomposition picks ONE row from GDD Q1-Q5 + Q9 and writes it into `GAME_CO
 | **2D platformer / pixel** | 2D orthographic, pixel perfect | Rigidbody2D + custom collision | Tilemap (RuleTiles) | same as 3D platformer in 2D | 2d-pixel-perfect, tilemap-*, sprite-editor |
 | **Multiplayer (any above)** | — | Netcode for GameObjects | same | lobby/session, spawn, sync transform/anim, host migration off | setup-multiplayer-services |
 
+## FPS / shooter on Nucleon (engine features, not Lua re-implementations)
+
+The engine has the first-person kit; the systems worker writes only the game's rules on top ([nucleon-loop.md](nucleon-loop.md) §5, engine doc `docs/engine/FIRST_PERSON.md`):
+
+| piece | use | never |
+|---|---|---|
+| look | `GetLookDelta()` in the pawn's `OnTick` (raw mouse, stick curve included), `SetMouseSensitivity` with the CS number, `SetLookSettings` on the options page | `GetActionVector("Look") * lookSpeed` (what the template pawn still does), own sensitivity maths |
+| movement | `SetCharacterMovement{acceleration = 5.5, airAcceleration = 12, ...}` (Source ground and air strafing), `SetCharacterCrouching`, `SetCharacterWalking`, `MoveCharacter` with the wished speed (CS 250 u/s = 6.35 m/s) | own acceleration / friction / crouch code |
+| arms + weapon | an actor as view model: `SetEntityViewModel(arms, true, 60)`, `SetViewModelOffset(arms, pos, rot)` every frame for bob, sway, recoil, ADS, `SetViewModelFov` | the weapon parented to the camera by hand |
+| hitscan and hit maps | `Raycast` / `RaycastAll` (penetration) / `SphereCast*` with `{ignore = {pawn, arms}, layers = ...}`; damage multiplier by `hit.component` (the zone: Head / Torso / Legs collision components of the target actor), impact fx and sound by `hit.surface`, ragdoll force by `hit.bone` | distance or name guessing for the zone, one ray per body part |
+| teams, kills, respawn, bots | `nc.framework` natives (teams, score, kills / deaths, `SetRespawnRules`), `nc.abilities` (health, ammo, cooldown as attributes / effects), `nc.ai` (perception, State Trees) | a bespoke state machine, unless the module fails its first GDS test: then log `engine_issues:` and fall back |
+| HUD, menus | NUI web page (`UI/index.html`: crosshair, ammo, health in `#hud`, `SendNUIMessage` from the weapon script) | RmlUi for a new game |
+
+Tests of the row: a GDS test shoots the target actor's head and torso from the pawn (`t.check(hit.component == "Head")`), one for the view model offset (`GetViewModelSettings`), one for crouch height and ground speed; then `lint --play` and a shot of the view model.
+
 ## Controller rules
 
 - Always the Input System (`Move`, `Look`, `Jump`, `Interact`, `Pause` + genre verbs). Never `Input.GetAxis`.

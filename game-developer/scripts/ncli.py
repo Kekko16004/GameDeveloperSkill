@@ -1627,7 +1627,9 @@ def cmd_api_refresh(a):
     nat, fixes = {}, {"optionalByDoc": [], "varargsOptional": []}
     for n in src["natives"]:
         ps = n.get("params", [])
-        doc_opt = [bool(p.get("optional") or re.search(r"leave it out|optional|if omitted|can be omitted", p.get("doc", ""), re.I)) for p in ps]
+        # `ignore` of Raycast / RaycastAll / SphereCast / SphereCastAll is declared required since the first-person
+        # natives (d241aa27) but the runtime takes nil (verified in Play): a ray without a shooter is legal
+        doc_opt = [bool(p.get("optional") or p.get("name") == "ignore" or re.search(r"leave it out|optional|if omitted|can be omitted", p.get("doc", ""), re.I)) for p in ps]
         vararg = bool(ps) and ps[-1].get("name", "").startswith("...")
         req = 0
         for k, p in enumerate(ps):

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-29 (sera): skill allineata alla build congelata del gioco (`game-build-20261029` = `d241aa27`)
+
+Editor di prova sempre su desktop nascosto, `--pref-dir` scratch, lock GPU preso e rilasciato. Build: `C:\TempNucleon\game\bin\NucleonEditor.exe` (config locale `paths.nucleon`, non tracciata).
+
+| Cosa | Dove |
+|---|---|
+| Snapshot rifatti sull'editor congelato: **49 tool MCP** (22 nuovi: `play_test`, `web_ui`, `landscape`, `foliage`, `lighting_get/set`, `levels`, `build`, `gameplay_assets/state`, `natives_search`, `asset_read/write`, `input_bindings`, ...) e **622 natives** (`tools-check --update`, `api-refresh --from-editor`) | `game-developer/scripts/data/` |
+| `api-refresh`: il parametro `ignore` di `Raycast`/`RaycastAll`/`SphereCast`/`SphereCastAll` e' opzionale a runtime (provato in Play) anche se il registro lo dichiara obbligatorio: `lua-check` non segnala piu' `Raycast(a, b)` | `scripts/ncli.py` |
+| **Kit prima persona dell'engine invece di Lua rifatto**: hit zone / surface / bone dei raycast (`component`, `surface`, `bone`, `RaycastAll` per la penetrazione), view model (`SetEntityViewModel`, `SetViewModelOffset`), mouse raw con sensibilita' Counter-Strike (`GetLookDelta`, `SetMouseSensitivity`, `SetLookSettings`), movimento Source (`SetCharacterMovement`, crouch, walk) | `references/nucleon-loop.md` §5, `references/genres.md` (riga FPS Nucleon) |
+| Framework di gioco, abilita' e AI come moduli (`nc.framework`, `nc.abilities`, `nc.ai`, tool `gameplay_assets` / `gameplay_state`): usarli, con un test GDS per modulo perche' l'engine non li ha mai eseguiti | `references/nucleon-loop.md` §5 |
+| **UI: pagina web NUI su CEF (come FiveM)** al posto di RmlUi: il mock HTML scelto dall'utente e' gia' la schermata, niente transpiler; `UI/index.html` del template (`#hud`, `#nc-menu`), contratto `SendNUIMessage` / `RegisterNUICallback`, `SetNuiFocus`, DUI, limiti (niente H.264, font offline). `html2rml.py` resta solo per progetti RmlUi legacy | `references/nucleon-loop.md` §7, `ui-bridge.md` §3b, `workers.md`, `SKILL.md`, `engines.md`, template |
+| Raw MCP: elenco dei tool nuovi (cosa copre ora: terreno, foliage, lighting, livelli, build job); test funzionali `nc.test` / `play_test` accanto all'harness GDS | `references/nucleon-loop.md` §2, §6 |
+| Note engine: D1 (`Raycast` con `instances`), default di D2 e natives.json (D4) risultano corretti nel sorgente `d241aa27` (letti, non eseguiti); B4 in gran parte risolto | `docs/NUCLEON-ENGINE-NOTES.md` |
+
+Provato sull'editor congelato: `exe new-project --template first-person`, `ping`, `tools-check`, `api-refresh --from-editor`, `lua-check` (0 problemi), `play-test` con un test GDS che usa le natives del kit (Raycast con zone, sensibilita', look settings, parametri di movimento, crouch, `IsWebBrowserAvailable` = true: PASS; `Raycast` a 2 argomenti funziona), `call web_ui status`, `call play_test`, 68 test unitari. **Non provati**: la sensazione del mouse, il view model a schermo, una pagina NUI disegnata nel gioco, gameplay framework / abilita' / AI, `levels`, `landscape`, `foliage`, `build`.
+
 ## 2026-10-29: lato Nucleon riallineato all'engine attuale (`quality/q1@8e847b7d`, D3D12) e provato davvero
 
 Tutto provato su un editor reale (Windows 11, D3D12, RTX 5060) pilotato da `ncli` su un progetto di prova, con l'editor **sempre su un desktop nascosto** e

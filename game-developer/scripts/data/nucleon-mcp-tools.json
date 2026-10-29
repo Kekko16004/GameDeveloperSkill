@@ -19,6 +19,8 @@
       "cast_shadows",
       "collision",
       "cull_distance",
+      "decal",
+      "fx",
       "id",
       "light",
       "locked",
@@ -35,6 +37,7 @@
       "scale",
       "shape",
       "transforms",
+      "ui_surface",
       "visible",
       "wind"
     ],
@@ -46,6 +49,8 @@
       "cast_shadows",
       "collision",
       "cull_distance",
+      "decal",
+      "fx",
       "light",
       "locked",
       "name",
@@ -61,6 +66,7 @@
       "shape",
       "transforms",
       "type",
+      "ui_surface",
       "visible",
       "wind"
     ],
@@ -114,6 +120,29 @@
     "play_control": [
       "action"
     ],
+    "lighting_get": [
+      "key"
+    ],
+    "lighting_set": [
+      "values"
+    ],
+    "asset_read": [
+      "path"
+    ],
+    "asset_write": [
+      "overwrite",
+      "path",
+      "text"
+    ],
+    "natives_search": [
+      "category",
+      "limit",
+      "query"
+    ],
+    "open_level": [
+      "discard",
+      "path"
+    ],
     "read_log": [
       "category",
       "contains",
@@ -138,6 +167,23 @@
     "run_lua": [
       "code"
     ],
+    "animation_state": [
+      "action",
+      "id",
+      "name",
+      "parameter",
+      "seconds",
+      "value"
+    ],
+    "web_ui": [
+      "action",
+      "cursor",
+      "focus",
+      "keep_input",
+      "message",
+      "page",
+      "script"
+    ],
     "migrate_project": [
       "dry_run"
     ],
@@ -147,6 +193,219 @@
     ],
     "save_scene": [
       "path"
+    ],
+    "sequence": [
+      "action",
+      "actor",
+      "anim",
+      "bus",
+      "cell",
+      "channels",
+      "clip",
+      "curve",
+      "entity",
+      "event",
+      "fade_in",
+      "fade_out",
+      "fov",
+      "fps",
+      "in_tangent",
+      "interp",
+      "kind",
+      "length",
+      "loop",
+      "lua",
+      "muted",
+      "name",
+      "offset",
+      "out_tangent",
+      "overwrite",
+      "path",
+      "position",
+      "property",
+      "rate",
+      "rotation",
+      "save",
+      "scale",
+      "source",
+      "start",
+      "style",
+      "text",
+      "time",
+      "track",
+      "type",
+      "value",
+      "visible",
+      "volume"
+    ],
+    "input_bindings": [
+      "action",
+      "active",
+      "binding_action",
+      "clamp",
+      "consume",
+      "context",
+      "deadzone",
+      "index",
+      "input",
+      "name",
+      "negate",
+      "pad",
+      "priority",
+      "scale",
+      "swizzle",
+      "threshold",
+      "type"
+    ],
+    "save_games": [
+      "action",
+      "data_file",
+      "full",
+      "slot"
+    ],
+    "levels": [
+      "action",
+      "block_on_load",
+      "discard",
+      "entities",
+      "folder",
+      "initially_loaded",
+      "initially_visible",
+      "level",
+      "locked",
+      "name",
+      "path",
+      "position",
+      "rotation",
+      "scale",
+      "streaming",
+      "unload_delay",
+      "visible_in_editor",
+      "volumes"
+    ],
+    "gameplay_assets": [
+      "action",
+      "definition",
+      "kind",
+      "name",
+      "path",
+      "prefix",
+      "source"
+    ],
+    "gameplay_state": [
+      "all",
+      "attribute",
+      "count",
+      "entity",
+      "input",
+      "keep_body",
+      "label",
+      "level",
+      "name",
+      "op",
+      "player",
+      "position",
+      "profile",
+      "score",
+      "source",
+      "tag",
+      "target",
+      "team",
+      "value",
+      "what"
+    ],
+    "play_test": [
+      "action",
+      "filter",
+      "fixed_step",
+      "screenshot_width",
+      "script",
+      "settle_frames",
+      "start_play",
+      "steps",
+      "stop_after",
+      "stop_on_failure",
+      "test_timeout_seconds",
+      "timeout_seconds"
+    ],
+    "blueprint_graph": [
+      "action",
+      "asset",
+      "category",
+      "code",
+      "graph",
+      "layout",
+      "limit",
+      "ops",
+      "overwrite",
+      "query",
+      "write",
+      "write_generated"
+    ],
+    "material_graph": [
+      "action",
+      "asset",
+      "category",
+      "code",
+      "layout",
+      "limit",
+      "ops",
+      "overwrite",
+      "query"
+    ],
+    "anim_graph": [
+      "action",
+      "asset",
+      "ops",
+      "overwrite",
+      "preview_model"
+    ],
+    "fx_asset": [
+      "action",
+      "asset",
+      "ops",
+      "overwrite",
+      "template"
+    ],
+    "landscape": [
+      "action",
+      "cell_size",
+      "channel",
+      "heightmap",
+      "id",
+      "image",
+      "layer",
+      "max_height",
+      "min_height",
+      "name",
+      "points",
+      "position",
+      "resolution",
+      "spline",
+      "strokes"
+    ],
+    "foliage": [
+      "action",
+      "area",
+      "asset",
+      "density",
+      "id",
+      "name",
+      "radius",
+      "seed",
+      "strokes",
+      "type",
+      "x",
+      "y"
+    ],
+    "build": [
+      "action",
+      "job",
+      "kind",
+      "limit",
+      "params",
+      "since_index",
+      "tail"
     ]
   }
 }

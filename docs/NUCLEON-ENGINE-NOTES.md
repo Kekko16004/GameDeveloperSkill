@@ -7,12 +7,17 @@ below was re-read in the engine source of that revision (file:line are for it) a
 Nothing has been changed in the engine repository. The fixes belong there and follow its workflow (one branch + PR per stage).
 The fix plan is in `tools/nucleon-bench`: benchmark, report, then `EXECUTION-PLAN.md` with the briefs K1-K5.
 
-Status at a glance (2026-10-29): **open** A1 (not reproduced on D3D12 with a simple test, not closed), A2, A3, A4, A5, A6, B1-B6, C1, C2, D1-D4, M1, M2; **mostly fixed** A7.
+**Re-checked against the frozen game build `game-build-20261029` (`d241aa27`, NucleonEngine main) on 2026-10-29**, by reading the source of that revision
+(not by running): D1, D2 and the natives-file lag of D4 are fixed there (marked below); every other item was not touched by the commits since `8e847b7d`
+as far as the log shows (first-person kit, NUI/DUI on CEF, gameplay framework, render thread, MCP growth to 49 tools, view parity fixes), so it stays open.
+
+Status at a glance (2026-10-29, before that re-check): **open** A1 (not reproduced on D3D12 with a simple test, not closed), A2, A3, A4, A5, A6, B1-B6, C1, C2, D1-D4, M1, M2; **mostly fixed** A7.
 New since the first list: D1-D4 (found by the real-editor test of 2026-10-29).
 
 ## D. Found on 2026-10-29 (quality/q1, D3D12)
 
-### D1. `Raycast` fails in any level that has an `instances` entity with a collider. HIGH
+### D1. `Raycast` fails in any level that has an `instances` entity with a collider. HIGH, **fixed in `d241aa27`** (source read, not run)
+`entityOfBody` in `resources/lua/nc/natives/world.lua` now handles the `{bodies = ...}` table of an instances entity. The ncli lint still sets such colliders to `none` for its probe (harmless).
 - **Seen:** `Raycast(from, to)` raises `attempt to index a boolean value (local 'b')` as soon as the level has an `instances` entity whose
   collision is not `none`. `ncli lint --play` (a probe script made of `Raycast` calls) timed out because of it; ncli now sets such entities'
   collision to `none` for the probe and restores it (so a lint still works), but every game script that raycasts is broken.
@@ -23,7 +28,7 @@ New since the first list: D1-D4 (found by the real-editor test of 2026-10-29).
   `Raycast(vec3(0,0,10), vec3(0,0,-10))`. Fix: `type(b) == "table" and b.getId` in `entityOfBody` (or keep the body list of instances in
   another field).
 
-### D2. `entity_add` type `instances` defaults to `collision = "mesh"`, which the runtime does not support. MEDIUM
+### D2. `entity_add` type `instances` defaults to `collision = "mesh"`, which the runtime does not support. MEDIUM, **default fixed in `d241aa27`** (schema says default `box`; an explicit `mesh` still warns on every Play)
 `editor/src/mcp/mcp_tools.cpp:1420` (`e->collision = "mesh"`, schema text at 1310 "default mesh") but `resources/lua/nc/scene.lua:1239-1241` turns
 it into a box and logs `entity 'X': collision = 'mesh' is not supported for instances, a box is used` on **every Play** and every packaged start
 (seen in `Saved/Logs/game.log`). The default should be `box` (or the editor should say so). The skill writes `box` / `none` explicitly.
@@ -36,7 +41,7 @@ instead, so a pass means "the models render", not "the material looks right".
 
 ### D4. Small things
 - `NucleonEditor -optimize-level ... -dry-run` prints `written: <level>` although nothing is written (`editor/src/world/levelopt.cpp` ~1015; the dry run returns at 853).
-- `docs/api/lua/natives.json` of the engine lags behind the sources: the five Camera natives (`SetActiveCamera`, `GetActiveCamera`, `GetCameraEntities`,
+- (fixed in `d241aa27`: the file has 622 natives, the same as the built registry) `docs/api/lua/natives.json` of the engine lagged behind the sources: the five Camera natives (`SetActiveCamera`, `GetActiveCamera`, `GetCameraEntities`,
   `GetCameraEntityLens`, `SetCameraEntityLens`, `resources/lua/nc/natives/render.lua:326-368`) are in the build and not in the committed dump / NATIVES.md
   (404 natives in the registry of the built editor, 399 in the file). `ncli api-refresh --from-editor` reads the live registry.
 - `build` of a spec entry the MCP refuses (e.g. `render_flags.cast_shadow` on a shape, `render_flags` on a camera) still adds the entity "with default values"
@@ -110,7 +115,9 @@ in a scene (`:world`) before any glass ships. A real-GPU art review is still nee
 `NC_EDITOR_MATERIAL=<file>`: the tab is marked modified (`leaf •`, "1 unsaved" in the status bar) with no edit made (seen again on 2026-10-29): the model
 preset / the feature cards write their values back on open. Closing it asks "save changes?".
 
-## B. Editor MCP (27 tools since `8e847b7d`)
+## B. Editor MCP (27 tools at `8e847b7d`, 49 in the frozen build)
+
+New in the frozen build (22 tools, `scripts/data/nucleon-mcp-tools.json`): `anim_graph`, `animation_state`, `asset_read`, `asset_write`, `blueprint_graph`, `build`, `foliage`, `fx_asset`, `gameplay_assets`, `gameplay_state`, `input_bindings`, `landscape`, `levels`, `lighting_get`, `lighting_set`, `material_graph`, `natives_search`, `open_level`, `play_test`, `save_games`, `sequence`, `web_ui`; `entity_add` / `entity_modify` gained `decal`, `fx`, `ui_surface`. B4 below is largely answered. Tried by the skill: `play_test`, `web_ui` (`status`).
 
 New since the first list: `profile_capture`, `camera_pilot`, `material_domain`; `entity_add` / `entity_modify` gained `wind`, `transforms`,
 `cull_distance`, `cast_shadows`, `collision` (instances), `camera`, `render_flags`, `post_volume`; types `instances`, `camera`, `post_volume`.
@@ -128,7 +135,8 @@ leaves out Water, Fog Volume, Decal, Effect, Post Process Volume, Camera and Ins
 ### B3. The editor guide (`editor/src/mcp/mcp.cpp:94`) says "+Y is up", rotation (X, Y, Z). MEDIUM, **still open**
 It should say Z up, `[pitch, roll, yaw]` (the tools themselves are Z up). K2.
 
-### B4. What the MCP cannot do. HIGH, **still open**
+### B4. What the MCP cannot do. HIGH, **mostly answered in the frozen build** (landscape, foliage, `lighting_get/set`, `levels`, `input_bindings`, `asset_read/write`, `build` jobs); the text below is the 8e847b7d state
+Still missing in the frozen build: Project Settings values, import settings, Game View, `entity_modify` fields of water / fog / particles.
 Reachable with `run_command` (112 ids): Add > Effects, Post Process and Navigation Volumes, Level Streaming Volume, Build GI / Navigation / HLOD /
 Reflection Captures, Optimize Level for Streaming, Package Project, the Play modes. Now also in the MCP: post volumes with blendables, camera entities, render flags,
 the Material Domain. Real gaps: sculpting and painting the landscape, foliage, the level's `lighting` table, Project Settings values, import settings, sublevels

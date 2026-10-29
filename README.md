@@ -7,7 +7,7 @@ Skill multi-host (Claude Code, Kilo, Codex, Cursor...) che porta un'idea a una *
 | Engine | Ponte | Layer deterministico |
 |---|---|---|
 | Unity 6 URP | Unity CLI (`unity command gds_*`) | C# GDS: mondi procedurali, blueprint, villaggi, lint, lookdev, personaggi, VFX |
-| **Nucleon** | `scripts/ncli.py` → MCP integrato dell'editor (HTTP o stdio, batch JSON-RPC, PNG su disco, lock) | `ncli build` da spec JSON, `ncli lint`, test Lua in Play (`templates/nucleon`), `html2rml.py` per la UI RmlUi |
+| **Nucleon** | `scripts/ncli.py` → MCP integrato dell'editor (HTTP o stdio, batch JSON-RPC, PNG su disco, lock) | `ncli build` da spec JSON, `ncli lint`, test Lua in Play (`templates/nucleon`), UI come pagina web NUI (`html2rml.py` solo per RmlUi legacy) |
 | Unreal 5.8 | MCP ufficiale Epic | `gds_ue.py`, Megascans/Fab, Landscape + PCG |
 | Godot 4 | headless (+ addon MCP se presente) | minimo |
 
@@ -47,7 +47,7 @@ game-developer/
   templates/*.md|json      DECISIONI, TESTER_README, feel-baseline, progress-checkpoint, worker-report, gate, gate-plan
   scripts/                 doctor, install GDS nel progetto, fetch kit/audio CC0, edifici Blender headless,
                            gate_link.py (contratto con game-launch-strategist), design_review.py (schermate/orfani, run a tempi),
-                           ncli.py (ponte Nucleon), html2rml.py (mock HTML → RmlUi)
+                           ncli.py (ponte Nucleon), html2rml.py (mock HTML → RmlUi, legacy)
   command/                 /game /gdd /playtest /resumegame
   tools/tui/               console
 docs/                      audit, roadmap, sample render
