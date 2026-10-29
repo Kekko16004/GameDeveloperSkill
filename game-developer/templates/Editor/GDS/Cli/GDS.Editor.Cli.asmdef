@@ -4,7 +4,8 @@
     "references": [
         "GDS.Editor",
         "GDS.Runtime",
-        "Unity.Pipeline"
+        "Unity.Pipeline",
+        "Unity.Pipeline.Attributes"
     ],
     "includePlatforms": [
         "Editor"

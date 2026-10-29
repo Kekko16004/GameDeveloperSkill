@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-26: UI concept-first e fix asmdef CLI
+
+| Cosa | Dove |
+|---|---|
+| `ui-route: concept` = immagini per **tutte** le schermate, scelta in Variant Studio tra sole immagini, poi replica HTML della sola scelta; schermate per ruolo = un round per ruolo (3-4 immagini ciascuno); "usa Canva" del proprietario = `concept` ovunque | `game-developer/references/gdd-interview.md`, `workers.md`, `gdd-template.md` |
+| `GDS.Editor.Cli.asmdef` referenzia `Unity.Pipeline.Attributes` (Pipeline 0.9.1 ha spostato `CliCommand`/`CliArg`: 204 errori CS0246 senza) | `game-developer/templates/Editor/GDS/Cli/GDS.Editor.Cli.asmdef` |
+
 ## 2026-10-25: nuovo installer (skillkit 1.1) e aggiornamento
 
 Lo stesso installer gira anche in DesignerSkill e GameLaunchAnalyzer. Prima la skill compariva due volte in Claude, Codex e Kilo, e alcune copie restavano indietro di versione.
