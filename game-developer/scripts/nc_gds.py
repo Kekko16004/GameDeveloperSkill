@@ -352,13 +352,15 @@ CAMERA_KEYS = {"physical": "physical", "fov": "fov", "focalLength": "focal_lengt
                "sensorHeight": "sensor_height", "aspect": "aspect", "depthOfField": "depth_of_field", "fStop": "f_stop",
                "focusDistance": "focus_distance", "manualExposure": "manual_exposure", "ev100": "ev100", "defaultView": "default_view"}
 FLAG_KEYS = {"castShadow": "cast_shadow", "visibleInRayTracing": "visible_in_ray_tracing", "affectGI": "affect_indirect_lighting",
-             "affectIndirectLighting": "affect_indirect_lighting", "hiddenInGame": "hidden_in_game", "lightingChannels": "lighting_channels"}
+             "affectIndirectLighting": "affect_indirect_lighting", "hiddenInGame": "hidden_in_game", "lightingChannels": "lighting_channels",
+             "receiveShadow": "receive_shadow", "customDepth": "custom_depth_stencil", "customDepthStencil": "custom_depth_stencil",
+             "customStencil": "custom_depth_stencil"}
 
 
 def flags_of(piece, args, warnings=None):
-    """`renderFlags` of a spec piece -> the MCP `render_flags` of the entity (castShadow, visibleInRayTracing, affectGI, hiddenInGame,
-    lightingChannels; snake_case works too). castShadow exists on models and instances only (docs/engine/RENDER_FLAGS.md): on a
-    shape it is dropped with a warning; a camera has no render flags."""
+    """`renderFlags` of a spec piece -> the MCP `render_flags` of the entity (castShadow, receiveShadow, visibleInRayTracing, affectGI,
+    hiddenInGame, lightingChannels 0..7 bit mask, customDepth = the stencil 0..255 or -1; snake_case works too). They apply to models, shapes,
+    actors, landscapes and instances (docs/engine/RENDER_FLAGS.md; verified on a shape at a58cb429); a camera has no render flags."""
     rf = piece.get("renderFlags", piece.get("render_flags"))
     if not rf:
         return
@@ -367,10 +369,6 @@ def flags_of(piece, args, warnings=None):
         flags = {}
         if warnings is not None:
             warnings.append("%s: a camera has no render flags (ignored)" % args.get("name"))
-    elif args.get("type") == "shape" and "cast_shadow" in flags:
-        flags.pop("cast_shadow")
-        if warnings is not None:
-            warnings.append("%s: castShadow exists on models and instances only (dropped for the shape)" % args.get("name"))
     if flags:
         args["render_flags"] = flags
 

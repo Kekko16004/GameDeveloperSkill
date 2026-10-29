@@ -169,10 +169,18 @@
     ],
     "animation_state": [
       "action",
+      "bone",
+      "bone2",
       "id",
+      "map",
       "name",
       "parameter",
+      "pelvis",
+      "position",
       "seconds",
+      "section",
+      "slot",
+      "source",
       "value"
     ],
     "web_ui": [
@@ -193,6 +201,10 @@
     ],
     "save_scene": [
       "path"
+    ],
+    "memory_stats": [
+      "action",
+      "kind"
     ],
     "sequence": [
       "action",
@@ -314,6 +326,43 @@
       "value",
       "what"
     ],
+    "destruction": [
+      "action",
+      "amount",
+      "cloth",
+      "clusters",
+      "color",
+      "destructible",
+      "direction",
+      "drag",
+      "dynamic",
+      "entity",
+      "fade",
+      "file",
+      "force",
+      "from",
+      "health",
+      "height",
+      "impact_threshold",
+      "impulse",
+      "irregularity",
+      "lifetime",
+      "model",
+      "output",
+      "path",
+      "pieces",
+      "pin",
+      "position",
+      "pressure",
+      "radius",
+      "radius_m",
+      "seed",
+      "shape",
+      "staged",
+      "to",
+      "width",
+      "wind"
+    ],
     "play_test": [
       "action",
       "filter",
@@ -397,6 +446,24 @@
       "type",
       "x",
       "y"
+    ],
+    "weather": [
+      "action",
+      "blend",
+      "day_length",
+      "gustiness",
+      "intensity",
+      "latitude",
+      "lens_drops",
+      "params",
+      "precipitation",
+      "preset",
+      "scope",
+      "surfaces",
+      "thunder",
+      "time_of_day",
+      "wind_heading",
+      "wind_speed"
     ],
     "build": [
       "action",

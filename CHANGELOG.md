@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-29 (notte): skill allineata a `quality/q1@a58cb429` (meteo, distruzione, panni, flag di render per entita')
+
+Editor di prova `C:\TempNucleon\integ\build-msvc\bin\NucleonEditor.exe` (build di `a58cb429`; `HEAD` del checkout e' `da3ef356`, che cambia solo lo schema di `entity_remove` e il report di `play_test`), sempre su desktop nascosto, `--pref-dir` scratch, lock GPU preso e rilasciato, nessun editor di `dist\editor` in esecuzione. **Non e' la build congelata del gioco**: chi resta sulla build congelata deve rifare gli snapshot con quella (`tools-check --update`, `api-refresh --from-editor`).
+
+| Cosa | Dove |
+|---|---|
+| Snapshot rifatti: **52 tool MCP** (nuovi `weather`, `destruction`, `memory_stats`; `animation_state` con `bone`, `bone2`, `map`, `pelvis`, `position`, `section`, `slot`, `source`) e **694 natives** (+72: categorie Weather, Destruction e Cloth, flag di render per entita', montaggi, IK dei piedi, socket, retarget). Il registro dell'editor costruito e `docs/api/lua/natives.json` coincidono (stessi aggiunti, rimossi, arita') | `game-developer/scripts/data/` |
+| Nuovo `ncli weather get\|set\|clear\|strike` (preset, ora del giorno, vento, precipitazioni, fulmini; scope `level` = World Settings, `project`, `live` = solo Play; `get` breve, `--full` per i valori mescolati) | `scripts/ncli.py` |
+| Nuovo `ncli destruction fracture\|info\|make-actor\|make-cloth-actor` (senza Play) e `state\|damage\|break\|set-health\|ray\|explode\|cloth-wind` (in Play), vettori Z up; nuovo `ncli memory` (memory_stats) | `scripts/ncli.py` |
+| Flag di render: `renderFlags` accetta `receiveShadow`, `customDepth` (stencil), `lightingChannels` (maschera 0..7) e `castShadow` anche sulle shape (prima scartato con avviso: provato, l'editor lo accetta); i `lights` passano gia' `lighting_channels` | `scripts/nc_gds.py`, test |
+| `api-refresh --from-editor` ora richiede `--project`, rifiuta un progetto senza `nc/natives.lua` e avvisa se e' piu' vecchio dell'editor: `-run-lua` legge i moduli runtime dalla cartella `nc/` **del progetto**, non quelli incorporati, e un progetto aperto da un editor vecchio dava il registro vecchio (404 natives invece di 694) senza errore | `scripts/ncli.py`, `references/nucleon-loop.md` ("Snapshot gotcha"), note engine E1 |
+| Note d'uso brevi: meteo, distruzione e panni, canali di luce, extra di animazione (solo nomi) | `references/nucleon-loop.md` §2, §4, §5; `SKILL.md`; `docs/NUCLEON-ENGINE-NOTES.md` (sezione B aggiornata, nuova E); `docs/ROADMAP.md` riga 5 (meteo coperto su Nucleon); `gdd-interview.md` |
+
+Provato sull'editor q1 (progetto di prova): `ping`, `tools-check` (52, poi uguale), `weather get|set|clear|strike` in edit (scope level) e in Play (`--scope live --blend`, `Weather.get()` via `lua` risponde `Storm`), `destruction fracture` (cassa 1 m in 12 pezzi), `info`, `make-actor`, `make-cloth-actor`, attore piazzato con `entity add actor`, in Play `state`, `damage` (vita 40 -> 25), `ray` (-10), `break` (12 detriti), `explode`, `cloth-wind`; `entity add shape` con `render_flags` (cast/receive shadow, stencil 3, canali 2: riletti identici) e luce con `lighting_channels`; `memory`; `lua-check` accetta le nuove natives e segnala un refuso (`SetWetherTypo` -> `SetWeather`); 75 test unitari (30 `test_ncli` di cui 7 nuovi, 45 `test_html2rml`). **Non visto**: nessuna schermata di pioggia, neve, fulmini, pezzi, panno, ombre o canali di luce; montaggi, IK e socket non provati (solo nomi dal registro); `memory load|text` non lanciati.
+
 ## 2026-10-29 (sera): skill allineata alla build congelata del gioco (`game-build-20261029` = `d241aa27`)
 
 Editor di prova sempre su desktop nascosto, `--pref-dir` scratch, lock GPU preso e rilasciato. Build: `C:\TempNucleon\game\bin\NucleonEditor.exe` (config locale `paths.nucleon`, non tracciata).

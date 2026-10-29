@@ -8,7 +8,7 @@ Idee valide non ancora implementate (dalle vecchie bozze in `docs/ideas/`, rimos
 | 2 | `GDS.SceneLint`: compenetrazioni prop-prop e raggiungibilità NavMesh | due classi di bug ancora viste solo in Play Mode | OverlapBox tra bounds + `NavMesh.CalculatePath` spawn → goal |
 | 3 | Biomi in `GDS.World` (più layer/scatter set per regione, transizioni) | mondi grandi più vari | maschera di rumore a bassa frequenza → set di layer e scatter |
 | 4 | Strade/fiumi su terrain (spline che scava e appiattisce) | collega villaggi e landmark | Splines package + carve dell'heightmap |
-| 5 | Meteo e ciclo giorno/notte runtime | mood e gameplay (survival, horror) | componente runtime che interpola i preset LookDev |
+| 5 | Meteo e ciclo giorno/notte runtime | mood e gameplay (survival, horror) | componente runtime che interpola i preset LookDev. **Nucleon: coperto** dal sistema `nc.weather` dell'engine (preset, ora del giorno, vento, fulmini) e dal comando `ncli weather`; Unity/UE restano da fare |
 | 6 | Behaviour tree / State Tree template per NPC | nemici oltre chase/attack | Unity Behavior package; UE State Tree |
 | 7 | Varietà villaggi (layout per cultura: medievale, nordico, desertico, asiatico) | villaggi meno ripetitivi | preset di spec `village_*.json` + palette |
 | 8 | Template di gioco completi (`/game-template fps` ecc.) | partenza più veloce | GDD + world spec + systems già decisi per riga di `genres.md` |

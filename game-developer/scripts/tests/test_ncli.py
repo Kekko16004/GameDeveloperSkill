@@ -251,8 +251,9 @@ class CamerasPostFlags(unittest.TestCase):
         calls, warnings = self.calls({"shapes": [
             {"name": "post", "position": [0, 0, 1], "shape": {"kind": "box", "width": 1, "depth": 1, "height": 1},
              "renderFlags": {"castShadow": False, "affectGI": False, "hiddenInGame": True}}]})
-        self.assertEqual(calls[0]["render_flags"], {"affect_indirect_lighting": False, "hidden_in_game": True})
-        self.assertTrue(any("castShadow" in w for w in warnings))
+        # castShadow works on a shape since a58cb429 (verified): it is sent, no warning
+        self.assertEqual(calls[0]["render_flags"], {"cast_shadow": False, "affect_indirect_lighting": False, "hidden_in_game": True})
+        self.assertFalse(any("castShadow" in w for w in warnings))
 
     def test_post_volume_entry(self):
         calls, _ = self.calls({"postVolumes": [{"name": "Night", "unbound": True, "priority": 2, "blendRadius": 3,
@@ -294,6 +295,87 @@ class ListEntities(unittest.TestCase):
         self.assertEqual([e["name"] for e in res["entities"]], ["PV"])
         self.assertNotIn("type", ed.calls[0][1])
         self.assertEqual(ncli.list_entities(ed, "camera")["count"], 1)
+
+
+class ToolCommands(unittest.TestCase):
+    """weather / destruction / memory: the argument list each command sends to its MCP tool (no editor)."""
+
+    class Client:
+        def close(self):
+            pass
+
+    class Ed:
+        def __init__(self, reply=None):
+            self.calls = []
+            self.client = ToolCommands.Client()
+            self.reply = reply or {"ok": True}
+
+        def call(self, tool, args=None):
+            self.calls.append((tool, args))
+            return self.reply
+
+    def run_cmd(self, *argv, reply=None):
+        import io
+        from contextlib import redirect_stdout
+        ed = self.Ed(reply)
+        old_argv, old_connect = sys.argv, ncli.connect
+        sys.argv, ncli.connect = ["ncli.py"] + list(argv), lambda a: ed
+        out = io.StringIO()
+        try:
+            with redirect_stdout(out):
+                ncli.main()
+        finally:
+            sys.argv, ncli.connect = old_argv, old_connect
+        return ed.calls, json.loads(out.getvalue().strip().splitlines()[-1])
+
+    def test_weather_set(self):
+        calls, _ = self.run_cmd("weather", "set", "--preset", "Storm", "--time", "19.5", "--wind-heading", "90", "--wind-speed", "12",
+                                "--no-surfaces", "--param", "puddles=1", "--param", "rain=0.4")
+        self.assertEqual(calls, [("weather", {"action": "set", "preset": "Storm", "time_of_day": 19.5, "wind_heading": 90.0,
+                                               "wind_speed": 12.0, "surfaces": False, "params": {"puddles": 1, "rain": 0.4}})])
+
+    def test_weather_live_and_strike(self):
+        calls, _ = self.run_cmd("weather", "set", "--scope", "live", "--preset", "Fog", "--blend", "30")
+        self.assertEqual(calls[0][1], {"action": "set", "scope": "live", "preset": "Fog", "blend": 30.0})
+        calls, _ = self.run_cmd("weather", "strike", "--intensity", "1.5")
+        self.assertEqual(calls[0][1], {"action": "strike", "intensity": 1.5})
+
+    def test_weather_get_drops_the_project_table(self):
+        reply = {"level": {"preset": "Rain"}, "project": {"preset": "Clear", "timeOfDay": 9},
+                 "live": {"active": True, "preset": "Rain", "progress": 1.0, "current": {"rain": 0.7}, "target": {"rain": 0.7}}}
+        _, out = self.run_cmd("weather", "get", reply=reply)
+        self.assertEqual(out, {"level": {"preset": "Rain"}, "projectKeys": ["preset", "timeOfDay"],
+                               "live": {"active": True, "preset": "Rain", "progress": 1.0}})
+        _, full = self.run_cmd("weather", "get", "--full", reply=reply)
+        self.assertEqual(full, reply)
+
+    def test_destruction_fracture_and_actor(self):
+        calls, _ = self.run_cmd("destruction", "fracture", "--model", "Content/Crate.glb", "--pieces", "24", "--seed", "3")
+        self.assertEqual(calls[0], ("destruction", {"action": "fracture", "model": "Content/Crate.glb", "pieces": 24, "seed": 3}))
+        calls, _ = self.run_cmd("destruction", "make-actor", "--model", "Content/Crate.glb", "--path", "Content/Actors/Crate.ncactor",
+                                "--health", "40", "--dynamic", "--no-staged")
+        self.assertEqual(calls[0][1], {"action": "make_actor", "model": "Content/Crate.glb", "path": "Content/Actors/Crate.ncactor",
+                                       "health": 40.0, "dynamic": True, "staged": False})
+
+    def test_destruction_play_actions_take_z_up_vectors(self):
+        calls, _ = self.run_cmd("destruction", "ray", "--from", "0,-5,1", "--to", "0,5,1", "--amount", "20", "--impulse", "4")
+        self.assertEqual(calls[0][1], {"action": "ray", "amount": 20.0, "impulse": 4.0, "from": [0.0, -5.0, 1.0], "to": [0.0, 5.0, 1.0]})
+        calls, _ = self.run_cmd("destruction", "explode", "--position", "-3,2,1", "--radius-m", "6", "--force", "500")
+        self.assertEqual(calls[0][1], {"action": "explode", "radius_m": 6.0, "force": 500.0, "position": [-3.0, 2.0, 1.0]})
+        calls, _ = self.run_cmd("destruction", "cloth-wind", "--cloth", "1", "--wind", "6,0,0")
+        self.assertEqual(calls[0][1], {"action": "cloth_wind", "cloth": 1, "wind": [6.0, 0.0, 0.0]})
+        calls, _ = self.run_cmd("destruction", "make-cloth-actor", "--path", "Content/Actors/Flag.ncactor", "--wind", "true")
+        self.assertEqual(calls[0][1]["wind"], True)
+
+    def test_memory(self):
+        calls, _ = self.run_cmd("memory", "--kind", "gpu")
+        self.assertEqual(calls[0], ("memory_stats", {"action": "memory", "kind": "gpu"}))
+
+    def test_render_flags_new_names(self):
+        import nc_gds
+        args = {"type": "model", "name": "m"}
+        nc_gds.flags_of({"renderFlags": {"receiveShadow": False, "customDepth": 3, "lightingChannels": 2}}, args)
+        self.assertEqual(args["render_flags"], {"receive_shadow": False, "custom_depth_stencil": 3, "lighting_channels": 2})
 
 
 if __name__ == "__main__":

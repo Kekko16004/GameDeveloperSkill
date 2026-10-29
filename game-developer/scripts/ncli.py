@@ -2,7 +2,7 @@
 """ncli: the GameDeveloperSkill bridge to the Nucleon editor (its built-in MCP server, docs/editor/MCP.md).
 
 Standard library only. Every command prints ONE compact JSON line (screenshots go to files, never to stdout), so a worker
-spends a few hundred tokens per step instead of carrying 27 tool schemas and base64 images in its context.
+spends a few hundred tokens per step instead of carrying 52 tool schemas and base64 images in its context.
 
 Transport:
   HTTP (default)   the editor is open with Editor Preferences > AI > Enable Server; port and token are read from
@@ -50,6 +50,9 @@ Commands (python ncli.py <command> -h for the options):
   play start|stop|pause|resume|step   play_control
   lua CODE|@file          run_lua (ENGINE coordinates, Y up; not undoable)
   profile start|stop|save profile_capture (.ncprof + CPU/GPU means), only when the owner authorizes profiling
+  weather get|set|clear|strike   the weather tool: presets, time of day, wind, lightning; scope level (World Settings) | project | live
+  destruction ACTION      fracture / info / make-actor / make-cloth-actor; in Play: state, damage, break, set-health, ray, explode, cloth-wind
+  memory [memory|load|text]   memory_stats: CPU/GPU memory by tag, video memory budget, load timeline
   resources list|read     MCP resources (editor guide, the Lua modules games load, project text files)
   exe ...                 headless editor: compile-blueprints, package, run-lua, migrate, new-project, hlod, build-gi,
                           optimize-level, upgrade-ddc, raw
@@ -1349,6 +1352,73 @@ def cmd_material(a, ed):
     emit(ed.call("material_domain", args))
 
 
+def kv_pairs(items):
+    """`k=v` options -> a dict (JSON values: 0.5, true, "x"; anything else stays a string)."""
+    out = {}
+    for kv in items or []:
+        k, _, v = kv.partition("=")
+        try:
+            out[k] = json.loads(v)
+        except ValueError:
+            out[k] = v
+    return out
+
+
+def cmd_weather(a, ed):
+    """weather (docs/rendering/WEATHER.md): get | set | clear | strike. `weather set --preset Storm --time 19.5 --wind-heading 90 --wind-speed 12`
+    writes into the level's World Settings (scope level, the default; marks the level dirty, `save` keeps it), the project (--scope project, saved at
+    once) or the running game (--scope live, --blend seconds). Natives for scripts: SetWeather, SetTimeOfDay, SetWind, TriggerLightning ..."""
+    args = {"action": a.action}
+    if a.scope:
+        args["scope"] = a.scope
+    for k, v in (("preset", a.preset), ("blend", a.blend), ("time_of_day", a.time), ("latitude", a.latitude), ("day_length", a.day_length),
+                 ("wind_heading", a.wind_heading), ("wind_speed", a.wind_speed), ("gustiness", a.gustiness),
+                 ("precipitation", a.precipitation), ("surfaces", a.surfaces), ("lens_drops", a.lens_drops), ("thunder", a.thunder),
+                 ("intensity", a.intensity)):
+        if v is not None:
+            args[k] = v
+    if a.param:
+        args["params"] = kv_pairs(a.param)
+    res = ed.call("weather", args)
+    if not a.full and isinstance(res, dict) and isinstance(res.get("live"), dict):   # short form: the blended values stay behind --full
+        live = res["live"]
+        res = {"level": res.get("level"), "projectKeys": sorted(res.get("project") or {}),
+               "live": {k: live[k] for k in ("active", "preset", "progress", "time_of_day", "wind_heading", "describe") if k in live}}
+    emit(res)
+
+
+def cmd_destruction(a, ed):
+    """destruction (docs/engine/PHYSICS.md "Destruction" and "Soft bodies and cloth"). Without Play: fracture | info | make-actor | make-cloth-actor
+    (a .fracture file / an actor asset with a Destructible or Cloth component; place it with `entity add actor`). While Play runs: state | damage |
+    break | set-health | ray | explode | cloth-wind. Positions are Z up, meters. `destruction fracture --model Content/Crate.glb --pieces 24`."""
+    args = {"action": a.action.replace("-", "_")}
+    named = (("model", a.model), ("file", a.file), ("output", a.output), ("path", a.path), ("pieces", a.pieces), ("seed", a.seed),
+             ("clusters", a.clusters), ("irregularity", a.irregularity), ("health", a.health), ("impact_threshold", a.impact_threshold),
+             ("dynamic", a.dynamic), ("staged", a.staged), ("lifetime", a.lifetime), ("fade", a.fade), ("shape", a.shape),
+             ("width", a.width), ("height", a.height), ("radius", a.radius), ("pin", a.pin), ("pressure", a.pressure),
+             ("destructible", a.destructible), ("entity", a.entity), ("cloth", a.cloth), ("amount", a.amount),
+             ("impulse", a.impulse), ("radius_m", a.radius_m), ("force", a.force), ("drag", a.drag))
+    for k, v in named:
+        if v is not None:
+            args[k] = v
+    for k, v in (("color", a.color), ("position", a.position), ("direction", a.direction), ("from", getattr(a, "from")), ("to", a.to)):
+        if v:
+            args[k] = vec(v)
+    if a.wind is not None:   # make-cloth-actor: true / false; cloth-wind: x,y,z m/s (omit: wind off)
+        args["wind"] = (a.wind.lower() == "true") if a.wind.lower() in ("true", "false") else vec(a.wind)
+    args.update(load_json_arg(a.json))
+    emit(ed.call("destruction", args))
+
+
+def cmd_memory(a, ed):
+    """memory_stats (docs/performance/PROFILER.md "Memory by tag"): memory (CPU/GPU tags, video memory budget) | load (load timeline) | text."""
+    args = {"action": a.action}
+    if a.kind:
+        args["kind"] = a.kind
+    res = ed.call("memory_stats", args)
+    emit(res if a.full or not isinstance(res, dict) else {k: (v[:a.limit] if isinstance(v, list) else v) for k, v in res.items()})
+
+
 def cmd_play(a, ed):
     """play_control: start | stop | pause | resume | step (one frame while paused)."""
     emit(ed.call("play_control", {"action": a.action}))
@@ -1611,15 +1681,27 @@ def cmd_api_refresh(a):
     the shipped snapshot (a parameter documented as "leave it out" is optional; a trailing ... is optional)."""
     repo = os.path.abspath(a.engine_repo)
     natives_json = os.path.join(repo, "docs", "api", "lua", "natives.json")
+    warnings = []
     if a.from_editor:   # the registry of the BUILT editor (NC_NATIVES_DUMP), not the committed dump that can lag behind the sources
         import tempfile
+        # `-run-lua` loads nc.natives from the PROJECT's nc/ folder (the runtime modules the editor copies in when it opens the project), not
+        # from its embedded copy: no nc/natives.lua = no dump, an nc/ written by an older editor = the old registry (404 natives instead of 694
+        # on 2026-10-29), silently.
+        if not a.project:
+            raise McpError("--from-editor needs --project: a project this editor has opened (docs: nucleon-loop.md, Snapshot gotcha)")
+        exe = find_exe(a)
+        nat_lua = os.path.join(os.path.abspath(a.project), "nc", "natives.lua")
+        if not os.path.isfile(nat_lua):
+            raise McpError("%s has no nc/natives.lua: open the project once with this editor first (any ncli command with --stdio %s --project %s, e.g. `ping`) so it copies its runtime modules in" % (a.project, exe, a.project))
+        if os.path.getmtime(nat_lua) < os.path.getmtime(exe):
+            warnings.append("nc/natives.lua is older than the editor: if the dump looks like an old registry, open the project once with this editor and run again")
         tmp = tempfile.mkdtemp(prefix="ncli-natives-")
         natives_json = os.path.join(tmp, "natives.json")
         script = os.path.join(tmp, "dump.lua")
         open(script, "w", encoding="utf-8").write('require("nc.natives")' + chr(10))
         env = launch_env()
         env["NC_NATIVES_DUMP"] = natives_json
-        argv = launch_argv(find_exe(a), ["-run-lua", script, os.path.abspath(a.project or tmp)], env)
+        argv = launch_argv(exe, ["-run-lua", script, os.path.abspath(a.project)], env)
         subprocess.run(argv, cwd=tmp, env=env, capture_output=True, timeout=300)
         if not os.path.isfile(natives_json):
             raise McpError("the editor did not write the natives registry (NC_NATIVES_DUMP): is --exe / NUCLEON_EDITOR a current build?")
@@ -1653,7 +1735,8 @@ def cmd_api_refresh(a):
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"version": 1, "source": "NucleonEngine %s@%s docs/api/lua/natives.json + nucleon.lua" % (branch, rev),
                        "natives": nat, "legacy": legacy, "registryFixes": fixes}, f, separators=(",", ":"))
-    emit({"natives": len(nat), "legacy": len(legacy), "engine": rev, **diff, "registryFixes": fixes, "written": not a.dry_run})
+    emit({"natives": len(nat), "legacy": len(legacy), "engine": rev, **diff, "registryFixes": fixes, "written": not a.dry_run,
+          **({"warnings": warnings} if warnings else {})})
 
 
 def lua_files(proj):
@@ -2193,6 +2276,56 @@ def main():
     c.add_argument("--post-location", help="beforeTonemap, afterTonemap, replaceTonemapper")
     c.add_argument("--decal-blend")
     c.add_argument("--sky-blend", help="replace, overAtmosphere")
+    c = sub.add_parser("weather", help="weather + time of day + wind + lightning: get | set | clear | strike [--scope level|project|live]",
+                       formatter_class=argparse.RawDescriptionHelpFormatter,
+                       epilog="weather get\n"
+                              "weather set --preset Rain --time 18.5 --wind-heading 90 --wind-speed 8 --param puddles=1\n"
+                              "weather set --scope live --preset Storm --blend 30     (the running game only)\n"
+                              "weather strike --intensity 1.5\n"
+                              "presets: Clear Cloudy Overcast Rain Storm Snow Fog. params: cloud_coverage sun_scale sky_scale fog_scale rain snow "
+                              "wetness puddles snow_cover wind_speed wind_gustiness lightning lens_rain")
+    c.add_argument("action", choices=["get", "set", "clear", "strike"])
+    c.add_argument("--scope", choices=["level", "project", "live"], help="where set / clear write (default level)")
+    c.add_argument("--preset")
+    c.add_argument("--blend", type=float, help="live: seconds to reach the weather")
+    c.add_argument("--time", type=float, help="time of day, hours 0-24")
+    c.add_argument("--latitude", type=float)
+    c.add_argument("--day-length", type=float, help="real minutes per day (0: the clock stands still)")
+    c.add_argument("--wind-heading", type=float, help="compass degrees the wind blows to")
+    c.add_argument("--wind-speed", type=float, help="m/s (negative: the preset's)")
+    c.add_argument("--gustiness", type=float)
+    c.add_argument("--precipitation", type=float, help="density scale 0-2")
+    c.add_argument("--surfaces", action=argparse.BooleanOptionalAction, default=None, help="wet ground, puddles, snow on materials")
+    c.add_argument("--lens-drops", action=argparse.BooleanOptionalAction, default=None)
+    c.add_argument("--thunder", help="thunder sound (project relative file or .lua cue)")
+    c.add_argument("--param", action="append", metavar="K=V", help="a single weather value over the preset (rain=0.4); repeatable")
+    c.add_argument("--intensity", type=float, help="strike: 0-2")
+    c.add_argument("--full", action="store_true", help="the whole answer (current / target values, project table)")
+    c = sub.add_parser("destruction", help="fracture models, destructible / cloth actors; in Play: damage, break, ray, explode, cloth wind",
+                       formatter_class=argparse.RawDescriptionHelpFormatter,
+                       epilog="destruction fracture --model Content/Crate.glb --pieces 24 --seed 3\n"
+                              "destruction make-actor --model Content/Crate.glb --path Content/Actors/Crate.ncactor --health 40 --dynamic\n"
+                              "destruction make-cloth-actor --path Content/Actors/Flag.ncactor --shape grid --width 2 --height 1.2 --pin left --wind true\n"
+                              "destruction state | damage --entity Crate --amount 25 | break --entity Crate | ray --from 0,-5,1 --to 0,5,1 --amount 20 --impulse 4\n"
+                              "destruction explode --position 0,0,1 --radius-m 6 --force 500 --amount 80 | cloth-wind --cloth 1 --wind 6,0,0")
+    c.add_argument("action", choices=["fracture", "info", "make-actor", "make-cloth-actor", "state", "damage", "break", "set-health", "ray", "explode", "cloth-wind"])
+    for opt, typ in (("--model", str), ("--file", str), ("--output", str), ("--path", str), ("--pieces", int), ("--seed", int), ("--clusters", int),
+                     ("--irregularity", float), ("--health", float), ("--impact-threshold", float), ("--lifetime", float), ("--fade", float),
+                     ("--shape", str), ("--width", float), ("--height", float), ("--radius", float), ("--pin", str), ("--pressure", float),
+                     ("--destructible", int), ("--entity", str), ("--cloth", int), ("--amount", float), ("--impulse", float),
+                     ("--radius-m", float), ("--force", float), ("--drag", float)):
+        c.add_argument(opt, type=typ)
+    c.add_argument("--dynamic", action=argparse.BooleanOptionalAction, default=None)
+    c.add_argument("--staged", action=argparse.BooleanOptionalAction, default=None)
+    for opt in ("--color", "--position", "--direction", "--from", "--to"):
+        c.add_argument(opt, help="x,y,z (Z up, meters; color r,g,b 0..1)")
+    c.add_argument("--wind", help="make-cloth-actor: true | false; cloth-wind: x,y,z m/s (omit: off)")
+    c.add_argument("--json", help="more fields of the tool, JSON or @file.json")
+    c = sub.add_parser("memory", help="memory_stats: memory | load | text (CPU/GPU tags, video memory, load timeline)")
+    c.add_argument("action", nargs="?", default="memory", choices=["memory", "load", "text"])
+    c.add_argument("--kind", choices=["all", "cpu", "gpu"])
+    c.add_argument("--limit", type=int, default=40, help="list items kept per field")
+    c.add_argument("--full", action="store_true")
     c = sub.add_parser("run-game", help="run a packaged game (hidden desktop, own folder, time limit): log, exit code, GDS tests, shots")
     c.add_argument("game", help="the packaged folder (exe package --out) or its executable")
     c.add_argument("--name", help="executable name when the folder has several")
@@ -2207,7 +2340,7 @@ def main():
     sub.add_parser("mcp-config")
     argv, i = sys.argv[1:], 0
     while i < len(argv) - 1:   # `--pos -12,-14,8`: argparse reads a leading minus as an option
-        if argv[i] in ("--pos", "--target", "--origin") and argv[i + 1].startswith("-"):
+        if argv[i] in ("--pos", "--target", "--origin", "--position", "--direction", "--from", "--to", "--wind", "--color") and argv[i + 1].startswith("-"):
             argv[i:i + 2] = [argv[i] + "=" + argv[i + 1]]
         i += 1
     a = p.parse_args(argv)

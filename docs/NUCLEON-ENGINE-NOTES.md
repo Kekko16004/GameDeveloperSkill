@@ -115,7 +115,9 @@ in a scene (`:world`) before any glass ships. A real-GPU art review is still nee
 `NC_EDITOR_MATERIAL=<file>`: the tab is marked modified (`leaf •`, "1 unsaved" in the status bar) with no edit made (seen again on 2026-10-29): the model
 preset / the feature cards write their values back on open. Closing it asks "save changes?".
 
-## B. Editor MCP (27 tools at `8e847b7d`, 49 in the frozen build)
+## B. Editor MCP (27 tools at `8e847b7d`, 49 in the frozen build, 52 at `quality/q1@a58cb429`)
+
+New at `a58cb429` (`scripts/data/nucleon-mcp-tools.json`): `weather` (get / set / clear / strike; scope level, project, live), `destruction` (fracture, info, make_actor, make_cloth_actor; state, damage, break, set_health, ray, explode, cloth_wind in Play), `memory_stats` (memory by tag, load timeline); `animation_state` got `bone`, `bone2`, `map`, `pelvis`, `position`, `section`, `slot`, `source`; `entity_add/modify` `render_flags` now has `receive_shadow`, `custom_depth_stencil`, `lighting_channels` and `cast_shadow` on shapes; the light object has `lighting_channels`.
 
 New in the frozen build (22 tools, `scripts/data/nucleon-mcp-tools.json`): `anim_graph`, `animation_state`, `asset_read`, `asset_write`, `blueprint_graph`, `build`, `foliage`, `fx_asset`, `gameplay_assets`, `gameplay_state`, `input_bindings`, `landscape`, `levels`, `lighting_get`, `lighting_set`, `material_graph`, `natives_search`, `open_level`, `play_test`, `save_games`, `sequence`, `web_ui`; `entity_add` / `entity_modify` gained `decal`, `fx`, `ui_surface`. B4 below is largely answered. Tried by the skill: `play_test`, `web_ui` (`status`).
 
@@ -161,6 +163,24 @@ A parameter is optional only if its type ends with `?` or it has a default (`res
 ### C2. `GetFrameTime` is capped at 0.1 s only in Play In Editor. LOW, **still open**
 `std::min(GLWin::getTimeStep(), 0.1f)` in `editor/src/app/editor.cpp:6626` (it moved from 6434); a packaged game has no cap. Document it in the
 native's description (K2). The bench and `gds_telemetry` use `Async.now()`.
+
+## E. Found on 2026-10-29 night (quality/q1 `a58cb429`, D3D12, run through the MCP)
+
+### E1. `api-refresh --from-editor` reads the PROJECT's `nc/` folder, not the editor's own runtime modules. MEDIUM, skill gotcha, engine behaviour
+`NucleonEditor -run-lua dump.lua <project>` with `NC_NATIVES_DUMP` makes the registry from `require("nc.natives")`, and that finds the project's `nc/` folder (the runtime
+modules the editor copies in when it opens the project) before the embedded copy. A project last opened by an older editor gave 404 natives (the `8e847b7d`
+registry) instead of 694, with no error; a fresh `exe new-project` folder (only `nc/ui`) writes nothing. `ncli api-refresh --from-editor` now needs `--project`, refuses a
+project with no `nc/natives.lua` and warns when it is older than the editor. Suggested engine fix: the dump should use the embedded modules (as
+`natives_registryJson` in `editor/src/play/play.cpp` already does for the Natives panel).
+
+### E2. `destruction` details worth knowing. LOW
+`damage` answers `ok:false` when the blow did not break the object (not an error); `explode` on already broken objects answers `hurt:0`; pieces of a destructible
+placed with no collider under it fall forever (z -21 after 2 s in the test project). `weather strike` while the weather is off (edit mode, after `clear`) leaves
+`flash=0`: turn the weather on first (`set`), the live flash works in Play.
+
+### E3. Not looked at. MEDIUM
+The pictures: rain, snow, wet ground, lightning, fracture pieces, cloth, shadow / lighting-channel flags, montages and IK were driven through the MCP and the
+Lua state only; nobody has seen them on screen. The engine team wrote them without running them (docs say "never run").
 
 ## Priorities (= the order of the K briefs in EXECUTION-PLAN.md)
 1. **D1**: `Raycast` + instances (a one-line fix, breaks every raycasting game that uses instances) and **K1 / A1** (check it with textured models on D3D12 first).

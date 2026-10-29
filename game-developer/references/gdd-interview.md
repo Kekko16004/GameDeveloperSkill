@@ -28,7 +28,7 @@
 
 9. **Style** (row of [styles.md](styles.md)): `lowpoly` | `toon` | `stylized` | `voxel` | `realistic` | `2d-pixel`. Show 1 reference image per option if the user hesitates. The style never changes the engine chosen at Q0 ([engines.md](engines.md) "Style is independent of the engine").
 10. **World type** (decides the build phase, [world-gen.md](world-gen.md) + [environments.md](environments.md)): open terrain | island | village/town | city streets | dungeon | cave | interior | space/sci-fi base | voxel world | arena | 2D levels. Size (small 100 m / medium 300 m / large 500 m+) and **one landmark** the player can navigate by.
-11. **Mood & time of day** → lookdev preset ([lookdev.md](lookdev.md)): day, sunset, night, torch-lit, overcast, pastel, sci-fi cold; weather (fog, rain, snow) if any.
+11. **Mood & time of day** → lookdev preset ([lookdev.md](lookdev.md)): day, sunset, night, torch-lit, overcast, pastel, sci-fi cold; weather (fog, rain, snow) if any (Nucleon: the engine's weather system, `ncli weather`, [nucleon-loop.md](nucleon-loop.md) §5).
 12. **Palette**: 4-6 hex colours + 1 dominant material (wood, stone, metal, plastic, neon). Offer 3 palettes if the user has none.
 13. **Camera**: first-person | third-person | top-down | isometric | side (2D). FOV/distance feel.
 
