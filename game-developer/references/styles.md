@@ -19,9 +19,9 @@ Mixing is allowed only inside the row (a toon game can use low-poly kits; a low-
 - Nucleon renders `realistic`/`stylized` with modern lighting (Lumen/Nanite-like) and its assets are text files the agent edits directly; `.glb` kits import as they are.
 - Unity has the widest CC0 kit tooling here (`GDS.*` C# layer), 2D, voxel runtime, WebGL/mobile.
 
-## Hardware gate (Q22)
+## Hardware gate (detected, never asked)
 
-The hardware sets quality settings, never the engine.
+The hardware sets quality settings, never the engine. `python SKILL/scripts/hwdetect.py` gives the tier once (`high` ≥ 8 GB, `mid` 5-8 GB, `low` < 5 GB, `unknown` → treat as `mid`); the worker applies the row silently and does not ask the user for the card. An old GDD with `gpu:` / `vram:` overrides the detection (`--gdd GDD.md`). Whatever the tier, the frame time is measured in the real scene ([playtest.md](playtest.md) "Budget di performance").
 
 | GPU / VRAM | realistic (Unreal / Nucleon modern) | toon/lowpoly/voxel |
 |---|---|---|

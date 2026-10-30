@@ -46,6 +46,11 @@ R2 3/5 blueprint house_a floors 1→2, add attach lanterns ×2 (art/blueprints/h
 
 The parent re-runs the owning phase(s) with the fix list, then art-review again. Max 2 loops, then report the scores to the user honestly.
 
+## 5. Animations and view models (the numbers can pass while the picture is wrong)
+
+- A previewed animation that looks wrong is **not done** because the numeric checks pass (bone limits, root offset, clip length). The worker Reads the frames (first, middle, extreme pose, last) and writes one line per frame; if it looks wrong it says so and fixes the spec, never reports PASS on numbers alone.
+- First-person weapons and arms are judged **in the engine, from the game camera** (its FOV, near plane, view-model depth scale), not in Blender previews: the preview camera hides clipping, scale and hand placement. Rules and checks: [genres.md](genres.md) FPS hard rules, [playtest.md](playtest.md).
+
 ## Gate
 
 `docs/gates/15-art-review.md`: board path, PNG list, the 7 scores with one-line evidence each, average, PASS/FAIL, fix list.

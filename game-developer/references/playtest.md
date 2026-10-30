@@ -28,6 +28,8 @@ Una feature non e spedita finche **non gira**. “Dovrebbe funzionare” in chat
 
 Stesso commit: script + test.
 
+**Ogni input della tabella controlli (verbi del GDD, Q4) è provato dal percorso vero** (`t.hold`/`t.tap`, l'iniezione di input del motore), non chiamando la funzione: la rotella del mouse **e** i tasti numerici cambiano davvero arma (cambia l'arma attiva, non solo un'animazione), la pausa si apre e si chiude, la ricarica parte dal tasto. Se l'harness non sa produrre un input, è un `engine_gap:` nel gate, mai un input non testato. Motivo: un test che chiama la funzione passa anche quando l'input vero non arriva.
+
 Unity: `run_tests`. Fallback `unity test <project> --mode EditMode --timeout 300 --format json`.
 Play Mode input: MCP inject, altrimenti TerminalMCP `window: Unity` + `shot: true`.
 
@@ -45,11 +47,22 @@ Lezione Buffet Panic! (gate 46 → 49): la "body clearance" del gate 46 spingeva
 
 ## Budget di performance (gate)
 
-Il GDD fissa `targetFps` (Q23). Ogni gate che tocca scena, luci, VFX, folla o UI pesante misura il frame nella scena vera e incolla `perf:` nel gate: Nucleon `t.perf("<nome>", 10, "W")` in un `test_perf.lua` (camminata nel livello) + `ncli play-test --fps <targetFps>` → p50/p95/p99/max ms; p95 sopra `1000/targetFps` = FAIL salvo ok del proprietario (riga in `DECISIONI.md`). Unity: Profiler/`FrameTimingManager` nella stessa camminata. Solo su GPU vera: con rendering software (CI, Xvfb, llvmpipe) il numero non vale e il gate lo dice (`perf: skipped: software renderer`). Nucleon limita il dt a 100 ms: un p95 di 100 ms vuol dire "≤ 10 fps", non 100 ms esatti.
+Il GDD fissa `targetFps` (Q22). **La performance si misura dal primo giocabile e a ogni gate, non alla fine**: ogni gate con una scena che si gioca misura il frame nella scena vera (la camminata del livello), con **vsync spento** (Nucleon `NC_D3D12_VSYNC=0`; Unity `QualitySettings.vsyncCount = 0` e `Application.targetFrameRate = -1`: con vsync un frame da 16 ms nasconde il costo vero) e incolla `perf:` nel gate; ogni gate di scena aggiunge anche `scene: {instances, drawCalls, outOfReach}` ([gates.md](gates.md) 26). **Mai chiamare «giocabile» qualcosa senza un tempo di frame.** Nucleon `t.perf("<nome>", 10, "W")` in un `test_perf.lua` (camminata nel livello) + `ncli play-test --fps <targetFps>` → p50/p95/p99/max ms; p95 sopra `1000/targetFps` = FAIL salvo ok del proprietario (riga in `DECISIONI.md`). Unity: Profiler/`FrameTimingManager` nella stessa camminata. Solo su GPU vera: con rendering software (CI, Xvfb, llvmpipe) il numero non vale e il gate lo dice (`perf: skipped: software renderer`). Nucleon limita il dt a 100 ms: un p95 di 100 ms vuol dire "≤ 10 fps", non 100 ms esatti.
+
+## Passeggiata del parent (prima di dire al proprietario «la build si apre»)
+
+I PASS dei worker non bastano: una partita vera in prima persona ha trovato ciò che i test verdi non vedono (cambio arma da un input, arma senza inerzia, frame spesi in zone irraggiungibili). Il **parent stesso**, sulla build che consegna, con input veri e guardando i frame (dietro il lock dell'editor):
+
+1. **cammina** per tutto il percorso giocabile (avanti, laterale, salto/accovacciata se nel GDD) e legge il frame time (`perf:`, vsync spento);
+2. **guarda** attorno col mouse: sway visibile, niente clipping, niente zone vuote o rotte;
+3. **ogni verbo del GDD**; per un FPS: spara con ogni arma, ricarica, mira (ADS), cambia arma con **ogni** input (rotella e tasti numerici), pausa e ripresa ([genres.md](genres.md) regole FPS);
+4. uno screenshot per passo, **letto** (una riga su cosa mostra), tabella passo / input / esito / foto in `docs/gates/playthrough-NN.md`.
+
+Un passo rosso = niente «apri». Un input che non si riesce a produrre si dice al proprietario (`engine_gap:`), non si salta. Vale dopo ogni gate di iterazione che cambia controlli, armi o livello.
 
 ## Telemetria del playtest (kit di playtest, opt-in)
 
-Nucleon: `Content/Scripts/gds_telemetry.lua` (`ncli setup`): registra solo con il consenso del giocatore (`exports.gds_telemetry:SetOptIn(true)` da un prompt al primo avvio o dalle opzioni) o con `NC_GDS_TELEMETRY=1` nelle build dei tester; CSV locale in `Saved/telemetry/` (posizione ogni 2 s, idle, quit, eventi del gioco `exports.gds_telemetry:Log("death", {cause = "spikes"})`). I file tornano a mano (canale scelto al Q30). `python SKILL/scripts/telemetry_report.py <cartella> --out docs/playtest/telemetry.md --json docs/playtest/telemetry.json`: dove si muore e perché, dove si smette, tempo al primo obiettivo, zone mai visitate. Il JSON è "test reale" per game-launch-strategist (mai mescolato con le critiche simulate).
+Nucleon: `Content/Scripts/gds_telemetry.lua` (`ncli setup`): registra solo con il consenso del giocatore (`exports.gds_telemetry:SetOptIn(true)` da un prompt al primo avvio o dalle opzioni) o con `NC_GDS_TELEMETRY=1` nelle build dei tester; CSV locale in `Saved/telemetry/` (posizione ogni 2 s, idle, quit, eventi del gioco `exports.gds_telemetry:Log("death", {cause = "spikes"})`). I file tornano a mano (canale scelto al Q29). `python SKILL/scripts/telemetry_report.py <cartella> --out docs/playtest/telemetry.md --json docs/playtest/telemetry.json`: dove si muore e perché, dove si smette, tempo al primo obiettivo, zone mai visitate. Il JSON è "test reale" per game-launch-strategist (mai mescolato con le critiche simulate).
 
 ## Catture per store e trailer
 

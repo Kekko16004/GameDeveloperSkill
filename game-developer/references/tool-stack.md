@@ -1,6 +1,6 @@
 # Tool stack — default for the whole game
 
-Ask this in GDD (question 17), for the engine the user picked at Q0 ([engines.md](engines.md)). One answer covers **every later worker**. Do not re-litigate per prop. Q20–Q24 (gen3d tier + budget, asset store, GPU, look preset) complete it.
+Ask this in GDD (question 17), for the engine the user picked at Q0 ([engines.md](engines.md)). One answer covers **every later worker**. Do not re-litigate per prop. Q20–Q23 (gen3d tier + budget, asset store, platform/FPS, look extras) complete it; the hardware is detected, not asked.
 
 Recommended (free, unlimited, already wired):
 
@@ -27,7 +27,7 @@ Optional, chosen once in Q20 (never mid-pipeline):
 
 | Tier | Needs | Use |
 |---|---|---|
-| `local` (Modly: Hunyuan3D-2mini / TripoSG / TRELLIS2) | NVIDIA ≥ 8 GB VRAM | hero props offline |
+| `local` (Modly: Hunyuan3D-2mini / TripoSG / TRELLIS2) | NVIDIA ≥ 8 GB VRAM (detected, `hwdetect.py`) | hero props offline |
 | `meshy` / `tripo` | API key in MCP env + credit budget | CoplayDev `generate_model` |
 | `hyper3d` | key in Blender MCP addon | `generate_hyper3d_model_via_*` |
 

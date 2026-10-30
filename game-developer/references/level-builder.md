@@ -109,4 +109,5 @@ Doors are made by splitting the wall into legs + lintel (no CSG, no face indices
 - One family per blueprint (`kitRoot`). Poly Pizza / Poly Haven / generated hero props go in `props`, never in `roles`.
 - Never hand-place a wall via `manage_gameobject` after this exists. Edit the JSON, rebuild (same `name` replaces the old building).
 - A blueprint with `cellsX*cellsZ*floors > 200` is a level, not a building: split.
+- **Spend frames only where the player can go.** Foliage, grass and detail props in unreachable areas (behind the boundary, on cliffs, past the fence) are forbidden; far and unreachable areas are cheap silhouettes (a few big low-poly masses or impostors, no wind, no per-leaf detail). Reason: a real playthrough showed a level whose cost went to grass nobody could walk on. Every level-build gate reports `instances` (scatter + props), draw calls from the engine stats, and one line justifying anything out of reach that is still drawn ([gates.md](gates.md) item 26).
 - Store every blueprint in `art/blueprints/`. That folder **is** the level's memory for `/resumegame`.

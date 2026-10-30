@@ -172,6 +172,15 @@ if ($ProjectPath -and (Test-Path -LiteralPath (Join-Path $ProjectPath "Packages\
   else { Row "WARN" "unity-pipeline" "unity pipeline install --project-path `"$ProjectPath`"" }
 }
 
+# Hardware: detected once, used silently (local gen3d eligibility, look defaults); the user is never asked for it
+$hwpy = Join-Path $SkillRoot "scripts\hwdetect.py"
+$pyHw = Get-Cmd "python"; if (-not $pyHw) { $pyHw = Get-Cmd "py" }
+if ($pyHw -and (Test-Path -LiteralPath $hwpy)) {
+  $hw = (& $pyHw $hwpy --text 2>$null) -join " "
+  if ($hw -and $hw -notmatch '^GPU not found') { Row "PASS" "hardware" $hw }
+  else { Row "WARN" "hardware" "GPU not detected: defaults stay conservative (no local gen3d); nothing to answer" }
+}
+
 # Nucleon (engine: nucleon): NucleonEditor + the ncli bridge (python, standard library)
 $nc = ""
 if ($cfg -and $cfg.paths -and $cfg.paths.nucleon) { $nc = [string]$cfg.paths.nucleon }

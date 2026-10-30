@@ -50,15 +50,22 @@ Parent after each worker:
 
 17. **Header**: `python SKILL/scripts/gate_link.py --project PROJECT check docs/gates/NN-*.md` ✅. Missing header, empty `risks`/`owner_try`, screenshot not on disk, a decision key in `closes` → FAIL.
 18. **Real mechanic, normal play**: every fix is verified in the real scene in ordinary play, from every side/situation the player meets it (front / side / rear, standing / running, with and without the related perk/option), numbers before → after. Verified only in the reported case → FAIL.
-19. **Screenshots looked at**: each one cited with one line on what it shows; a screenshot that contradicts the text (or shows an old version) → FAIL or say so in the gate.
+19. **Screenshots and frames looked at**: each one cited with one line on what it shows; a screenshot that contradicts the text (or shows an old version) → FAIL or say so in the gate. An animation counts the same: the worker Reads its frames (first, middle, extreme, last) and writes what it sees; a clip that looks wrong is not done because the numeric checks pass ([art-direction.md](art-direction.md) §5).
 20. **Saves**: any Play/exe session that can write saves or prefs has `saves: backup + restore identical` (hash check). Missing → FAIL.
 21. **No unrequested builds**; **no test suites** when `DECISIONI.md` says the owner tests himself (compile 0, lint, deterministic checks and the real-scene feel sim stay).
 22. **Design changes and attribution**: every difference from the brief is in `design_changes` with `decided_by`; "the owner asked" without a source → FAIL.
 23. **Regression loop**: `risks` lists the gameplay risks the gate introduces (harder, slower, more UI, new interactions); the next wave or real test re-checks them.
 24. **Orphans**: a gate that redesigns screens, menus, shops, flow or progression has the `design_review.py screens --before` result in the gate: nothing lost its entry point, or it was retired on purpose (`hidden-ok` + source).
 25a. **Repro first**: every bug fix has `repro: {before: "FAIL <reason>", after: PASS}` from a test that reproduces it (workers.md iterate-gate 1b); a fix without a failing-then-passing test → FAIL.
-25b. **Performance**: a gate that touches scene, lights, VFX, crowds or heavy UI has `perf:` (p95 vs `1000/targetFps`, playtest.md "Budget di performance"), or `perf: skipped: software renderer` with the reason.
+25b. **Performance, from the first playable on** (every gate, not only iteration gates, never left to the end): every gate with a playable scene has `perf:` (p95 vs `1000/targetFps`) measured on the real scene with vsync off ([playtest.md](playtest.md) "Budget di performance"), or `perf: skipped: software renderer` with the reason. "Playable" with no frame time in the gate → FAIL.
 25. **Hand-off** (when `launch/` exists): after PASS the parent runs `gate_link.py apply-status --write` and `gate_link.py todo --run`; before a wave `gate_link.py since --out docs/design-review/changes-since-wNN.md`.
+
+### Playability (every gate that touches the scene or the controls; found by a real first-person playthrough)
+
+26. **Frames only where the player can go**: a scene gate carries `scene: {"instances":N,"drawCalls":N,"outOfReach":"<what is drawn there and why it is cheap or needed>"}`. Foliage, grass or detail in an unreachable area → FAIL ([level-builder.md](level-builder.md) Rules). Reason: that cost bought nothing the player sees.
+27. **Every input really works**: each input of the controls table (GDD verbs, Q4) is tested through the real input path, not by calling the function: the mouse wheel and the number keys must both change the weapon (the active weapon changes, not just an animation), pause opens and closes, and so on. An input the harness cannot produce is an `engine_gap:` in the gate, never silently untested ([playtest.md](playtest.md) Verbi).
+28. **First-person view models** (FPS genres): weapon and arms judged in the engine from the game camera, every clip checked at its closest frame for near-plane clipping, the ADS sight picture checked, one- or two-handed chosen per weapon type, visible delayed sway, impacts following the surface ([genres.md](genres.md) FPS hard rules). Blender previews do not count.
+29. **Owner hand-off**: before the owner is told a build can be opened, the parent has run the playthrough checklist itself ([playtest.md](playtest.md) "Passeggiata del parent") and `docs/gates/playthrough-NN.md` exists. Workers' passing tests do not stand in for it → no hand-off.
 
 Checkpoint (ogni 10 task, [task-decomposition.md](task-decomposition.md)):
 

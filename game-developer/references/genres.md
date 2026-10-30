@@ -27,11 +27,20 @@ The engine has the first-person kit; the systems worker writes only the game's r
 | look | `GetLookDelta()` in the pawn's `OnTick` (raw mouse, stick curve included), `SetMouseSensitivity` with the CS number, `SetLookSettings` on the options page | `GetActionVector("Look") * lookSpeed` (what the template pawn still does), own sensitivity maths |
 | movement | `SetCharacterMovement{acceleration = 5.5, airAcceleration = 12, ...}` (Source ground and air strafing), `SetCharacterCrouching`, `SetCharacterWalking`, `MoveCharacter` with the wished speed (CS 250 u/s = 6.35 m/s) | own acceleration / friction / crouch code |
 | arms + weapon | an actor as view model: `SetEntityViewModel(arms, true, 60)`, `SetViewModelOffset(arms, pos, rot)` every frame for bob, sway, recoil, ADS, `SetViewModelFov` | the weapon parented to the camera by hand |
-| hitscan and hit maps | `Raycast` / `RaycastAll` (penetration) / `SphereCast*` with `{ignore = {pawn, arms}, layers = ...}`; damage multiplier by `hit.component` (the zone: Head / Torso / Legs collision components of the target actor), impact fx and sound by `hit.surface`, ragdoll force by `hit.bone` | distance or name guessing for the zone, one ray per body part |
+| hitscan and hit maps | `Raycast` / `RaycastAll` (penetration) / `SphereCast*` with `{ignore = {pawn, arms}, layers = ...}`; damage multiplier by `hit.component` (the zone: Head / Torso / Legs collision components of the target actor), impact fx and sound by `hit.surface` (rule 6 below), ragdoll force by `hit.bone` | distance or name guessing for the zone, one ray per body part |
 | teams, kills, respawn, bots | `nc.framework` natives (teams, score, kills / deaths, `SetRespawnRules`), `nc.abilities` (health, ammo, cooldown as attributes / effects), `nc.ai` (perception, State Trees) | a bespoke state machine, unless the module fails its first GDS test: then log `engine_issues:` and fall back |
 | HUD, menus | NUI web page (`UI/index.html`: crosshair, ammo, health in `#hud`, `SendNUIMessage` from the weapon script) | RmlUi for a new game |
 
 Tests of the row: a GDS test shoots the target actor's head and torso from the pawn (`t.check(hit.component == "Head")`), one for the view model offset (`GetViewModelSettings`), one for crouch height and ground speed; then `lint --play` and a shot of the view model.
+
+### FPS hard rules (from a real first-person playthrough; each one fails the gate, [gates.md](gates.md) item 28)
+
+1. **View model judged in the engine**, from the game camera, never from Blender previews (they hide clipping, scale and hand placement).
+2. **Every clip checked at its closest frame** (draw, fire peak, reload, inspect) with a shot from the game camera, for near-plane clipping of weapon or arms. Reason: a clip that looks fine at rest cuts through the camera at its peak.
+3. **ADS sight picture checked**: one shot per weapon, sights or optic on the crosshair line, nothing covering the target, FOV change sensible.
+4. **One-handed or two-handed on purpose per weapon type** (pistol, SMG, rifle, shotgun...), written in the weapon spec; the hands then follow it (no free hand floating off the weapon).
+5. **Delayed sway when turning**: a spring-damper driven by the look delta (frame-rate independent: scale by `dt`, or substep), not a weapon nailed to the screen centre. It must be **visible** in a shot taken mid-turn and settle without wobble when the look stops. GDS test: apply a look delta, the offset leaves rest by a stated minimum and returns within N s, the same at two frame rates.
+6. **Impacts follow the material** (`hit.surface`): no ricochet streaks on concrete or stone (dust and chips), sparks only on metal; **tracers end at the hit point** (at max range on a miss), never through the surface.
 
 ## Controller rules
 

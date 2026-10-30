@@ -15,6 +15,7 @@ Run `scripts/doctor.ps1` from the skill folder (or pass `-ProjectPath`). Prints 
 | voxelai | folder with `mcp_server` |
 | playwright | skip if kilo already has MCP playwright |
 | design-skill | `designer` skill folder |
+| hardware | `scripts/hwdetect.py` detects GPU + VRAM once (nvidia-smi, else the OS query) and caches it in `~/.game-developer/hardware.json`; INFO only, never a question to the user ([styles.md](styles.md) "Hardware gate") |
 | gdd | if projectPath set: GDD status |
 | screenshots-dir | create if missing when projectPath set |
 

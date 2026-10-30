@@ -5,7 +5,7 @@ Used only when the GDD locks `style: realistic` and `engine: unreal` (see [style
 ## Requirements (doctor checks them)
 
 - **Unreal Engine 5.8+** (Epic Launcher). The official MCP server does not exist before 5.8. Installed here today: UE 5.4 only → the worker stops and asks the user to install 5.8 (≈ 60 GB), or proposes `style: stylized` in Unity.
-- GPU: see the hardware table in styles.md. GTX 1660 Super 6 GB = software Lumen, scalability High, small levels.
+- GPU: detected by `scripts/hwdetect.py`, never asked; see the hardware table in styles.md. A `mid` 6 GB card (e.g. GTX 1660 Super) = software Lumen, scalability High, small levels.
 - Claude Code: `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official` (Epic's `unreal-mcp` skill). Other hosts: point them at the same MCP URL.
 
 ## Editor MCP (first-party, free)

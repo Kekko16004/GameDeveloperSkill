@@ -69,6 +69,7 @@ Worlds and blueprints compose: build the world first, then level-build blueprint
 ## Rules
 
 - **Kit dungeon**: set `cell` to the kit module size from `art/kit-catalog.json` (`suggestedModule`), then `floorFile`/`wallFile`. Without them the builder makes merged meshes with palette materials (fine for toon/low-poly greybox, not for the final look of a kit-family game).
+- **Scatter only where the player can go** (reachable area plus the sight lines next to it); beyond it, cheap silhouettes ([level-builder.md](level-builder.md) Rules, [gates.md](gates.md) item 26).
 - **Scatter before props**: world scatter is the vegetation layer; hero props and buildings come later from blueprints.
 - **Fog scales itself**: `GDS.LookDev.Apply` thins fog on terrains > 150 m, so run lookdev after the world.
 - **Dark worlds need light**: `dungeon`/`cave` + `dungeon-torch` without `wallProps` torches (or `GDS.VFX.AttachTorches`) is a black screen = FAIL at the art review.

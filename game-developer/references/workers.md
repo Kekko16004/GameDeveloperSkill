@@ -303,6 +303,7 @@ Tu fai SOLO personaggi + animazioni (+ NavMesh se il GDD ha nemici). Leggi `char
 4. Nemici: Skill `initialize-ai-navigation` → NavMeshSurface bake, `NavMeshAgent`, `EnemyChase.cs` + test `Enemy_ChasesPlayer`.
 5. Altezza player 1.6–2.0 m (Geometra) — altrimenti `SetImportScale` sulla cartella.
 6. Lint 0. Play Mode screenshot `screenshots/050-characters.png` (personaggio in walk).
+Una clip che guardata sembra sbagliata non è finita perché i controlli numerici passano: leggi i frame (primo, centrale, estremo, ultimo) e scrivi cosa vedi ([art-direction.md](art-direction.md) §5). Armi e braccia in prima persona: giudicate nel motore dalla camera di gioco, ogni clip al frame più vicino (near plane), ADS, una o due mani per tipo di arma ([genres.md](genres.md) regole FPS).
 Gate: `docs/gates/09-characters.md` con JSON delle chiamate, test, PNG, `lint:`.
 
 ---
@@ -414,6 +415,7 @@ FAIL se in Game View ci sono primitives Unity visibili (cubo/capsula default) o 
 3. Rilancia le sim di feel in scena reale e confronta con `docs/tests/feel-baseline.json`: un caso peggiore della tolleranza = FAIL (salvo riga di approvazione del proprietario in `DECISIONI.md`).
 4. Controllo "catture vs regole" su ogni screenshot che va al playtest o allo store ([playtest.md](playtest.md)).
 Scrivi `docs/playtest.md` e `docs/gates/13-playtest.md`.
+5. Ogni input della tabella controlli del GDD passa dal percorso vero (rotella e tasti numerici cambiano davvero arma, non solo l'animazione); frame time della camminata con vsync spento nel gate (`perf:`).
 NON inventare test verdi. Incolla job_id / output / lint JSON.
 
 ---
@@ -422,6 +424,7 @@ NON inventare test verdi. Incolla job_id / output / lint JSON.
 
 Tu fai SOLO il recap. Leggi tutti i `docs/gates/*.md`.
 Se uno è rosso, NON dichiarare slice fatta. Elenca i rossi.
+Il recap non basta per dire al proprietario «apri la build»: prima il **parent** fa la passeggiata ([playtest.md](playtest.md) "Passeggiata del parent") e scrive `docs/gates/playthrough-NN.md`.
 Gate: `docs/gates/14-slice.md`.
 
 ---
