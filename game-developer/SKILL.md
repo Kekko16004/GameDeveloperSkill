@@ -27,6 +27,7 @@ Un agente solo con 50k token di chat chiude in fretta: cubi al posto dell'art, p
 | GDD (blocchi A-E, tante domande, follow-up) | intervista | [gdd-interview.md](references/gdd-interview.md) |
 | Baseline (accessibilità, UI, onboarding, lingue, kit playtest, cattura store) | blocco E + task | [quality-baseline.md](references/quality-baseline.md) |
 | Lancio / focus group (`game-launch-strategist`) | contratto condiviso `gdl-v3`: ondate → piano dei gate, gate → `issue_status` / TODO / stato attuale; funziona anche da sola | [launch-link.md](references/launch-link.md) + `scripts/gate_link.py` |
+| Pannello del proprietario (task, media, performance, lancio; `/panel`) | pagina locale su 127.0.0.1, dati letti dal progetto a ogni richiesta; il parent fa heartbeat e svuota la coda dei pulsanti, niente viene eseguito da solo | [panel.md](references/panel.md) + `scripts/panel.py` |
 | Design review (dopo la slice) | mappa del gioco dal codice, mappa schermate (raggiungibilità, orfani), run simulate a tempi, prima e dopo ogni gate | [design-review.md](references/design-review.md) + `scripts/design_review.py` |
 | Gate di iterazione | header leggibile da macchina, meccanica vera, foto guardate, salvataggi, rischi introdotti | [gates.md](references/gates.md) §17-25 + [templates/gate.md](templates/gate.md) |
 | **Engine (scelta dell'utente, Q0)** | adapter a 8 verbi: ping, build, lint, shot, test, play, lock, package | [engines.md](references/engines.md) |

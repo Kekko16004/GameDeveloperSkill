@@ -1,0 +1,151 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Game panel</title>
+<style>
+*{box-sizing:border-box;margin:0}
+:root{--ink:#171717;--mute:#6f6f6f;--accent:#B9451F}
+html,body{background:#fff;color:var(--ink);font:400 15px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none;cursor:pointer}img{display:block;width:100%;object-fit:cover}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+aside{background:#F7F7F6;padding:28px 24px;display:flex;flex-direction:column}
+aside b{font-weight:600;margin-bottom:24px;overflow-wrap:anywhere}
+aside a{display:flex;justify-content:space-between;padding:6px 0;color:var(--mute)}
+aside a.on{color:var(--ink);font-weight:600}aside a i{font-style:normal;font-weight:400;color:var(--mute)}aside a i.need{color:var(--accent);font-weight:600}
+aside span{flex:1}aside small{font-size:13px;color:var(--mute);line-height:1.4}
+main{padding:48px 72px 32px;max-width:1240px}
+h1{font-size:30px;line-height:1.25;font-weight:600;letter-spacing:-.015em;max-width:860px}
+h2{font-size:13px;font-weight:600;color:var(--mute);margin-bottom:8px}h2 span{font-weight:400}
+section{margin-top:32px}.tight section{margin-top:26px}
+.lead{color:var(--mute);margin-top:8px;font-size:16px}.mute{color:var(--mute)}
+.ln{display:flex;gap:16px;align-items:baseline;padding:4px 0}
+.ln .n{width:18px;color:var(--mute)}.ln .a{flex:1;min-width:0}.ln .b{color:var(--mute);font-size:14px;text-align:right;max-width:60%}.ln .c{width:56px;text-align:right}
+.act{color:var(--accent);font-weight:600;background:none;border:0;font:inherit;font-weight:600;padding:0;cursor:pointer}.act:disabled{color:var(--mute);font-weight:400;cursor:default}
+.more{color:var(--mute);background:none;border:0;font:inherit;padding:0;cursor:pointer;margin-top:2px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:72px}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+figure{margin:0;cursor:pointer}figure img{aspect-ratio:16/10;background:#F7F7F6}figcaption{color:var(--mute);font-size:13px;margin-top:5px;overflow-wrap:anywhere}
+.tabs,.fil{display:flex;gap:22px;flex-wrap:wrap;color:var(--mute)}.tabs{margin-top:14px}.tabs .on,.fil .on{color:var(--ink);font-weight:600}
+.fil{margin-top:6px;font-size:14px}.fil select{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.mediawrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;column-gap:48px}
+.group{margin-top:24px}.group h3{font-size:15px;font-weight:600;margin-bottom:8px}.group h3 span{font-weight:400;color:var(--mute);margin-left:8px}
+.sel{margin-top:24px}.sel h3{font-size:15px;font-weight:600;margin-bottom:8px;overflow-wrap:anywhere}.sel dl{display:grid;grid-template-columns:64px 1fr;gap:2px 8px;margin-top:10px;font-size:14px}.sel dd{margin:0;overflow-wrap:anywhere}.sel dt{color:var(--mute)}
+.sel h2{margin-top:22px}.ba{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.num{font-size:64px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-top:20px}
+.ch{display:block;width:100%;max-width:720px;margin-top:24px;overflow:visible}.ch .l{stroke:var(--ink);stroke-width:1.5;fill:none}.ch .t{stroke:var(--mute);stroke-dasharray:3 4}.ch circle{fill:var(--ink)}
+.axis{display:flex;justify-content:space-between;max-width:720px;color:var(--mute);font-size:13px;margin-top:6px}
+table{border-collapse:collapse;width:100%;max-width:720px}th{font-size:13px;font-weight:600;color:var(--mute);text-align:right;padding:0 0 6px}th:first-child,td:first-child{text-align:left}td{text-align:right;padding:3px 0}
+.btn{display:inline-block;background:var(--accent);color:#fff;padding:8px 16px;font:inherit;font-weight:600;border-radius:4px;margin-top:20px;border:0;cursor:pointer}.btn:disabled{background:#d9d9d6;color:var(--mute);cursor:default}
+.narrow{max-width:720px}.ans{display:flex;gap:12px;padding:2px 0 6px}.ans input{flex:1;min-width:0;font:inherit;border:0;border-bottom:1px solid var(--mute);outline:0;padding:2px 0}
+@media(max-width:700px){.app{display:block}aside{padding:16px 20px 8px;flex-flow:row wrap;gap:0 16px}aside b{width:100%;margin-bottom:8px}aside a{gap:4px;padding:2px 0;font-size:14px}aside span{display:none}aside small{width:100%;margin-top:4px}
+main{padding:20px 20px 28px}h1{font-size:24px}.two,.mediawrap{display:block}.row4{grid-template-columns:repeat(2,minmax(0,1fr))}.ln{flex-wrap:wrap;gap:0 12px}.ln .a{flex:1 1 70%}.ln .b{text-align:left;max-width:100%}.num{font-size:48px}}
+</style></head><body><div id="r"></div><script>
+const TOKEN='__TOKEN__',SECTIONS=['overview','todo','media','performance','launch'];
+let S=null,last='',answering=null,flash='';
+const U={tab:'tasks',all:{},type:'',task:'',date:'',sel:null,groups:{},moreGroups:false};
+const section=()=>{const s=new URLSearchParams(location.search).get('s');return SECTIONS.includes(s)?s:'overview'};
+const h=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ln=(a,b='',c='',n='')=>`<div class="ln">${n?`<span class="n">${n}</span>`:''}<span class="a">${a}</span>${b?`<span class="b">${b}</span>`:''}${c?`<span class="c">${c}</span>`:''}</div>`;
+const img=p=>'/img?p='+encodeURIComponent(p);
+const fig=(i,c)=>`<figure data-sel="${h(i.p)}"><img loading="lazy" src="${img(i.p)}" alt=""><figcaption>${h(c)}</figcaption></figure>`;
+const more=(k,n,label)=>n>0?`<button class="more" data-more="${k}">${label}</button>`:'';
+const list=(k,arr,limit,row,label)=>{const open=U.all[k],shown=open?arr:arr.slice(0,limit);return shown.map(row).join('')+(open?'':more(k,arr.length-shown.length,label(arr.length-shown.length)))};
+const viewOnly=()=>S.listening?'':'<p class="mute">View only: Claude is not listening, so the buttons are off.</p>';
+const wasSent=(t,task)=>S.pending.some(c=>c.type===t&&(!task||c.task===task));
+function answerRow(n){
+ const sent=wasSent('answer',n.task);
+ const btn=sent?'<span class="mute">Sent</span>':`<button class="act" data-answer="${h(n.task)}" ${S.listening?'':'disabled'}>Answer</button>`;
+ let out=ln(h(n.question),h(n.task),btn);
+ if(answering===n.task&&S.listening&&!sent)out+=`<div class="ans"><input id="ansText" maxlength="2000" placeholder="Your answer" autofocus><button class="act" data-send="${h(n.task)}">Send</button></div>`;
+ return out}
+const needs=()=>{const a=S.tasks.needs;return a.length?a.map(answerRow).join('')+viewOnly():'<p class="mute">Nothing in the registry asks for you.</p>'};
+const inProgress=(limit)=>{const T=S.tasks,rows=[...T.active.map(t=>ln(h(t.title),h(t.id)+', '+h(t.detail))),...T.inferred.map(t=>ln(h(t.title),h(t.id)+(t.detail?', '+h(t.detail):'')+', note changed '+h(t.time)))];
+ if(!rows.length)return '<p class="mute">No task is marked running and no open task has a progress note.</p>';
+ const shown=U.all.prog||!limit?rows:rows.slice(0,limit);return shown.join('')+(U.all.prog||!limit?'':more('prog',rows.length-shown.length,`and ${rows.length-shown.length} more`))};
+const progHead=()=>`<h2>In progress${S.tasks.inferred.length?' <span>inferred from docs/progress, not from live workers</span>':''}</h2>`;
+const waitText=t=>t.waits.length?'waits for '+h(t.waits.join(', ')):'ready';
+const doneRow=t=>ln(h(t.title),h(t.id)+(t.time?', file changed '+h(t.time):', no evidence file'));
+const P={
+overview(){const T=S.tasks;if(!T.exists)return `<h1>This project has no task registry yet.</h1><p class="lead">GAME_TASKS.md is missing or has no task rows.</p>${latest()}`;
+ const b=T.built.length?` and ${T.built.length} ${T.built.length===1?'waits':'wait'} for a test`:'';
+ return `<h1>${T.done.length} of ${T.total} tasks are finished${b}. ${T.open} ${T.open===1?'is':'are'} still open.</h1>
+ ${S.lastActivity?`<p class="lead">Last file change ${h(S.lastActivity.time)}, ${h(S.lastActivity.file)}.</p>`:''}
+ <div class="two tight"><div><section>${progHead()}${inProgress(4)}</section><section><h2>Needs you <span>inferred from registry notes</span></h2>${needs()}</section>
+ <section><h2>Next tasks <span>registry order, ready first</span></h2>${T.next.slice(0,5).map((t,i)=>ln(h(t.title),h(t.id),'',i+1)).join('')||'<p class="mute">No task is waiting to start.</p>'}</section></div>
+ <div><section><h2>Recently finished <span>times are evidence file changes</span></h2>${T.done.slice(0,5).map(doneRow).join('')||'<p class="mute">Nothing is marked finished.</p>'}</section>
+ <section><h2>Frame time</h2>${frameLine()}</section></div></div>${latest()}`},
+todo(){const T=S.tasks;const tab=(k,l)=>`<a class="${U.tab===k?'on':''}" data-tab="${k}">${l}</a>`;
+ const head=`<h1>${T.exists?T.open+' tasks left':'No task registry'}</h1><p class="tabs">${tab('tasks','Tasks')}${tab('gates','Gates '+S.gates.length)}${tab('decisions','Decisions '+S.decisions.length)}${tab('gaps','Engine gaps '+S.engineGaps.length)}</p><div class="tight narrow">`;
+ return head+({tasks:todoTasks,gates:todoGates,decisions:todoDecisions,gaps:todoGaps}[U.tab])()+'</div>'},
+media(){return mediaPage()},performance(){return perfPage()},launch(){return launchPage()}};
+function todoTasks(){const T=S.tasks;if(!T.exists)return '<section><p class="mute">GAME_TASKS.md is missing or has no task rows.</p></section>';
+ let o=`<section>${progHead()}${inProgress(0)}</section>`;
+ const blocked=[...T.needs.map(answerRow),...T.blocked.map(t=>ln(h(t.title),h(t.id)+', '+h(t.reason)))];
+ o+=`<section><h2>Blocked${T.needs.length?' <span>waiting for you is inferred from registry notes</span>':''}</h2>${blocked.join('')||'<p class="mute">Nothing is blocked.</p>'}${T.needs.length?viewOnly():''}</section>`;
+ if(T.built.length)o+=`<section><h2>Built, test pending</h2>${T.built.map(t=>ln(h(t.title),h(t.id))).join('')}</section>`;
+ o+=`<section><h2>Next <span>registry order, ready first</span></h2>${list('next',T.next,7,(t,i)=>ln(h(t.title),h(t.id)+', '+waitText(t),'',i+1),n=>`and ${n} more`)||'<p class="mute">No task is waiting to start.</p>'}</section>`;
+ o+=`<section><h2>Done <span>times are evidence file changes</span></h2>${list('done',T.done,3,doneRow,()=>`Show all ${T.done.length}`)||'<p class="mute">Nothing is marked finished.</p>'}</section>`;return o}
+const todoGates=()=>`<section><h2>Gates <span>newest file first</span></h2>${list('gates',S.gates,14,g=>ln(h(g.title),(g.status?h(g.status)+', ':'')+'file changed '+h(g.time)),n=>`and ${n} more`)||'<p class="mute">No gate reports in docs/gates.</p>'}</section>`;
+const todoDecisions=()=>`<section><h2>Decisions <span>newest first, from DECISIONI.md</span></h2>${list('dec',S.decisions,14,d=>ln(h(d)),n=>`and ${n} more`)||'<p class="mute">DECISIONI.md is missing or empty.</p>'}</section>`;
+const todoGaps=()=>`<section><h2>Engine gaps <span>engine_issues lines in progress notes and gates</span></h2>${list('gaps',S.engineGaps,14,g=>ln(h(g.text),h(g.source)),n=>`and ${n} more`)||'<p class="mute">No engine gaps reported.</p>'}</section>`;
+function latest(){const a=S.media.items.slice(0,4);return `<section><h2>Latest images</h2>${a.length?`<div class="row4">${a.map(i=>fig(i,i.caption+', '+i.time)).join('')}</div>`:'<p class="mute">No images in the project folders yet.</p>'}</section>`}
+function frameLine(){const p=S.performance;if(!p.points.length)return '<p class="mute">No frame time found in this project.</p>';const v=p.points[p.points.length-1];
+ return `<p>${v.gpu} ms <span class="mute">GPU${p.targetMs?`, target ${p.targetMs} ms`:', no target in the project'}, measured in a file from ${h(p.time)}</span></p>`}
+function mediaPage(){const M=S.media;if(!M.items.length)return '<h1>Media</h1><section><p class="mute">No images in screenshots, captures or docs/screens yet.</p></section>';
+ const count=(key,v)=>M.items.filter(i=>i[key]===v).length;
+ const kinds=[...new Set(M.items.map(i=>i.kind))].sort((a,b)=>count('kind',b)-count('kind',a));
+ const days=[...new Set(M.items.map(i=>i.day))];const tasks=[...new Set(M.items.map(i=>i.task).filter(Boolean))].sort();
+ const f=(k,v,l)=>`<a class="${U[k]===v?'on':''}" data-filter="${k}" data-value="${h(v)}">${h(l)}</a>`;
+ let items=M.items.filter(i=>(!U.type||i.kind===U.type)&&(!U.task||i.task===U.task)&&(!U.date||i.day===U.date));
+ const groups=[];const seen={};items.forEach(i=>{if(!seen[i.group]){seen[i.group]={name:i.group,task:i.task,time:i.time,items:[]};groups.push(seen[i.group])}seen[i.group].items.push(i)});
+ const shown=U.moreGroups?groups:groups.slice(0,3);
+ const sel=items.find(i=>i.p===U.sel)||items[0];
+ const prior=sel&&M.items.find(i=>i.key===sel.key&&i.p!==sel.p&&i.t<sel.t);
+ return `<h1>Media</h1><div class="fil" style="margin-top:14px">${f('type','','All '+M.items.length)}${kinds.map(k=>f('type',k,k+' '+count('kind',k))).join('')}</div>
+ <div class="fil">${f('date','','Any date')}${days.slice(0,6).map(d=>f('date',d,d+' '+count('day',d))).join('')}
+ <select id="taskFilter"><option value="">Any task</option>${tasks.map(t=>`<option value="${h(t)}" ${U.task===t?'selected':''}>Task ${h(t)}</option>`).join('')}</select></div>
+ <p class="mute" style="font-size:13px;margin-top:6px">Types are guessed from file names, tasks from progress notes that name the images. Times are file changes.</p>
+ <div class="mediawrap"><div>${groups.length?'':'<div class="group"><p class="mute">No image matches these filters.</p></div>'}${shown.map(g=>{const open=U.groups[g.name],a=open?g.items:g.items.slice(0,4);
+  return `<div class="group"><h3>${h(g.name)}<span>${g.task?'task '+h(g.task)+', ':''}${h(g.time)}, ${g.items.length} image${g.items.length===1?'':'s'}</span></h3><div class="row4">${a.map(i=>fig(i,i.caption)).join('')}</div>${!open&&g.items.length>4?`<button class="more" data-group="${h(g.name)}">Show all ${g.items.length}</button>`:''}</div>`}).join('')}
+ ${!U.moreGroups&&groups.length>3?`<button class="more" data-moregroups style="margin-top:16px">and ${groups.length-3} more groups</button>`:''}</div>
+ ${sel?`<div class="sel"><h3>${h(sel.caption)}</h3><img id="selImg" src="${img(sel.p)}" alt="" style="object-fit:contain;background:#F7F7F6">
+ <dl><dt>File</dt><dd>${h(sel.p)}</dd><dt>Task</dt><dd>${h(sel.task||'not matched')}</dd><dt>Changed</dt><dd>${h(sel.time)}</dd><dt>Size</dt><dd id="selSize"></dd></dl>
+ ${prior?`<h2>Before and after <span>same name, older file</span></h2><div class="ba">${fig(prior,'Before, '+prior.time)}${fig(sel,'After, '+sel.time)}</div>`:''}</div>`:''}</div>`}
+function perfPage(){const p=S.performance;if(!p.points.length)return `<h1>Performance</h1><section><p class="mute">No frame time found in this project: no GPU and CPU figures in docs/gates or docs/progress, and no bench JSON in docs.</p></section>${p.targetMs?`<section><p class="mute">Target from ${h(p.targetSource)}: ${p.targetFps} fps, ${p.targetMs} ms.</p></section>`:''}`;
+ const v=p.points[p.points.length-1],W=720,H=90,max=Math.max(...p.points.map(x=>x.gpu),p.targetMs||0)*1.1,n=p.points.length;
+ const x=i=>n<2?W/2:8+i*(W-16)/(n-1),y=g=>H-6-g/max*(H-12);
+ const first=p.points[0],lbl=q=>(q.build?'Build '+h(q.build)+', ':'')+q.gpu+' ms';
+ const table=p.passes.length?`<section><h2>Where the time goes</h2><table><tr><th>Pass</th><th>Before</th><th>Now</th></tr>${p.passes.map(r=>`<tr><td>${h(r.name)}</td><td class="mute">${r.before} ms</td><td>${r.now} ms</td></tr>`).join('')}</table></section>`:'';
+ return `<h1>Performance</h1><div class="narrow"><p class="num">${v.gpu} ms</p><p class="lead">GPU frame time. ${p.targetMs?`The target is ${p.targetMs} ms, which is ${p.targetFps} fps (${h(p.targetSource)}).`:'The project states no target.'}</p>
+ <svg class="ch" viewBox="0 0 ${W} ${H}">${p.targetMs?`<line x1="0" x2="${W}" y1="${y(p.targetMs)}" y2="${y(p.targetMs)}" class="t"/>`:''}${n>1?`<path d="M${p.points.map((q,i)=>x(i)+' '+y(q.gpu)).join('L')}" class="l"/>`:`<circle cx="${x(0)}" cy="${y(v.gpu)}" r="3"/>`}</svg>
+ <p class="axis"><span>${n>1?lbl(first):''}</span><span>${lbl(v)}</span></p>${table}
+ <section><p class="mute">From ${h(p.source)}, file changed ${h(p.time)}, so it may be older than the current build.${p.maybeVsync?` The CPU reads ${v.cpu} ms, close to a display refresh, so vsync may be limiting this capture.`:''}</p></section></div>`}
+function launchPage(){const L=S.launch,steps=L.steps.map(s=>ln(h(s.name),h(s.state))).join('');
+ const dec=L.decisions.length?`<section><h2>From DECISIONI.md</h2>${L.decisions.map(d=>ln(h(d))).join('')}</section>`:'';
+ if(L.exists)return `<div class="narrow"><h1>Launch work exists for this game.</h1>${L.headline?`<p class="lead">${h(L.headline)}</p>`:''}
+ ${L.pages.length?`<p style="margin-top:16px">${L.pages.map(p=>`<a class="act" href="/launch/${h(p)}" target="_blank" style="margin-right:22px">${p==='STATUS.html'?'Status page':'Report'}</a>`).join('')}</p>`:''}
+ <section><h2>Steps</h2>${steps}</section>${L.latestWave?`<section><h2>Latest focus group wave <span>last row of launch/fg/timeline.md</span></h2>${ln(h(L.latestWave))}</section>`:''}${dec}</div>`;
+ const sent=wasSent('market_check');
+ return `<div class="narrow"><h1>Launch has not started for this game.</h1>
+ <p class="lead">${L.skillInstalled?'A market check tells you whether the game has an audience. It writes only inside the launch folder.':'The game-launch-strategist skill is not installed, so there is no market check to run.'}</p>
+ ${L.skillInstalled?(sent?'<p class="mute" style="margin-top:20px">Market check requested, waiting for Claude.</p>':`<button class="btn" data-market ${S.listening?'':'disabled'}>Run a market check</button>${S.listening?'':'<p class="mute" style="margin-top:10px">View only: Claude is not listening, so the button is off.</p>'}`):''}
+ ${dec}</div>`}
+function render(){const s=section(),T=S.tasks,badge=T.needs.length?`<i class="need">${T.needs.length}</i>`:'';
+ const C={overview:badge,todo:T.exists?`<i>${T.open}</i>`:'',media:S.media.items.length?`<i>${S.media.items.length}</i>`:'',performance:'',launch:''};
+ document.title=S.project+' panel';
+ document.getElementById('r').innerHTML=`<div class="app"><aside><b>${h(S.project)}</b>${SECTIONS.map(k=>`<a class="${k===s?'on':''}" href="?s=${k}" data-nav="${k}">${k[0].toUpperCase()+k.slice(1)}${C[k]}</a>`).join('')}<span></span><small>${S.listening?'Claude is listening':'View only: Claude is not listening'}${flash?'<br>'+h(flash):''}</small></aside><main>${P[s]()}</main></div>`;
+ const si=document.getElementById('selImg');if(si){const put=()=>{const e=document.getElementById('selSize');if(e&&si.naturalWidth)e.textContent=si.naturalWidth+' x '+si.naturalHeight};si.complete?put():si.onload=put}
+ const ta=document.getElementById('ansText');if(ta)ta.focus()}
+async function load(force){if(document.activeElement&&document.activeElement.id==='ansText'&&!force)return;
+ const res=await fetch('/api/state');const txt=await res.text();if(txt===last&&!force)return;last=txt;S=JSON.parse(txt);render()}
+async function command(body){const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Token':TOKEN},body:JSON.stringify(body)});
+ flash=r.ok?'Sent to Claude.':'Not sent: '+((await r.json()).error||r.status);answering=null;await load(true)}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-nav],[data-tab],[data-more],[data-filter],[data-group],[data-moregroups],[data-sel],[data-answer],[data-send],[data-market]');if(!t)return;const d=t.dataset;
+ if(d.nav){e.preventDefault();history.pushState(null,'','?s='+d.nav);window.scrollTo(0,0)}
+ else if(d.tab)U.tab=d.tab;else if(d.more)U.all[d.more]=true;else if(d.filter){U[d.filter]=d.value;U.moreGroups=false}
+ else if(d.group)U.groups[d.group]=true;else if('moregroups' in d)U.moreGroups=true;else if(d.sel)U.sel=d.sel;
+ else if(d.answer)answering=d.answer;
+ else if(d.send){const v=document.getElementById('ansText').value.trim();if(v)command({type:'answer',task:d.send,text:v});return}
+ else if('market' in d){command({type:'market_check'});return}
+ render()});
+document.addEventListener('change',e=>{if(e.target.id==='taskFilter'){U.task=e.target.value;U.moreGroups=false;render()}});
+addEventListener('popstate',()=>render());
+load(true);setInterval(load,15000);
+</script></body></html>

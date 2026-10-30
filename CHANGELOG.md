@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-30 (notte): pannello locale del gioco
+
+| Cosa | Dove |
+|---|---|
+| **Pannello web del proprietario** su 127.0.0.1 (Overview, Todo, Media, Performance, Launch; barra laterale classica e layout telefono), solo libreria standard, per qualsiasi gioco e motore. Ogni valore e' letto dal progetto a ogni richiesta; una sezione senza dati lo dice; cio' che e' dedotto (in corso da `docs/progress`, tipo e task delle immagini) e' etichettato; le date dei file non sono mai presentate come fine di un task | `scripts/panel.py`, `templates/panel/index.html`, `command/panel.md` |
+| **Pulsanti solo con Claude in ascolto**: heartbeat `.gds/panel-listening` (scade dopo 2 minuti), richieste in coda in `.gds/panel-commands.jsonl`, che il parent legge con `--drain`. Il server non esegue mai nulla; controlli su Host, token, percorsi e tipi di file | `scripts/panel.py`, `references/panel.md` |
+
+Provato: `scripts/tests/test_panel.py` (16 test) e le schermate di ogni sezione su un progetto reale in sola lettura, un progetto vuoto, una fixture con coda e un progetto con `launch/`. Non provato: un parent vero che fa heartbeat e svuota la coda durante una sessione `/game`.
+
 ## 2026-10-30 (sera, 2): meno token per fase Nucleon, ciclo di ottimizzazione unico, regole di processo
 
 | Cosa | Dove |

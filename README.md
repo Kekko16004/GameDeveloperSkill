@@ -48,7 +48,7 @@ game-developer/
   scripts/                 doctor, install GDS nel progetto, fetch kit/audio CC0, edifici Blender headless,
                            gate_link.py (contratto con game-launch-strategist), design_review.py (schermate/orfani, run a tempi),
                            ncli.py (ponte Nucleon), html2rml.py (mock HTML → RmlUi, legacy)
-  command/                 /game /gdd /playtest /resumegame
+  command/                 /game /gdd /playtest /resumegame /panel
   tools/tui/               console
 docs/                      audit, roadmap, sample render
 ```
