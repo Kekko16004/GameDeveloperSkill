@@ -72,7 +72,9 @@ def tokens(entries):
 def phase_entries(m, phase, engine):
     spec = m["phases"][phase]
     out = list(m.get("prompt", [])) + spec.get("prompt", []) + spec.get("reads", [])
-    if spec.get("engine", True):
+    if spec.get("engine", True) and engine in spec.get("engineFiles", {}):
+        out += spec["engineFiles"][engine]
+    elif spec.get("engine", True):
         out += m["engine"].get(engine, {}).get(spec.get("engineSections", "default"), m["engine"].get(engine, {}).get("default", []))
     return out
 
@@ -84,9 +86,19 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--detail", help="one phase: its files and tokens")
+    ap.add_argument("--reads", help="one phase: print the list of files its worker reads (paste into the prompt), with --engine")
     a = ap.parse_args()
     m = json.load(open(a.manifest, encoding="utf-8"))
     engines = a.engine or list(m["engine"])
+    if a.reads:
+        spec = m["phases"][a.reads]
+        e = engines[0]
+        print("READ:")
+        for f in spec.get("reads", []) + (spec["engineFiles"][e] if e in spec.get("engineFiles", {}) else (m["engine"].get(e, {}).get(spec.get("engineSections", "default"), m["engine"].get(e, {}).get("default", [])) if spec.get("engine", True) else [])):
+            print(" -", f)
+        for f in spec.get("engineOptional", {}).get(e, []):
+            print(" - (only if the GDD needs it)", f)
+        return
     result = {"parent": tokens(m["parent"])[0], "phases": {}}
     bad = []
     t, miss, _ = tokens(m["parent"])

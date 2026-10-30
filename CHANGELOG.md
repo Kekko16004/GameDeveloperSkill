@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-30 (sera, 2): meno token per fase Nucleon, ciclo di ottimizzazione unico, regole di processo
+
+| Cosa | Dove |
+|---|---|
+| **`nucleon-loop.md` diviso per fase** (era 13,9k token letti interi da ogni worker Nucleon): ora e' un indice + mappa delle fasi, e un worker legge solo i file della sua fase (`nucleon/core,bridge,spec,gameplay,tests,ui,look,perf`; extra e first-person solo se il GDD li chiede). La divisione e' meccanica e verificata riga per riga (nessuna riga persa). Media per fase Nucleon 15382 -> 8694 token (-43%); le altre engine invariate | `references/nucleon/`, `references/nucleon-loop.md`, `config/phases.json` (manifest delle letture per fase), `scripts/context_budget.py` (`--reads FASE --engine nucleon` stampa la lista per il prompt) |
+| **Ciclo di ottimizzazione unico** per ogni engine e genere: budget da `targetFps` (p95), misura con vsync spento nella scena vera in movimento, attribuzione CPU/GPU/pass, prima lo spreco maggiore (contenuto, poi codice di gioco, poi impostazioni senza perdita visibile, poi `engine_gap:` con repro), rimisura contro il baseline, stop al budget o rapporto di cio' che resta. **Mai abbassare qualita'/risoluzione ne' usare upscaler per passare** salvo scelta del proprietario. Righe per Unity, Nucleon, Unreal, Godot nella tabella di `engines.md` (solo Nucleon provata; le altre sono i comandi documentati, non eseguiti) | `references/optimization.md` (nuovo), `references/engines.md`, `gates.md` 25b, `SKILL.md` |
+| **Regole di processo** (una sola casa ciascuna): test rosso -> il report dice se ha cambiato script o test e perche', mai tolleranze allargate, suite intera dopo l'ultima modifica o dichiarato che non e' girata; `engine_gap:` con repro instradato dal parent, nil del motore gestito in modo visibile; lock per run e sessioni di proprieta'; benchmark a ogni aggiornamento del motore e ogni gate di scena con il numero letto dal parent; controllo del look sui frame veri al primo giocabile | `workers.md` (Contratto 10-12), `gates.md`, `playtest.md` |
+| **Controllo che nessuna regola sia sparita**: 75 frasi-guida (voci dei gate, contratto, regole dure) verificate su tutta la skill; prima e dopo la ristrutturazione 0 mancanti | `scripts/rules_check.py`, `config/rules.json`, `scripts/tests/test_skill_structure.py` |
+
+Provato: tutti i test (structure 3, ncli 46, nc_proc 18, html2rml 45, hwdetect 9). Il contratto cresce di circa 260 token per ogni worker (le tre regole nuove): le fasi non-Nucleon salgono di quella quantita' (media Unity 5454 -> 5716). **Non fatto per limite di tempo** (rimandato): dividere `workers.md` in una pagina per fase, SKILL.md ridotto a router, unione delle fasi `ui-*`, `gate_verify.py` (controlli meccanici del parent), fasce di modello per fase, output ncli piu' conciso, rendere generiche le aggiunte solo-FPS del giorno 30, template generici piccoli (menu pausa, risultati, sway), prova dal vivo di `bench`/`playthrough`/`serve --as` (nessun motore in questi 25 minuti: serve la GPU libera per il baseline).
+
 ## 2026-10-30 (sera): lock per run, sessioni con proprietario, `bench`, `playthrough`, timeout ovunque
 
 | Cosa | Dove |

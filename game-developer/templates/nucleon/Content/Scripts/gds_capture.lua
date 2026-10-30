@@ -1,4 +1,4 @@
--- GDS capture for store pages and trailers (GameDeveloperSkill, `ncli.py capture plan.json`, references/nucleon-loop.md §6b).
+-- GDS capture for store pages and trailers (GameDeveloperSkill, `ncli.py capture plan.json`, references/nucleon/tests.md §6b).
 -- Runs only when Saved/gds-capture.lua exists (ncli writes it from the plan JSON, deletes it after Stop).
 -- Rules-safe by design (playtest.md "Catture fedeli alle regole"): it moves the camera, presses keys like a player and
 -- hides UI documents; it never touches timers, score, spawns or the game state. Every shot is labelled real-play.

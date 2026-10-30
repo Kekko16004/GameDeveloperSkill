@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""nc_world: seeded worlds for Nucleon from art/world/<name>.json (GameDeveloperSkill, references/nucleon-loop.md §4b).
+"""nc_world: seeded worlds for Nucleon from art/world/<name>.json (GameDeveloperSkill, references/nucleon/spec.md §4b).
 
 Standard library only, deterministic (same JSON + seed = same world). Python does the generation; the engine only writes:
   python nc_world.py build art/world/<name>.json --project PROJECT [--catalog art/kit-catalog.json]

@@ -1,0 +1,305 @@
+{
+ "_doc": "first words of every gate item / contract item / hard rule; see scripts/rules_check.py",
+ "rules": [
+  {
+   "file": "references/gates.md",
+   "phrase": "Every evidence path exists on disk?"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Any phase that touches the scene (greybox,"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For level-build: build: JSON with missingRoles: []"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For hero-asset: ledger source: one of the"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For lookdev: applied must contain volume and"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For characters: BuildController JSON status: PASS, prefab"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For world-gen: docs/lint/world-<name>.json status: PASS, warnings: [],"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For art-review: 7 scores with evidence, average"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "For playtest: Read the Play Mode PNG."
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Feel regression ([playtest.md](playtest.md) § Feel in scena"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Captures: every screenshot/clip used as evidence for"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Evidence location: any evidence path under Temp/"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Report vs brief ([workers.md](workers.md) § Contratto): the"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "DECISIONI: a gate or report that lists"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Header: python SKILL/scripts/gatelink.py --project PROJECT check docs/gates/NN-.md"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Real mechanic, normal play: every fix is"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Screenshots and frames looked at: each one"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Saves: any Play/exe session that can write"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "No unrequested builds; no test suites when"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Design changes and attribution: every difference from"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Regression loop: risks lists the gameplay risks"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Orphans: a gate that redesigns screens, menus,"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Repro first: every bug fix has repro:"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Performance, from the first playable on (every"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Hand-off (when launch/ exists): after PASS the"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Frames only where the player can go:"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Every input really works: each input of"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "First-person view models (FPS genres): weapon and"
+  },
+  {
+   "file": "references/gates.md",
+   "phrase": "Owner hand-off: before the owner is told"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Proprietà dei file. Il worker scrive solo"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Parallelo. Il parent non lancia mai in"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Recinto DO / DO NOT. Fuori da"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Report fisso ([templates/worker-report.md](../templates/worker-report.md)): fatto (un item di"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Avanzamento riprendibile ([templates/progress-checkpoint.md](../templates/progress-checkpoint.md)): il worker crea PROGRESS"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Deliverable mai in Temp/ o Library/ (Unity"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Scelte di design dette chiaro. Se il"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Decisioni: solo proposte etichettate. Un worker che"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Salvataggi del proprietario. Prima di ogni Play/exe"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Pronti = righe [ ] di GAMETASKS.md"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Raggruppa: task con OWNS disgiunti nella stessa"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Lancia tutti nello stesso messaggio (Claude Code:"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "A ogni chiusura (notifica): verifica gate +"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Mai fermarsi: un [!] dopo 2 retry"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Scelte dell'utente raggruppate: le varianti UI di"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Checkpoint (ogni 10 [x], prima di art-review"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Prima: misura il problema nel gioco vero"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Causa vera, poi fix. Bilanciamento, tuning e"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Verifica la meccanica vera nel gioco normale,"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Foto guardate, una per una, con una"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Salvataggi: backup e ripristino identici (Contratto 9)."
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Niente build se il proprietario non l'ha"
+  },
+  {
+   "file": "references/workers.md",
+   "phrase": "Dopo: review \"dopo\" sulle run toccate; dopo"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Deterministico — Unity: C# in Assets/Game/Editor/GDS/ +"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "LLM (worker) — decide cosa (spec, blueprint,"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Wipe scena prima di ogni import. 1."
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Doctor (scripts/doctor.ps1)."
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "GDD.md non locked → intervista (unica fase"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker project (Unity: create/attach + install-gds-editor.ps1 +"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker task-decomposition → GAMETASKS.md, GAMECONTEXT.md (genre, style),"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker greybox (ground top Y=0, controller del"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Da qui in poi tutto in parallelo"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker lookdev → art-review (media ≥ 4,"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker characters (+ NavMesh se nemici) →"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "ui-tokens → worker variants di tutte le"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Worker baseline- (essenziali sempre, opzionali dal blocco"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Dopo la slice: iterazione (ondate del focus"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Frame solo dove il giocatore può andare:"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Performance dal primo giocabile, a ogni gate,"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Ogni input della tabella controlli è provato"
+  },
+  {
+   "file": "SKILL.md",
+   "phrase": "Prima di dire al proprietario che la"
+  },
+  {
+   "file": "references/playtest.md",
+   "phrase": "Ogni gate che tocca fisica, controller, tuning,"
+  },
+  {
+   "file": "references/playtest.md",
+   "phrase": "cammina per tutto il percorso giocabile (avanti,"
+  },
+  {
+   "file": "references/playtest.md",
+   "phrase": "guarda attorno col mouse: sway visibile, niente"
+  },
+  {
+   "file": "references/playtest.md",
+   "phrase": "ogni verbo del GDD; per un FPS:"
+  },
+  {
+   "file": "references/playtest.md",
+   "phrase": "uno screenshot per passo, letto (una riga"
+  }
+ ]
+}

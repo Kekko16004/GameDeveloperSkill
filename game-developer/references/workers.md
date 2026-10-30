@@ -8,7 +8,7 @@ Il parent **non implementa**. Lancia un subagent isolato per ogni task/fase. Ogn
 | Kilo Code / OpenCode / Codex | tool `Task` (`general`) o l'equivalente subagent del client, più chiamate nello stesso messaggio |
 | Host senza subagent | stesso flusso, il parent esegue un worker alla volta in sequenza con lo stesso contratto e la memoria su disco: mai fermarsi a chiedere una chat nuova |
 
-Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Altri engine → stessi worker, stessi gate, verbi dell'adapter di [engines.md](engines.md): Nucleon [nucleon-loop.md](nucleon-loop.md) (`ncli.py`), Unreal [unreal-loop.md](unreal-loop.md), Godot [godot-loop.md](godot-loop.md).
+Il layer deterministico ([gds-editor.md](gds-editor.md)) fa il lavoro di precisione: il worker scrive JSON e chiama `unity command gds_*` ([unity-cli.md](unity-cli.md); fallback `eval` / CoplayDev `execute_code`), non piazza pezzi a mano. Ogni gate che tocca la scena cita `lint: {"issues":0,...}` da `gds_lint`. Altri engine → stessi worker, stessi gate, verbi dell'adapter di [engines.md](engines.md): Nucleon [nucleon-loop.md](nucleon-loop.md) (`ncli.py`; l'indice dei file: il worker legge solo quelli della sua fase, `python scripts/context_budget.py --reads <fase> --engine nucleon` stampa la lista da incollare nel prompt, `config/phases.json`), Unreal [unreal-loop.md](unreal-loop.md), Godot [godot-loop.md](godot-loop.md).
 
 ## Contesto minimo (le uniche 9 righe per ogni worker)
 
@@ -48,6 +48,9 @@ REPORT=formato fisso di SKILL/templates/worker-report.md
 7. **Scelte di design dette chiaro.** Se il worker implementa una cosa in modo diverso dal brief (una soglia, un comportamento, un testo, un flusso), lo scrive in "Deviazioni" e in `design_changes` del gate: cosa, perché, `decided_by: implementer`. **Mai** "il proprietario ha chiesto X" se X non è nel brief o in `DECISIONI.md` con la fonte (lezione Buffet Panic!: una scelta del worker è stata attribuita al proprietario).
 8. **Decisioni: solo proposte etichettate.** Un worker che pensa che una decisione vada cambiata non la cambia: scrive `Riapre la decisione: D-NNN — prove — proposta` nella sezione "Proposte" del report ([launch-link.md](launch-link.md) §4).
 9. **Salvataggi del proprietario.** Prima di ogni Play/exe che può scrivere salvataggi o preferenze: backup (cartelle dei salvataggi + chiavi di registro/PlayerPrefs), salvataggi del Play in una cartella temporanea se il gioco lo permette, ripristino alla fine con controllo "identici" (hash). La riga va nel gate (`saves:`).
+10. **Test rosso: dire cosa si e' cambiato.** Un test che fallisce per ordine di esecuzione o attese sbagliate si corregge, ma il report dice se ha cambiato lo script di gioco o il test e perche'. **Mai allargare una tolleranza o togliere un'asserzione per far passare.** La suite intera gira dopo l'ULTIMA modifica; se non e' girata, il report scrive "suite non eseguita dopo l'ultima modifica".
+11. **`engine_gap:`.** Cio' che il motore non fa (input non iniettabile, dato mancante, difetto) si scrive nel gate come `engine_gap:` con la riproduzione minima e i numeri; il parent lo instrada. Mai aggirarlo in silenzio, mai saltare il passo. Uno script che dipende da un dato del motore gestisce il nil in modo visibile (Nucleon: `t.need`), non lo ignora.
+12. **Un editor alla volta, per run.** Il lock del motore (macchina + progetto) si prende per ogni run, non per tutto il giro; una sessione `serve` e' del worker che l'ha avviata e nessun altro la usa o la chiude ([nucleon/bridge.md](nucleon/bridge.md)).
 
 ## Retry
 
@@ -112,7 +115,7 @@ Gate: `GDD.md` contiene `status: locked` e tutti i campi della lista in `gdd-int
 
 ## PHASE project
 
-Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md` (Nucleon: `nucleon-loop.md` §1-2 e §9; Unreal: `unreal-loop.md`; Godot: `godot-loop.md`).
+Tu fai SOLO attach o create + strumentazione. Leggi `SKILL/references/project-attach.md`, `unity-cli.md`, `gds-editor.md` (Nucleon: `nucleon/core.md`, `nucleon/bridge.md` e il §9 di `nucleon-loop.md`; Unreal: `unreal-loop.md`; Godot: `godot-loop.md`).
 
 **ENGINE=nucleon** (al posto dei punti 1-4 Unity):
 1. Attach, oppure `python SKILL/scripts/ncli.py --exe <paths.nucleon> exe new-project PROJECT --template <first-person|third-person|top-down|empty dal genere>`.
@@ -279,7 +282,7 @@ Tu fai SOLO il look. Leggi `lookdev.md`, `gds-editor.md`, `GDD.md → lookdev/to
 5. Luci locali: `GDS.VFX.AttachTorches("torch")` per interni; 1 fill light sull'obiettivo.
 6. `read_console` 0 errori. Lint 0. Screenshot Game view `screenshots/035-lookdev.png` (bloom/fog/ombre visibili).
 NON toccare gameplay/UI. NON YAML.
-**ENGINE=nucleon** (al posto dei passi 1-5, [nucleon-loop.md](nucleon-loop.md) §8a): `ncli session-stop` → `nc_mat.py auto --project P --catalog art/kit-catalog.json --style <GDD style> --name <kit>` → `nc_mat.py assign` (materiali + vento delle piante sul livello) → materiali a mano per le superfici del GDD (`nc_mat.py make glass|water|carPaint|skin|neon ...`) → `nc_mat.py check` su ogni shading model nuovo (fallito = `defaultLit` con le stesse texture + nota in `docs/NUCLEON-ENGINE-NOTES.md`) → `nc_world.py look` → `serve` → shot in Game View.
+**ENGINE=nucleon** (al posto dei passi 1-5, [nucleon/look.md](nucleon/look.md)): `ncli session-stop` → `nc_mat.py auto --project P --catalog art/kit-catalog.json --style <GDD style> --name <kit>` → `nc_mat.py assign` (materiali + vento delle piante sul livello) → materiali a mano per le superfici del GDD (`nc_mat.py make glass|water|carPaint|skin|neon ...`) → `nc_mat.py check` su ogni shading model nuovo (fallito = `defaultLit` con le stesse texture + nota in `docs/NUCLEON-ENGINE-NOTES.md`) → `nc_world.py look` → `serve` → shot in Game View.
 Gate: `docs/gates/08-lookdev.md` con l'`applied` JSON (Nucleon: l'output di `auto`/`assign`/`check`), preset, PNG, `lint:`.
 
 ---

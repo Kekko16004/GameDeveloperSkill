@@ -1,4 +1,4 @@
--- GDS playtest telemetry (GameDeveloperSkill, quality-baseline.md "Playtest kit", references/nucleon-loop.md §6c).
+-- GDS playtest telemetry (GameDeveloperSkill, quality-baseline.md "Playtest kit", references/nucleon/tests.md §6c).
 -- OPT-IN: records only when the player said yes (SaveData("telemetry", {optIn = true}), e.g. from a first-run prompt or
 -- the options menu) or when the environment variable NC_GDS_TELEMETRY=1 is set (tester builds). Nothing leaves the PC:
 -- one CSV per session in Saved/telemetry/<date>_<time>_<level>.csv that the tester sends back by hand.

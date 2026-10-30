@@ -2051,7 +2051,7 @@ def cmd_api_refresh(a):
         # from its embedded copy: no nc/natives.lua = no dump, an nc/ written by an older editor = the old registry (404 natives instead of 694
         # on 2026-10-29), silently.
         if not a.project:
-            raise McpError("--from-editor needs --project: a project this editor has opened (docs: nucleon-loop.md, Snapshot gotcha)")
+            raise McpError("--from-editor needs --project: a project this editor has opened (docs: references/nucleon/bridge-extra.md, Snapshot gotcha)")
         exe = find_exe(a)
         nat_lua = os.path.join(os.path.abspath(a.project), "nc", "natives.lua")
         if not os.path.isfile(nat_lua):

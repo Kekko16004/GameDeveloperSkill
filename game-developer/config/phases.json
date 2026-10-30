@@ -1,0 +1,448 @@
+{
+ "_doc": "Per phase: the files a worker loads. engineFiles = the engine files that phase needs (listed in its prompt); engineOptional = read only when the GDD needs it (first-person game, streaming, weather...). Used by scripts/context_budget.py; --check fails on a missing file.",
+ "parent": [
+  "SKILL.md",
+  "references/workers.md",
+  "references/pipeline.md",
+  "references/engines.md",
+  "command/game.md"
+ ],
+ "prompt": [
+  "references/workers.md#Contesto minimo",
+  "references/workers.md#Contratto"
+ ],
+ "engine": {
+  "nucleon": {
+   "default": [
+    "references/nucleon-loop.md"
+   ],
+   "project": [
+    "references/nucleon-loop.md#1. Requirements",
+    "references/nucleon-loop.md#2. The bridge",
+    "references/nucleon-loop.md#9. Phase mapping"
+   ]
+  },
+  "unity": {
+   "default": [
+    "references/unity-loop.md"
+   ],
+   "project": [
+    "references/unity-cli.md",
+    "references/gds-editor.md"
+   ]
+  },
+  "unreal": {
+   "default": [
+    "references/unreal-loop.md"
+   ],
+   "project": [
+    "references/unreal-loop.md"
+   ]
+  },
+  "godot": {
+   "default": [
+    "references/godot-loop.md"
+   ],
+   "project": [
+    "references/godot-loop.md"
+   ]
+  }
+ },
+ "phases": {
+  "gdd": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE gdd"
+   ],
+   "reads": [
+    "references/gdd-interview.md",
+    "references/genres.md",
+    "references/styles.md",
+    "references/world-gen.md",
+    "references/tool-stack.md",
+    "references/gdd-template.md",
+    "references/gen3d.md",
+    "references/lookdev.md",
+    "references/quality-baseline.md"
+   ]
+  },
+  "project": {
+   "engineSections": "project",
+   "prompt": [
+    "references/workers.md#PHASE project"
+   ],
+   "reads": [
+    "references/project-attach.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon-loop.md#9. Phase mapping"
+    ]
+   }
+  },
+  "task-decomposition": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE task-decomposition"
+   ],
+   "reads": [
+    "references/task-decomposition.md",
+    "references/art-pipeline.md",
+    "references/level-builder.md",
+    "references/context-management.md",
+    "templates/GAME_TASKS.md",
+    "templates/GAME_CONTEXT.md"
+   ]
+  },
+  "greybox": {
+   "prompt": [
+    "references/workers.md#PHASE greybox"
+   ],
+   "reads": [
+    "references/greybox.md",
+    "references/level-builder.md",
+    "references/geometra.md",
+    "references/scene-lint.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   }
+  },
+  "kit-fetch": {
+   "prompt": [
+    "references/workers.md#PHASE kit-fetch"
+   ],
+   "reads": [
+    "references/cc0-sources.md",
+    "references/art-pipeline.md",
+    "references/gds-editor.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   }
+  },
+  "world-gen": {
+   "prompt": [
+    "references/workers.md#PHASE world-gen"
+   ],
+   "reads": [
+    "references/world-gen.md",
+    "references/scene-lint.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   }
+  },
+  "building-gen": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE building-gen"
+   ],
+   "reads": [
+    "references/blender-building.md",
+    "references/geometra.md"
+   ]
+  },
+  "level-build": {
+   "prompt": [
+    "references/workers.md#PHASE level-build"
+   ],
+   "reads": [
+    "references/level-builder.md",
+    "references/scene-lint.md",
+    "references/geometra.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/bridge-extra.md"
+    ]
+   }
+  },
+  "village": {
+   "prompt": [
+    "references/workers.md#PHASE village"
+   ],
+   "reads": [
+    "references/village.md",
+    "references/scene-lint.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   }
+  },
+  "hero-asset": {
+   "prompt": [
+    "references/workers.md#PHASE hero-asset"
+   ],
+   "reads": [
+    "references/hero-procedural.md",
+    "references/asset-contract.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md"
+    ]
+   }
+  },
+  "import-art": {
+   "prompt": [
+    "references/workers.md#PHASE import-art"
+   ],
+   "reads": [],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md"
+    ]
+   }
+  },
+  "lookdev": {
+   "prompt": [
+    "references/workers.md#PHASE lookdev"
+   ],
+   "reads": [
+    "references/lookdev.md",
+    "references/gds-editor.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/spec.md",
+     "references/nucleon/look.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/bridge-extra.md"
+    ]
+   }
+  },
+  "art-review": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE art-review"
+   ],
+   "reads": [
+    "references/art-direction.md",
+    "references/styles.md"
+   ]
+  },
+  "characters": {
+   "prompt": [
+    "references/workers.md#PHASE characters"
+   ],
+   "reads": [
+    "references/characters.md",
+    "references/gds-editor.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/gameplay.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/first-person.md"
+    ]
+   }
+  },
+  "systems": {
+   "prompt": [
+    "references/workers.md#PHASE systems"
+   ],
+   "reads": [],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/gameplay.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/first-person.md",
+     "references/nucleon/gameplay-extra.md"
+    ]
+   }
+  },
+  "feel-baseline": {
+   "prompt": [
+    "references/workers.md#PHASE feel-baseline"
+   ],
+   "reads": [
+    "references/playtest.md#Feel in scena reale",
+    "templates/feel-baseline.json"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/tests.md"
+    ]
+   }
+  },
+  "baseline-item": {
+   "prompt": [
+    "references/workers.md#PHASE baseline"
+   ],
+   "reads": [
+    "references/quality-baseline.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/tests.md"
+    ]
+   }
+  },
+  "ui-main-menu": {
+   "prompt": [
+    "references/workers.md#PHASE ui-*",
+    "references/workers.md#PHASE ui-main-menu"
+   ],
+   "reads": [
+    "references/ui-bridge.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/ui.md"
+    ]
+   }
+  },
+  "ui-hud": {
+   "prompt": [
+    "references/workers.md#PHASE ui-*",
+    "references/workers.md#PHASE ui-hud"
+   ],
+   "reads": [
+    "references/ui-bridge.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/ui.md"
+    ]
+   }
+  },
+  "juice": {
+   "prompt": [
+    "references/workers.md#PHASE juice"
+   ],
+   "reads": [
+    "references/vfx.md",
+    "references/audio-pipeline.md",
+    "references/juice.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/tests.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/gameplay-extra.md"
+    ]
+   }
+  },
+  "playtest": {
+   "prompt": [
+    "references/workers.md#PHASE playtest"
+   ],
+   "reads": [
+    "references/playtest.md",
+    "references/scene-lint.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/tests.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/first-person.md"
+    ]
+   }
+  },
+  "slice": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE slice"
+   ],
+   "reads": []
+  },
+  "design-review": {
+   "engine": false,
+   "prompt": [
+    "references/workers.md#PHASE design-review"
+   ],
+   "reads": [
+    "references/design-review.md"
+   ]
+  },
+  "iterate-gate": {
+   "prompt": [
+    "references/workers.md#PHASE iterate-gate"
+   ],
+   "reads": [
+    "references/launch-link.md",
+    "references/design-review.md",
+    "templates/gate.md",
+    "references/playtest.md",
+    "references/gates.md"
+   ],
+   "engineFiles": {
+    "nucleon": [
+     "references/nucleon/core.md",
+     "references/nucleon/bridge.md",
+     "references/nucleon/tests.md",
+     "references/nucleon/perf.md"
+    ]
+   },
+   "engineOptional": {
+    "nucleon": [
+     "references/nucleon/first-person.md",
+     "references/nucleon/gameplay-extra.md",
+     "references/nucleon/bridge-extra.md"
+    ]
+   }
+  }
+ }
+}

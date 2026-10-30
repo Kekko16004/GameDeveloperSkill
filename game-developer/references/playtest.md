@@ -33,7 +33,7 @@ Stesso commit: script + test.
 Unity: `run_tests`. Fallback `unity test <project> --mode EditMode --timeout 300 --format json`.
 Play Mode input: MCP inject, altrimenti TerminalMCP `window: Unity` + `shot: true`.
 
-Nucleon: un `Content/Scripts/test_<verbo>.lua` per verbo con l'harness `gds_test.lua` ([nucleon-loop.md](nucleon-loop.md) §6): input vero con `t.hold("W", 1)` / `t.tap("E")` (`SimulateKey` passa da `Config/Input.lua` e dallo script del pawn), numeri nel messaggio di FAIL. Si lancia con `NC_GDS_TEST=1` nell'ambiente dell'editor e `ncli play-test --seconds 120 --expect "GDS-TEST DONE pass=<n> fail=0" --shot screenshots/play.png` (si ferma da solo al `DONE`). Build pacchettizzata: `NC_GDS_TEST=1 NC_GDS_TEST_EXIT=1` → exit code 0/3.
+Nucleon: un `Content/Scripts/test_<verbo>.lua` per verbo con l'harness `gds_test.lua` ([nucleon/tests.md](nucleon/tests.md)): input vero con `t.hold("W", 1)` / `t.tap("E")` (`SimulateKey` passa da `Config/Input.lua` e dallo script del pawn), numeri nel messaggio di FAIL. Si lancia con `NC_GDS_TEST=1` nell'ambiente dell'editor e `ncli play-test --seconds 120 --expect "GDS-TEST DONE pass=<n> fail=0" --shot screenshots/play.png` (si ferma da solo al `DONE`). Build pacchettizzata: `NC_GDS_TEST=1 NC_GDS_TEST_EXIT=1` → exit code 0/3.
 
 ## Feel in scena reale (suite di regressione)
 
@@ -48,6 +48,10 @@ Lezione Buffet Panic! (gate 46 → 49): la "body clearance" del gate 46 spingeva
 ## Budget di performance (gate)
 
 Il GDD fissa `targetFps` (Q22). **La performance si misura dal primo giocabile e a ogni gate, non alla fine**: ogni gate con una scena che si gioca misura il frame nella scena vera (la camminata del livello), con **vsync spento** (Nucleon `NC_D3D12_VSYNC=0`; Unity `QualitySettings.vsyncCount = 0` e `Application.targetFrameRate = -1`: con vsync un frame da 16 ms nasconde il costo vero) e incolla `perf:` nel gate; ogni gate di scena aggiunge anche `scene: {instances, drawCalls, outOfReach}` ([gates.md](gates.md) 26). **Mai chiamare «giocabile» qualcosa senza un tempo di frame.** Nucleon `t.perf("<nome>", 10, "W")` in un `test_perf.lua` (camminata nel livello) + `ncli play-test --fps <targetFps>` → p50/p95/p99/max ms; p95 sopra `1000/targetFps` = FAIL salvo ok del proprietario (riga in `DECISIONI.md`). Unity: Profiler/`FrameTimingManager` nella stessa camminata. Solo su GPU vera: con rendering software (CI, Xvfb, llvmpipe) il numero non vale e il gate lo dice (`perf: skipped: software renderer`). Nucleon limita il dt a 100 ms: un p95 di 100 ms vuol dire "≤ 10 fps", non 100 ms esatti.
+
+## Controllo del look al primo giocabile
+
+Appena la scena e' giocabile, il parent guarda frame veri del gioco dalla camera di gioco (non anteprime di asset) e li confronta con la reference board di stile ([art-direction.md](art-direction.md), [styles.md](styles.md)): se non si riconosce lo stesso gioco, torna a lookdev prima di costruire altro.
 
 ## Passeggiata del parent (prima di dire al proprietario «la build si apre»)
 

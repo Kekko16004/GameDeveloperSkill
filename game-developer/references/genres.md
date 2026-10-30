@@ -20,7 +20,7 @@ Task-decomposition picks ONE row from GDD Q1-Q5 + Q9 and writes it into `GAME_CO
 
 ## FPS / shooter on Nucleon (engine features, not Lua re-implementations)
 
-The engine has the first-person kit; the systems worker writes only the game's rules on top ([nucleon-loop.md](nucleon-loop.md) §5, engine doc `docs/engine/FIRST_PERSON.md`):
+The engine has the first-person kit; the systems worker writes only the game's rules on top ([nucleon/first-person.md](nucleon/first-person.md), engine doc `docs/engine/FIRST_PERSON.md`):
 
 | piece | use | never |
 |---|---|---|
