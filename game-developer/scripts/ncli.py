@@ -78,6 +78,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nc_gds  # noqa: E402  (offline half: specs, kit catalog, worlds)
+import nc_proc  # noqa: E402  (bounded child processes, locks, watchdog)
 
 PROTOCOL = "2025-06-18"
 
@@ -189,7 +190,7 @@ class StdioClient:
         args = launch_argv(exe, ["--mcp-stdio"] + (["--mcp-no-lua"] if no_lua else []) + [project], env)
         self.timeout = timeout
         self.log = open(os.devnull, "wb") if not os.environ.get("NCLI_EDITOR_LOG") else open(os.environ["NCLI_EDITOR_LOG"], "wb")
-        self.proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, env=env)
+        self.proc = nc_proc.popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, env=env)
         self.lines = queue.Queue()
         threading.Thread(target=self._reader, daemon=True).start()
         reply = self.post({"jsonrpc": "2.0", "id": 0, "method": "initialize",
@@ -230,14 +231,16 @@ class StdioClient:
             self.proc.stdin.close()
             self.proc.wait(timeout=30)
         except Exception:
-            self.proc.kill()
+            nc_proc.kill_tree(self.proc.pid)   # the launcher AND the editor under it
+        nc_proc.CHILDREN.discard(self.proc)
 
 
 class Editor:
     """tools/call helpers over either client."""
 
-    def __init__(self, client):
+    def __init__(self, client, transport="http"):
         self.client = client
+        self.transport = transport   # http (the owner's editor) | session (ncli serve) | stdio (one command)
         self.next_id = 1
 
     def _msg(self, tool, args):
@@ -286,15 +289,42 @@ class Editor:
         return out
 
 
+def worker_name(a):
+    """Who is running this command: --as, the `--owner` of cycle / lock / locked, or NCLI_WORKER."""
+    return getattr(a, "worker", None) or getattr(a, "owner", None) or os.environ.get("NCLI_WORKER") or None
+
+
+READ_ONLY_CMDS = {"ping", "state", "entities", "log", "tools", "resources", "tools-check", "assets", "commands", "memory"}
+READ_ONLY_ACTIONS = {"get", "list", "status"}
+
+
+def is_read_only(a):
+    return a.cmd in READ_ONLY_CMDS or (a.cmd in ("entity", "docs", "camera", "post", "input", "weather") and
+                                       getattr(a, "action", None) in READ_ONLY_ACTIONS)
+
+
+def check_session_access(a, sess):
+    """A `serve` session belongs to the worker that started it. Anything that is not a plain read, from another worker (or from
+    one with no name), is refused: a play-test on someone else's session once ended with its session-stop closing that session."""
+    owner = sess.get("owner")
+    if not owner or is_read_only(a):
+        return
+    if worker_name(a) != owner:
+        raise McpError("refused: the serve session of this project belongs to '%s' (you are %s). Do not use it: start your own "
+                       "(`ncli --as <you> --project <your copy> --stdio <editor> serve`), wait for its owner to `session-stop`, or ask "
+                       "the parent. Name yourself with --as NAME or NCLI_WORKER" % (owner, "'%s'" % worker_name(a) if worker_name(a) else "unnamed"))
+
+
 def connect(a):
     if a.stdio:
         if not a.project:
             raise McpError("--stdio needs --project")
-        return Editor(StdioClient(a.stdio, a.project, a.timeout, a.no_lua))
+        return Editor(StdioClient(a.stdio, a.project, a.timeout, a.no_lua), "stdio")
     if not a.port:
         sess = read_session(a.project)
         if sess:   # a persistent `ncli serve` editor for this project wins over the owner's settings
-            return Editor(HttpClient(sess["port"], sess["token"], a.timeout))
+            check_session_access(a, sess)
+            return Editor(HttpClient(sess["port"], sess["token"], a.timeout), "session")
     s = read_settings()
     port = a.port or s.get("port") or 47420
     token = a.token or os.environ.get("NC_MCP_TOKEN") or s.get("token")
@@ -424,8 +454,17 @@ def ground_origin(proj, x, y):
     return f["z"], {"id": f.get("id"), "z": f["z"], "how": how}
 
 
+def refuse_main_level_save(ed, a):
+    """`--save current` from a session / stdio editor writes whatever level that editor opened: the project's main level, with a
+    worker's test content in it. Name the level, or say it is meant (--save-main-level)."""
+    if getattr(a, "save", None) == "current" and ed.transport in ("stdio", "session") and not getattr(a, "save_main_level", False):
+        raise McpError("refused: `--save current` through --stdio / serve writes the project's main level. Give the level path "
+                       "(--save Content/Levels/<name>.nclevel) or add --save-main-level if the main level is the target")
+
+
 def build(ed, a, spec_path):
     """One spec -> entities; returns the report (also written to docs/lint/build-<name>.json)."""
+    refuse_main_level_save(ed, a)
     spec = json.load(open(spec_path, encoding="utf-8"))
     name = spec.get("name") or os.path.splitext(os.path.basename(spec_path))[0]
     folder_name = "BP_" + name
@@ -469,6 +508,9 @@ def build(ed, a, spec_path):
         report["groundFlat"] = ground_flat
     if a.save:
         report["saved"] = ed.call("save_scene", {"path": a.save} if a.save != "current" else {}).get("saved")
+    if old_ids and glob.glob(os.path.join(proj, "art", "materials", "*.map.json")):
+        report["warnings"].append("rebuilt in place: the materials / wind that `nc_mat.py assign` put on this folder's models are gone; "
+                                  "run `nc_mat.py assign` again (editor closed), or put them in the spec")
     write_json(out, report)
     report["report"] = out
     return report
@@ -501,6 +543,7 @@ def cmd_cycle(a, ed):
     if not lk.get("locked"):
         emit({"status": "FAIL", "error": "lock held", **lk})
         sys.exit(1)
+    reentrant = bool(lk.get("reentrant"))   # a `locked` wrapper (same owner) holds it: it releases, not this call
     out = {"owner": owner}
     if getattr(a, "since", None) is None:   # the lint counts the log errors of THIS cycle, not of earlier work in the session
         a.since = ed.call("read_log", {"limit": 1}).get("next_index")
@@ -516,7 +559,8 @@ def cmd_cycle(a, ed):
             out["shot"] = capture(ed, shot, a.width)
         out["saved"] = bool(rep.get("saved"))
     finally:
-        lock_release(project_dir(a, ed), owner)
+        if not reentrant:
+            lock_release(project_dir(a, ed), owner)
     ok = out["build"]["status"] == "PASS" and out["lint"]["issues"] == 0
     out["status"] = "PASS" if ok else "FAIL"
     emit({"status": out.pop("status"), **out})
@@ -955,6 +999,29 @@ def cmd_shot(a, ed):
     emit(capture(ed, a.out, a.width, a.target_kind))
 
 
+def restart_session(a):
+    """--fresh: a second Play in one `serve` session can start with input state left by the first (a key held when a test timed
+    out). A new editor costs 5-10 s, so it is for the run that is gate evidence. Skipped (with a warning) when the level has
+    unsaved changes: they would be lost."""
+    sess = read_session(a.project)
+    if not sess or not sess.get("stdio"):
+        return None
+    check_session_access(a, sess)
+    try:
+        st = Editor(HttpClient(sess["port"], sess["token"], a.timeout)).call("editor_state")
+    except McpError:
+        return None
+    if st.get("unsaved_changes"):
+        return "fresh skipped: the level has unsaved changes (save first)"
+    cmd_session_stop(argparse.Namespace(project=a.project, save=False, timeout=a.timeout))
+    for _ in range(40):
+        if not read_session(a.project):
+            break
+        time.sleep(0.5)
+    serve_detached(argparse.Namespace(project=a.project, stdio=sess["stdio"], timeout=a.timeout, no_lua=a.no_lua), sess.get("owner") or worker_name(a))
+    return None
+
+
 def cmd_play_test(a, ed):
     before = ed.call("read_log", {"limit": 1}).get("next_index")
     ed.call("play_control", {"action": "start"})
@@ -975,11 +1042,17 @@ def cmd_play_test(a, ed):
         ed.call("play_control", {"action": "stop"})
     log = ed.call("read_log", {"since_index": before, "limit": 1000, **({"contains": a.grep} if a.grep else {})}) \
         if before is not None else {"lines": []}
-    if a.verbose:
-        print(json.dumps(log)[:4000], file=sys.stderr)
     lines = log.get("lines", log.get("entries", []))
-    errors = [l.get("text", "")[:200] for l in lines if l.get("level") == "error"]
+    proj = project_dir(a, ed)
+    log_path = os.path.join(proj, "Saved", "ncli-logs", "play-test-%d.log" % time.time())   # the FULL log, whatever is printed
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("\n".join("%s %s" % ((l.get("level") or "?")[:1].upper(), l.get("text", "")) for l in lines) + "\n")
+    if a.verbose:
+        print("\n".join(l.get("text", "") for l in lines), file=sys.stderr)
+    errors = [l.get("text", "")[:400] for l in lines if l.get("level") == "error"]
     metrics = {"perf": [], "feel": []}
+    gaps = []
     for l in ed.call("read_log", {"since_index": before, "contains": "GDS-", "limit": 1000}).get("lines", []) if before is not None else []:
         m = re.match(r"GDS-(PERF|FEEL) (\{.*\})\s*$", l.get("text", ""))
         if m:
@@ -987,12 +1060,16 @@ def cmd_play_test(a, ed):
                 metrics[m.group(1).lower()].append(json.loads(m.group(2)))
             except ValueError:
                 pass
+        if l.get("text", "").startswith("GDS-GAP"):
+            gaps.append(l["text"][8:].strip())
     over = []
     if a.fps and metrics["perf"]:
         budget = 1000.0 / a.fps
         over = [p for p in metrics["perf"] if p.get("p95_ms", 0) > budget]
     out = {"status": "PASS" if not errors and not over and (not a.expect or any(a.expect in l.get("text", "") for l in lines)) else "FAIL",
-           "seconds": round(time.time() - t0, 1), "playState": state, "errors": errors[:15], "lines": len(lines), "shots": shots}
+           "seconds": round(time.time() - t0, 1), "playState": state, "errors": errors[:15], "lines": len(lines), "log": log_path, "shots": shots}
+    if gaps:
+        out["engine_gap"] = list(dict.fromkeys(gaps))   # data the engine did not give: copy into the gate as `engine_gap:` with the repro
     if a.expect:
         out["expect"] = {a.expect: any(a.expect in l.get("text", "") for l in lines)}
     if metrics["perf"]:
@@ -1116,7 +1193,7 @@ def cmd_log(a, ed):
     res = ed.call("read_log", args)
     lines = res.get("lines", res.get("entries", []))
     emit({"next_index": res.get("next_index"), "lines": [{"i": l.get("index"), "l": {"info": "i", "warning": "w", "error": "E", "engine": "g"}.get(l.get("level", ""), "?"),
-                                                          "t": l.get("text", "")[:300]} for l in lines]})
+                                                          "t": l.get("text", "")[:a.cut] if a.cut else l.get("text", "")} for l in lines]})
 
 
 def cmd_save(a, ed):
@@ -1477,69 +1554,350 @@ def cmd_tools(a, ed):
                                          for t in tools}})
 
 
-# --- lock (no editor needed) --------------------------------------------------------------------------------------------
+# --- bench: one repeatable measurement of one level (nc_bench.py, tools/nucleon-bench) -------------------------------------
+def cmd_bench(a):
+    """bench --project P --view x,y,z,tx,ty,tz | --path file.json | --scenes file.json [--fps N] [--baseline F] [--update-baseline]:
+    vsync off, a fixed camera or path, p50/p95/p99 of wall / CPU / GPU frame time, Present, draw calls, items, CPU or GPU bound,
+    warnings that make the number untrustworthy, and the comparison with a stored baseline. The run takes the GPU + project lock itself."""
+    import nc_bench
+    if not a.project:
+        raise McpError("bench needs --project")
+    engine = a.engine or os.path.dirname(find_exe(a))
+    a.name = a.name or "level"
+    summary = nc_bench.run(a, engine)
+    proj = os.path.abspath(a.project)
+    out_dir = os.path.join(proj, "docs", "bench")
+    base_path = a.baseline or os.path.join(out_dir, "%s.baseline.json" % a.name)
+    res = {"name": a.name, "wall_ms": summary["wall_ms"], "cpu_ms": summary["cpu_ms"], "gpu_ms": summary["gpu_ms"],
+           "present_ms": summary["present_ms"], "drawCalls": summary["drawCalls"], "bound": summary["bound"], "frames": summary["frames"]}
+    verdict = "OK"
+    if os.path.exists(base_path):
+        cmp = nc_bench.compare(summary, json.load(open(base_path, encoding="utf-8")), a.tolerance)
+        summary["compare"] = cmp
+        res["compare"] = {"deltaPct": cmp["deltaPct"], "regress": cmp["regress"], "improved": cmp["improved"]}
+        if cmp["regress"]:
+            verdict = "REGRESSED"
+    elif not a.update_baseline:
+        summary.setdefault("warnings", []).append("no baseline at %s: this run is the first; pass --update-baseline to store it" % base_path)
+    if "budget_ms" in summary:
+        res["budget_ms"], res["overBudget"] = summary["budget_ms"], summary["overBudget"]
+        if summary["overBudget"]:
+            verdict = "OVER_BUDGET"
+    untrusted = [w for w in summary["warnings"] if any(k in w for k in ("vsync", "another engine", "software", "frames", "did not finish"))]
+    res["trusted"] = not untrusted
+    res["warnings"] = summary["warnings"]
+    path = os.path.join(out_dir, "%s-%s.json" % (a.name, time.strftime("%Y%m%d-%H%M%S")))
+    write_json(path, summary)
+    if a.update_baseline:
+        write_json(base_path, summary)
+        res["baselineWritten"] = base_path
+    res["status"] = verdict if res["trusted"] else "UNTRUSTED"
+    res["file"] = path
+    emit(res)
+    if res["status"] in ("REGRESSED", "OVER_BUDGET", "UNTRUSTED"):
+        sys.exit(1)
+
+
+# --- playthrough: the bot plays every bound input; the parent reads the shots (gds_playthrough.lua) -----------------------------
+def cmd_playthrough(a, ed):
+    """playthrough [--plan extra.json] [--seconds 240]: Play with real input events (templates/nucleon gds_playthrough.lua): every
+    bound input of every action, a look, and the extra steps of the plan (the verbs of this game, with a watched value). Writes
+    docs/gates/playthrough-NN.md: step / input / result / what changed / frame ms / shot, and the steps it could NOT drive, listed for
+    the parent as engine_gap (never skipped). The parent still reads the shots."""
+    proj = project_dir(a, ed)
+    if not os.path.exists(os.path.join(proj, "Content", "Scripts", "gds_playthrough.lua")):
+        raise McpError("run `ncli setup PROJECT --force` first (Content/Scripts/gds_playthrough.lua)")
+    extra = json.load(open(a.plan, encoding="utf-8")) if a.plan else {}
+    n = 1
+    gates = os.path.join(proj, "docs", "gates")
+    while os.path.exists(os.path.join(gates, "playthrough-%02d.md" % n)):
+        n += 1
+    shots_dir = "screenshots/playthrough-%02d" % n
+    plan = {"out": shots_dir, "viaEditor": True, "hold": a.hold, "settle": a.settle, "extra": extra.get("steps", extra if isinstance(extra, list) else [])}
+    plan_path = os.path.join(proj, "Saved", "gds-playthrough.lua")
+    os.makedirs(os.path.dirname(plan_path), exist_ok=True)
+    open(plan_path, "w", encoding="utf-8").write("return " + to_lua(plan) + "\n")
+    os.makedirs(os.path.join(proj, shots_dir), exist_ok=True)
+    before = ed.call("read_log", {"limit": 1}).get("next_index")
+    ed.call("play_control", {"action": "start"})
+    t0, cursor, served, steps, done, errors = time.time(), before, set(), [], None, []
+    try:
+        while time.time() - t0 < a.seconds and not done:
+            time.sleep(0.25)
+            res = ed.call("read_log", {"since_index": cursor, "contains": "GDS-", "limit": 300})
+            cursor = res.get("next_index", cursor)
+            for l in res.get("lines", []):
+                text = l.get("text", "")
+                m = re.match(r"GDS-CAPTURE ready (\d+) (\S+)", text)
+                if m and m.group(1) not in served:
+                    served.add(m.group(1))
+                    try:
+                        capture(ed, os.path.join(proj, m.group(2)), a.width)
+                        status = "ok"
+                    except McpError as e:
+                        status = "failed"
+                        errors.append(str(e)[:160])
+                    ack = os.path.join(proj, "Saved", "gds-capture-ack-%s" % m.group(1))
+                    with open(ack + ".tmp", "w") as f:
+                        f.write(status)
+                    os.replace(ack + ".tmp", ack)
+                elif text.startswith("GDS-PLAY DONE"):
+                    done = text
+                elif text.startswith("GDS-PLAY {"):
+                    try:
+                        steps.append(json.loads(text[9:]))
+                    except ValueError:
+                        pass
+    finally:
+        ed.call("play_control", {"action": "stop"})
+        try:
+            os.remove(plan_path)
+        except OSError:
+            pass
+    log_errors = [x.get("text", "")[:300] for x in ed.call("read_log", {"since_index": before, "limit": 200}).get("lines", [])
+                  if x.get("level") == "error"]
+    driven = [s for s in steps if s.get("status") == "driven"]
+    undriv = [s for s in steps if s.get("status") == "undrivable"]
+    failed = [s for s in steps if s.get("status") == "failed"]
+    nochange = [s for s in driven if str(s.get("observed", "")).startswith("no visible change")]
+    rows = ["| # | action | input | result | what changed | p95 ms | shot |", "|---|---|---|---|---|---|---|"]
+    for s in steps:
+        rows.append("| %s | %s | %s | %s | %s | %s | %s |" % (s.get("n"), s.get("action"), s.get("input"), s.get("status"),
+                                                              str(s.get("observed", "")).replace("|", "/"), s.get("p95_ms", ""), s.get("shot") or ""))
+    md = ["# Playthrough %02d" % n, "", "date: %s" % time.strftime("%Y-%m-%d %H:%M"),
+          "status: %s" % ("PASS-PENDING-PARENT-READ" if done and not failed and not undriv and not log_errors else "NEEDS-PARENT"),
+          "steps: %d (driven %d, undrivable %d, failed %d)" % (len(steps), len(driven), len(undriv), len(failed)),
+          "log_errors: %d" % len(log_errors), "", "The bot cannot judge a picture: the parent opens every shot below, writes one line on what it shows, "
+          "and decides as a player would.", ""] + rows + [""]
+    if undriv:
+        md += ["## Not driven (for the parent: each is an `engine_gap:` or a manual check, never a skip)", ""] + \
+              ["- %s %s: %s" % (s.get("action"), s.get("input"), s.get("observed")) for s in undriv] + [""]
+    if nochange:
+        md += ["## Driven but nothing visible changed (look at the shot: a dead input, or a state the bot does not watch)", ""] + \
+              ["- step %s %s %s" % (s.get("n"), s.get("action"), s.get("input")) for s in nochange] + [""]
+    if failed or log_errors or errors:
+        md += ["## Failures", ""] + ["- step %s %s: %s" % (s.get("n"), s.get("action"), s.get("observed")) for s in failed] + \
+              ["- log: %s" % e for e in log_errors[:10]] + ["- capture: %s" % e for e in errors] + [""]
+    path = os.path.join(gates, "playthrough-%02d.md" % n)
+    os.makedirs(gates, exist_ok=True)
+    open(path, "w", encoding="utf-8").write("\n".join(md))
+    out = {"status": "NEEDS_PARENT" if (undriv or failed or log_errors or not done) else "READ_THE_SHOTS", "gate": path, "steps": len(steps),
+           "driven": len(driven), "undrivable": len(undriv), "failed": len(failed), "noVisibleChange": len(nochange),
+           "logErrors": len(log_errors), "done": bool(done)}
+    if undriv:
+        out["engine_gap"] = ["%s %s: %s" % (s.get("action"), s.get("input"), s.get("observed")) for s in undriv]
+    emit(out)
+    if failed or log_errors or not done:
+        sys.exit(1)
+
+
+# --- locks (no editor needed): see nc_proc.py ------------------------------------------------------------------------------
+# Two locks. PROJECT: one editor driver per project (Saved/gds-nucleon.lock). MACHINE (GPU): one engine run at a time on the
+# machine, whatever the project (a directory, made with mkdir like the bash tools do). Both are held per RUN of the engine
+# (a play-test, a bench, a cycle), never per round of work, both record owner / pid / since / max hold, both are released on any
+# exit and broken when the holder is dead or past its maximum hold.
+DEFAULT_HOLD = 600
+
+
 def lock_path(proj):
     return os.path.join(os.path.abspath(proj), "Saved", "gds-nucleon.lock")
 
 
-def lock_acquire(proj, owner, wait):
-    path = lock_path(proj)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    deadline = time.time() + wait
-    while True:
+def gpu_lock_path(a=None):
+    """--gpu-lock, NCLI_GPU_LOCK, config.json paths.gpuLock, else ~/.game-developer/gpu.lock."""
+    p = getattr(a, "gpu_lock", None) or os.environ.get("NCLI_GPU_LOCK")
+    if not p:
         try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, json.dumps({"owner": owner, "since": time.time()}).encode())
-            os.close(fd)
-            return {"locked": True, "owner": owner}
-        except FileExistsError:
-            try:
-                held = json.load(open(path))
-            except (OSError, ValueError):
-                held = {"since": 0}
-            if held.get("owner") == owner:
-                return {"locked": True, "owner": owner, "reentrant": True}
-            if time.time() - held.get("since", 0) > 600:
-                try:
-                    os.remove(path)
-                except OSError:
-                    pass
-                continue
-            if time.time() > deadline:
-                return {"locked": False, "heldBy": held.get("owner"), "age": round(time.time() - held.get("since", 0))}
-            time.sleep(2)
+            cfg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")
+            p = json.load(open(cfg, encoding="utf-8")).get("paths", {}).get("gpuLock", "")
+        except (OSError, ValueError):
+            p = ""
+    return p or os.path.join(os.path.expanduser("~"), ".game-developer", "gpu.lock")
+
+
+def lock_acquire(proj, owner, wait, max_hold=DEFAULT_HOLD, pid=None, cmd=None):
+    return nc_proc.lock_acquire(lock_path(proj), owner, wait, "file", max_hold, pid, cmd)
 
 
 def lock_release(proj, owner, force=False):
-    path = lock_path(proj)
-    try:
-        held = json.load(open(path))
-        if held.get("owner") != owner and not force:
-            return {"released": False, "heldBy": held.get("owner")}
-        os.remove(path)
-    except (OSError, ValueError):
-        pass
-    return {"released": True}
+    return nc_proc.lock_release(lock_path(proj), owner, "file", force)
+
+
+def lock_targets(a):
+    """[(name, kind, path)] in the one fixed order everything takes them in: the machine (GPU) lock, then the project's."""
+    proj = a.project or os.getcwd()
+    t = [] if getattr(a, "no_gpu", False) else [("gpu", "dir", gpu_lock_path(a))]
+    return t + [("project", "file", lock_path(proj))]
 
 
 def cmd_lock(a):
-    proj = a.project or os.getcwd()
-    res = lock_release(proj, a.owner, a.force) if a.action == "release" else lock_acquire(proj, a.owner, a.wait)
-    emit(res)
-    if not (res.get("locked") or res.get("released")):
-        sys.exit(1)
+    """lock acquire|release|status: ONE lock for an engine run = the machine (GPU) lock and the project lock together (--no-gpu for
+    a job that does not run the engine). `acquire` from the shell has no holder process left to check (this command ends at once):
+    only --max-hold ends it. For the life of a command use `locked`; the run commands (play-test, capture, cycle, bench, run-game,
+    lint --play, playthrough) take and release it themselves."""
+    targets = lock_targets(a)
+    if a.action == "status":
+        out = {}
+        for name, kind, path in targets:
+            info = nc_proc.read_lock(path, kind)
+            out[name] = {"locked": bool(info), **(nc_proc.describe(info) if info else {}), "stale": nc_proc.stale_reason(info) if info else None}
+        emit(out)
+        return
+    if a.action == "release":
+        res = {name: nc_proc.lock_release(path, a.owner, kind, a.force) for name, kind, path in reversed(targets)}
+        emit(res)
+        if not all(r.get("released") for r in res.values()):
+            sys.exit(1)
+        return
+    got = []
+    for name, kind, path in targets:
+        r = nc_proc.lock_acquire(path, a.owner, a.wait, kind, a.max_hold, pid=0, cmd=a.holder_cmd or "ncli lock acquire")
+        if not r.get("locked"):
+            for n2, k2, p2 in reversed(got):
+                nc_proc.lock_release(p2, a.owner, k2)
+            emit({"locked": False, "busy": name, **r})
+            sys.exit(1)
+        got.append((name, kind, path))
+    emit({"locked": True, "owner": a.owner, "locks": [g[0] for g in got]})
+
+
+import contextlib  # noqa: E402
+
+
+@contextlib.contextmanager
+def run_lock(a, label):
+    """Around ONE run of the engine: queue for the machine and project locks (saying who holds them), run, release. A caller that
+    already holds them under the same name (`locked`, `lock acquire --owner`) is left in charge: nothing is taken or released."""
+    owner = worker_name(a) or "ncli-%d" % os.getpid()
+    hold = max(a.max_seconds, 1860) + 60
+    taken = []
+    try:
+        for name, kind, path in lock_targets(argparse.Namespace(project=a.project, gpu_lock=getattr(a, "gpu_lock", None))):
+            r = nc_proc.lock_acquire(path, owner, a.wait_lock, kind, hold, cmd="ncli " + label)
+            if not r.get("locked"):
+                raise McpError("%s lock busy: held by %s since %s (%ss ago, pid %s, %s); queued %ds, gave up. `ncli lock status` shows both; if the lock is yours (lock acquire --owner X) pass --as X" % (
+                    name, r.get("heldBy"), r.get("since"), r.get("ageS"), r.get("pid"), r.get("cmd"), a.wait_lock))
+            if not r.get("reentrant"):
+                taken.append((kind, path))
+        yield owner
+    finally:
+        for kind, path in reversed(taken):
+            nc_proc.lock_release(path, owner, kind)
+
+
+def needs_run_lock(a):
+    if a.cmd in ("play-test", "cycle", "playthrough", "bench", "run-game"):
+        return True
+    if a.cmd == "capture":
+        return not a.write_only
+    if a.cmd == "lint":
+        return bool(getattr(a, "play", False))
+    return a.cmd == "exe" and a.what in ("build-gi", "hlod", "package")
+
+
+def cmd_locked(a):
+    """locked --owner O [--gpu] -- CMD ...: take the machine lock (--gpu) and the project lock, run CMD with a time limit (default
+    the maximum hold), release both on ANY exit, break the process tree on timeout. The output goes to a log file (a pipe kept open
+    by a grandchild cannot hang this command), the answer is one short JSON line with the tail."""
+    cmd = list(a.cmdline)
+    if cmd and cmd[0] == "--":
+        cmd = cmd[1:]
+    if not cmd:
+        raise McpError("locked needs a command after --")
+    if cmd[0] in ("ncli", "ncli.py"):
+        cmd = [sys.executable, os.path.abspath(__file__)] + cmd[1:]
+    taken = []
+    text = " ".join(cmd)[:160]
+    t0 = time.time()
+    try:
+        if not a.no_gpu:
+            r = nc_proc.lock_acquire(gpu_lock_path(a), a.owner, a.wait, "dir", a.max_hold, cmd=text)
+            if not r.get("locked"):
+                emit({"ok": False, "error": "machine (GPU) lock busy", **r})
+                sys.exit(1)
+            taken.append("gpu")
+        if a.project and not a.no_project_lock:
+            r = nc_proc.lock_acquire(lock_path(a.project), a.owner, max(0, a.wait - (time.time() - t0)), "file", a.max_hold, cmd=text)
+            if not r.get("locked"):
+                emit({"ok": False, "error": "project lock busy", **r})
+                sys.exit(1)
+            taken.append("project")
+        waited = round(time.time() - t0, 1)
+        log = a.log or os.path.join(os.path.abspath(a.project or os.getcwd()), "Saved", "ncli-logs", "locked-%s-%d.log" % (
+            re.sub(r"\W+", "_", a.owner), time.time()))
+        res = nc_proc.run_bounded(cmd, a.cmd_timeout or a.max_hold, env=launch_env(), log_path=log, tail=a.tail)
+    finally:
+        for k in reversed(taken):
+            if k == "gpu":
+                nc_proc.lock_release(gpu_lock_path(a), a.owner, "dir")
+            else:
+                nc_proc.lock_release(lock_path(a.project), a.owner, "file")
+    out = {"ok": res["code"] == 0, "exit": res["code"], "timedOut": res["timedOut"], "waitedS": waited, "ranS": res["seconds"],
+           "locks": taken, "log": res["log"], "tail": res["tail"]}
+    if res["timedOut"]:
+        out["error"] = "killed after %ds (tree killed, locks released)" % (a.cmd_timeout or a.max_hold)
+    emit(out)
+    sys.exit(0 if out["ok"] else (124 if res["timedOut"] else (res["code"] or 1)))
 
 
 # --- persistent session (one editor kept open for many commands) -----------------------------------------------------
+def serve_argv(project, stdio, owner, no_lua=False, timeout=120):
+    """The command line of the detached server, built from values (not copied from this process: restart_session reuses it)."""
+    argv = [sys.executable, os.path.abspath(__file__), "--project", project, "--stdio", stdio, "--as", owner, "--timeout", str(timeout)]
+    if no_lua:
+        argv.append("--no-lua")
+    if LAUNCH["pref_dir"]:
+        argv += ["--pref-dir", LAUNCH["pref_dir"]]
+    for kv in LAUNCH["env"]:
+        argv += ["--env", kv]
+    if LAUNCH["visible"]:
+        argv.append("--visible")
+    if LAUNCH["launcher"] is not None:
+        argv += ["--launcher", LAUNCH["launcher"]]
+    return argv + ["serve", "--foreground"]
+
+
+def serve_detached(a, owner):
+    """`serve` returns at once: the server runs as a detached process whose output goes to a log file, so a pipe
+    (`ncli serve | tail`) or a caller that waits for EOF can never be held open by it (a worker once hung 23 minutes that way)."""
+    log = os.path.join(os.path.abspath(a.project), "Saved", "ncli-serve.log")
+    os.makedirs(os.path.dirname(log), exist_ok=True)
+    argv = serve_argv(a.project, a.stdio, owner, a.no_lua, a.timeout)
+    kw = {"creationflags": 0x00000008 | 0x00000200} if sys.platform.startswith("win") else {"start_new_session": True}
+    with open(log, "wb") as lf:
+        proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=lf, stderr=subprocess.STDOUT, close_fds=True, **kw)
+    deadline = time.time() + max(a.timeout, 240)
+    while time.time() < deadline:
+        sess = read_session(a.project)
+        if sess:
+            emit({"serving": True, "owner": owner, "port": sess["port"], "pid": sess.get("pid"), "log": log})
+            return
+        if proc.poll() is not None:
+            tail = open(log, encoding="utf-8", errors="replace").read()[-400:]
+            raise McpError("serve exited (%s): %s" % (proc.returncode, tail.strip()))
+        time.sleep(0.5)
+    nc_proc.kill_tree(proc.pid)
+    raise McpError("serve did not come up in time (log: %s)" % log)
+
+
 def cmd_serve(a):
     """--stdio EXE --project P serve: starts the editor once and serves its MCP on 127.0.0.1 for every later ncli call
-    of this project (they find Saved/ncli-session.json). Saves 5-10 s of editor start per command. Stop: ncli session-stop."""
+    of this project (they find Saved/ncli-session.json). Saves 5-10 s of editor start per command. Stop: ncli session-stop.
+    Runs detached (returns when ready); --foreground keeps it in this process."""
     import secrets
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     if not a.stdio or not a.project:
         raise McpError("serve needs --stdio <NucleonEditor> and --project")
-    if read_session(a.project):
-        raise McpError("a session is already running for this project (ncli session-stop)")
+    other = read_session(a.project)
+    if other:
+        raise McpError("a session is already running for this project, owned by '%s' (it stops it with `session-stop`; "
+                       "you do not share it)" % other.get("owner", "?"))
+    owner = worker_name(a)
+    if not owner:
+        raise McpError("serve needs a name: --as NAME (or NCLI_WORKER). The session belongs to the worker that starts it and no other "
+                       "worker may play-test on it or stop it")
+    if not a.foreground:
+        return serve_detached(a, owner)
     client = StdioClient(a.stdio, a.project, a.timeout, a.no_lua)
     token = secrets.token_hex(16)
     gate = threading.Lock()
@@ -1575,7 +1933,8 @@ def cmd_serve(a):
 
     server = ThreadingHTTPServer(("127.0.0.1", a.serve_port), H)
     port = server.server_address[1]
-    write_json(session_path(a.project), {"port": port, "token": token, "pid": os.getpid(), "since": time.time()})
+    write_json(session_path(a.project), {"port": port, "token": token, "pid": os.getpid(), "since": time.time(),
+                                         "owner": owner, "stdio": a.stdio, "prefDir": LAUNCH["pref_dir"], "env": LAUNCH["env"]})
     emit({"serving": True, "port": port, "project": os.path.abspath(a.project)})
     sys.stdout.flush()
     try:
@@ -1593,6 +1952,10 @@ def cmd_session_stop(a):
     if not sess:
         emit({"stopped": False, "why": "no session"})
         return
+    owner = sess.get("owner")
+    if owner and worker_name(a) != owner and getattr(a, "break_owner", None) != owner:
+        raise McpError("refused: this session belongs to '%s'. Only its owner stops it. If that worker is gone, the parent can pass "
+                       "--break %s (the exact owner name, so it is deliberate)" % (owner, owner))
     if a.save:
         Editor(HttpClient(sess["port"], sess["token"], a.timeout)).call("save_scene", {})
     req = urllib.request.Request("http://127.0.0.1:%d/shutdown" % sess["port"], data=b"{}", method="POST")
@@ -1901,13 +2264,14 @@ def cmd_exe(a):
     else:
         raise McpError("unknown exe command")
     argv = launch_argv(argv[0], argv[1:] + extra, env)
-    t0 = time.time()
-    p = subprocess.run(argv, capture_output=True, text=True, env=env, timeout=a.timeout, errors="replace")
-    tail = (p.stdout + p.stderr).strip().splitlines()
-    errors = [l for l in tail if l.lower().startswith(("error", "[error]")) or " error" in l.lower()[:20]]
-    emit({"ok": p.returncode == 0, "code": p.returncode, "seconds": round(time.time() - t0, 1), "errors": errors[:15], "tail": tail[-a.tail:]})
-    if p.returncode:
-        sys.exit(p.returncode)
+    log = os.path.join(os.path.abspath(a.project or os.getcwd()), "Saved", "ncli-logs", "exe-%s-%d.log" % (a.what, time.time()))
+    res = nc_proc.run_bounded(argv, a.timeout, env=env, log_path=log, tail=a.tail)
+    lines = [l.strip() for l in res["text"].splitlines() if l.strip()]
+    errors = [l for l in lines if l.lower().startswith(("error", "[error]")) or " error" in l.lower()[:20]]
+    emit({"ok": res["code"] == 0, "code": res["code"], "seconds": res["seconds"], "errors": errors[:15], "tail": res["tail"],
+          "log": log, **({"timedOut": True} if res["timedOut"] else {})})
+    if res["code"]:
+        sys.exit(res["code"])
 
 
 def cmd_run_game(a):
@@ -1942,16 +2306,10 @@ def cmd_run_game(a):
         except OSError:
             pass
     argv = launch_argv(exe, shlex.split(a.args or ""), env)
-    t0 = time.time()
-    proc = subprocess.Popen(argv, cwd=folder, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    timed_out = False
-    try:
-        out, _ = proc.communicate(timeout=a.seconds)
-    except subprocess.TimeoutExpired:
-        timed_out = True
-        proc.kill()   # the launcher dies, its job takes the game with it
-        out, _ = proc.communicate()
-    text = out.decode("utf-8", "replace")
+    res = nc_proc.run_bounded(argv, a.seconds, env=env, cwd=folder,
+                              log_path=os.path.join(folder, "Saved", "ncli-logs", "run-game-%d.log" % time.time()))
+    timed_out, text = res["timedOut"], res["text"]
+    t0 = time.time() - res["seconds"]
     if os.path.exists(log_path):
         text += "\n" + open(log_path, encoding="utf-8", errors="replace").read()
     lines = [l.strip() for l in text.splitlines() if l.strip()]
@@ -1967,7 +2325,7 @@ def cmd_run_game(a):
     for root in (env.get("NC_GDS_TEST_OUT"), os.path.join(folder, "Saved", "Screenshots")):
         if root and os.path.isdir(root):
             shots += [os.path.join(root, f) for f in sorted(os.listdir(root)) if f.lower().endswith(".png")][:20]
-    code = proc.returncode
+    code = None if timed_out else res["code"]
     ok = (not timed_out or a.allow_timeout) and not errors and (code == 0 or (timed_out and a.allow_timeout)) and \
         (not a.gds_test or (done is not None and " fail=0" in done))
     emit({"status": "PASS" if ok else "FAIL", "exe": os.path.basename(exe), "exit": code, "seconds": round(time.time() - t0, 1),
@@ -1991,6 +2349,7 @@ def cmd_setup(a):
                              ("Content/Scripts/gds_probe.lua", "Content/Scripts/gds_probe.lua"),
                              ("Content/Scripts/gds_capture.lua", "Content/Scripts/gds_capture.lua"),
                              ("Content/Scripts/gds_telemetry.lua", "Content/Scripts/gds_telemetry.lua"),
+                             ("Content/Scripts/gds_playthrough.lua", "Content/Scripts/gds_playthrough.lua"),
                              ("Content/Scripts/test_bug_template.lua", "Tools/gds/test_bug_template.lua"),
                              ("specs/house_example.json", "art/blueprints/_example.json")):
         dst = os.path.join(proj, dst_rel)
@@ -2047,7 +2406,8 @@ def build_args(c):
     c.add_argument("spec")
     c.add_argument("--catalog", help="kit catalog (default PROJECT/art/kit-catalog.json)")
     c.add_argument("--force", action="store_true", help="rebuild even when the spec, catalog and builder did not change")
-    c.add_argument("--save", help="save after the build: a level path, or 'current'")
+    c.add_argument("--save", help="save after the build: a level path, or 'current' (refused through --stdio / serve unless --save-main-level)")
+    c.add_argument("--save-main-level", action="store_true", help="allow --save current on a --stdio / serve editor")
     c.add_argument("--out")
 
 
@@ -2065,7 +2425,11 @@ def main():
                                                                               "(NC_GDS_TEST=1, NC_EDITOR_GAME_VIEW=1, NC_D3D12_RAYTRACING=0 ...); repeatable")
     p.add_argument("--visible", action="store_true", help="Windows: do not use the hidden desktop (nc_desktop_run.exe)")
     p.add_argument("--launcher", help="command prefix for the editor process (default on Windows: nc_desktop_run.exe -- ; '' = none)")
-    p.add_argument("--timeout", type=float, default=120)
+    p.add_argument("--timeout", type=float, default=120, help="seconds one MCP call may take")
+    p.add_argument("--max-seconds", type=float, default=1800, help="watchdog: the whole command is killed (exit 124, locks released) after this; 0 = off")
+    p.add_argument("--as", dest="worker", metavar="NAME", help="who you are (default NCLI_WORKER): owns the serve sessions you start and the locks you take")
+    p.add_argument("--wait-lock", type=float, default=900, help="seconds a run command queues for the locks (the message says who holds them)")
+    p.add_argument("--gpu-lock", help="the machine-wide GPU lock folder (default NCLI_GPU_LOCK, config.json paths.gpuLock, ~/.game-developer/gpu.lock)")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("ping")
     sub.add_parser("state")
@@ -2109,7 +2473,8 @@ def main():
     c.add_argument("--width", type=int, default=1280)
     c.add_argument("--expect", help="a log line text that must appear (e.g. 'GDS-TEST DONE pass=3 fail=0')")
     c.add_argument("--grep", help="only log lines containing this")
-    c.add_argument("--verbose", action="store_true")
+    c.add_argument("--verbose", action="store_true", help="the whole log on stderr (it is always in Saved/ncli-logs/ too)")
+    c.add_argument("--fresh", action="store_true", help="serve session: restart the editor first (clean input state; use for the gate evidence run)")
     c.add_argument("--until", help="stop as soon as a log line contains this (default: GDS-TEST DONE when --expect is a GDS-TEST line)")
     c.add_argument("--min-seconds", type=float, default=0)
     c.add_argument("--fps", type=float, help="frame budget: every GDS-PERF p95 must be under 1000/fps ms (GDD targetFps)")
@@ -2124,17 +2489,33 @@ def main():
     c.add_argument("--since", type=int)
     c.add_argument("--limit", type=int, default=50)
     c.add_argument("--contains")
+    c.add_argument("--cut", type=int, default=0, help="cut every line to N characters (default: the full text)")
     c = sub.add_parser("save")
     c.add_argument("path", nargs="?")
-    c = sub.add_parser("lock")
-    c.add_argument("action", choices=["acquire", "release"])
-    c.add_argument("--owner", required=True)
+    c = sub.add_parser("lock", help="acquire | release | status of the engine-run lock (machine GPU lock + project lock, taken together)")
+    c.add_argument("action", choices=["acquire", "release", "status"])
+    c.add_argument("--owner", default="status")
     c.add_argument("--wait", type=float, default=600)
     c.add_argument("--force", action="store_true")
+    c.add_argument("--no-gpu", action="store_true", help="the project lock only (a job that does not run the engine)")
+    c.add_argument("--max-hold", type=float, default=DEFAULT_HOLD, help="seconds after which the lock counts as abandoned")
+    c.add_argument("--cmd", dest="holder_cmd", help="what the holder is doing (shown to those who wait)")
+    c = sub.add_parser("locked", help="locked --owner O -- CMD: run CMD under the locks (GPU + project), with a time limit, released on any exit")
+    c.add_argument("--owner", required=True)
+    c.add_argument("--no-gpu", action="store_true", help="skip the machine-wide GPU lock (a job that does not run the engine)")
+    c.add_argument("--no-project-lock", action="store_true")
+    c.add_argument("--wait", type=float, default=600, help="seconds to queue for the locks")
+    c.add_argument("--max-hold", type=float, default=900, help="longest the locks may be held, and the default limit of CMD")
+    c.add_argument("--cmd-timeout", type=float, help="limit of CMD (default --max-hold)")
+    c.add_argument("--log", help="where CMD's output goes (default Saved/ncli-logs/)")
+    c.add_argument("--tail", type=int, default=6)
+    c.add_argument("cmdline", nargs=argparse.REMAINDER)
     c = sub.add_parser("serve", help="keep one editor open (--stdio EXE --project P) for every later ncli call")
     c.add_argument("--serve-port", type=int, default=0)
+    c.add_argument("--foreground", action="store_true", help="stay in this process (default: detach and return when the editor is ready)")
     c = sub.add_parser("session-stop")
     c.add_argument("--save", action="store_true")
+    c.add_argument("--break", dest="break_owner", metavar="OWNER", help="stop a session whose owner is gone: the owner's exact name")
     c = sub.add_parser("affected", help="tests to run for what changed since the last checkpoint commit")
     c.add_argument("--since", help="git ref (default: last commit whose message starts with 'checkpoint')")
     c = sub.add_parser("tools-check", help="the editor's MCP tools vs the snapshot this skill was verified with")
@@ -2326,6 +2707,30 @@ def main():
     c.add_argument("--kind", choices=["all", "cpu", "gpu"])
     c.add_argument("--limit", type=int, default=40, help="list items kept per field")
     c.add_argument("--full", action="store_true")
+    c = sub.add_parser("bench", help="one repeatable measurement of a level: vsync off, fixed camera / path, p50/p95/p99 wall CPU GPU, Present, draws, baseline compare")
+    c.add_argument("--view", help="fixed camera x,y,z,tx,ty,tz (Z up)")
+    c.add_argument("--path", help="a JSON file {points: [[pos, look], ...], speed} for a camera path")
+    c.add_argument("--scenes", help="a tools/nucleon-bench scenes.json (+ --scenario NAME)")
+    c.add_argument("--scenario")
+    c.add_argument("--name", help="name of the measurement (the baseline file is docs/bench/<name>.baseline.json)")
+    c.add_argument("--engine", help="folder of Nucleon.exe (default: next to paths.nucleon / --exe)")
+    c.add_argument("--seconds", type=float, default=20, help="seconds of a --view (a --path takes its length / speed)")
+    c.add_argument("--speed", type=float, default=6, help="m/s along a --path")
+    c.add_argument("--warmup", type=float, default=5)
+    c.add_argument("--load-wait", type=float, default=120)
+    c.add_argument("--fps", type=float, help="target fps of the GDD: budget = 1000 / fps, compared with the wall p95")
+    c.add_argument("--baseline", help="baseline JSON (default docs/bench/<name>.baseline.json)")
+    c.add_argument("--update-baseline", action="store_true", help="store this run as the baseline")
+    c.add_argument("--tolerance", type=float, default=10.0, help="percent a p95 may worsen before the run counts as a regression")
+    c.add_argument("--min-frames", type=int, default=600)
+    c.add_argument("--gpu-every", type=int, default=5, help="NC_GPU_PROFILE period in frames")
+    c.add_argument("--quality", default=None, help="leave None: the bench never lowers the quality the project is set to")
+    c = sub.add_parser("playthrough", help="Play with real input events: every bound input of every action + a look + the plan's steps; writes docs/gates/playthrough-NN.md")
+    c.add_argument("--plan", help="JSON {steps: [{name, input: 'Key.R', seconds, watch: 'GetAmmo()', expect: 'after < before'}]}: the verbs of this game")
+    c.add_argument("--seconds", type=float, default=240)
+    c.add_argument("--hold", type=float, default=0.7, help="seconds each input is held")
+    c.add_argument("--settle", type=float, default=1.5)
+    c.add_argument("--width", type=int, default=1280)
     c = sub.add_parser("run-game", help="run a packaged game (hidden desktop, own folder, time limit): log, exit code, GDS tests, shots")
     c.add_argument("game", help="the packaged folder (exe package --out) or its executable")
     c.add_argument("--name", help="executable name when the folder has several")
@@ -2347,12 +2752,31 @@ def main():
     LAUNCH.update(visible=a.visible, launcher=a.launcher, pref_dir=a.pref_dir, env=a.env)
     if a.pref_dir:
         os.environ["NC_EDITOR_PREF_DIR"] = os.path.abspath(a.pref_dir)   # HTTP mode reads the settings from there too
-    offline = {"lock": cmd_lock, "setup": cmd_setup, "mcp-config": cmd_mcp_config, "serve": cmd_serve,
+    offline = {"lock": cmd_lock, "locked": cmd_locked, "setup": cmd_setup, "mcp-config": cmd_mcp_config, "serve": cmd_serve,
                "session-stop": cmd_session_stop, "affected": cmd_affected, "lua-check": cmd_lua_check,
-               "api-refresh": cmd_api_refresh, "run-game": cmd_run_game}
+               "api-refresh": cmd_api_refresh, "run-game": cmd_run_game, "bench": cmd_bench}
+    def watchdog(seconds):
+        emit({"ok": False, "error": "watchdog: %s ran over %ds, killed (children killed, locks released). Raise --max-seconds only for a "
+                                    "job that is meant to take longer" % (a.cmd, seconds)})
+        sys.stdout.flush()
+    if a.cmd not in ("serve", "locked"):   # serve lives until session-stop; locked has its own limit
+        nc_proc.start_watchdog(a.max_seconds if a.cmd != "exe" else max(a.max_seconds, 1860), watchdog)
+    nc_proc.install_exit_hooks()
     try:
         if a.cmd == "exe":
             a.timeout = max(a.timeout, 1800)
+        if needs_run_lock(a) and a.cmd not in ("locked",):
+            with run_lock(a, a.cmd):
+                return dispatch(a, offline)
+        return dispatch(a, offline)
+    except (McpError, ValueError) as e:
+        emit({"ok": False, "error": str(e)})
+        sys.exit(2)
+
+
+def dispatch(a, offline):
+    if True:
+        if a.cmd == "exe":
             return cmd_exe(a)
         if a.cmd in offline:
             return offline[a.cmd](a)
@@ -2360,14 +2784,15 @@ def main():
             return cmd_capture(a, None)
         if a.cmd == "build" and a.dry_run:
             return cmd_build(a, None)
+        if a.cmd == "play-test" and a.fresh and not a.stdio:
+            note = restart_session(a)
+            if note:
+                sys.stderr.write(note + "\n")
         ed = connect(a)
         try:
             globals()["cmd_" + a.cmd.replace("-", "_")](a, ed)
         finally:
             ed.client.close()
-    except (McpError, ValueError) as e:
-        emit({"ok": False, "error": str(e)})
-        sys.exit(2)
 
 
 if __name__ == "__main__":

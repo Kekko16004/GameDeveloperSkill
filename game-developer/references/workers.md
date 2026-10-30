@@ -63,10 +63,10 @@ C'è un editor e una scena: due worker che compilano, costruiscono o lintano ins
 | engine | prendi | rilascia |
 |---|---|---|
 | unity | `powershell -File SKILL/scripts/unity-lock.ps1 -ProjectPath PROJECT -Owner <PHASE:TASK-id>` | stesso comando + `-Release` |
-| nucleon | `python SKILL/scripts/ncli.py --project PROJECT lock acquire --owner <PHASE:TASK-id>` | `... lock release --owner <PHASE:TASK-id>` |
+| nucleon | nothing to do for ncli's own run commands (`play-test`, `capture`, `cycle`, `bench`, `playthrough`, `run-game`, `lint --play`): each takes the GPU + project lock for its run and frees it. Your own script that starts the engine: `ncli --as <PHASE:TASK-id> locked --owner <PHASE:TASK-id> -- <cmd>` (time limit, tree kill, freed on any exit) | `ncli lock status` shows who holds it |
 | unreal / godot | un solo client MCP / un solo processo headless: stesso file di lock JSON di ncli (`ncli lock` funziona per qualsiasi cartella) | idem |
 
-  La sequenza va tenuta corta: niente ragionamenti lunghi mentre hai il lock, correggi il JSON e rientra. Rilascia anche se fallisci. Il lock più vecchio di 10 minuti viene considerato abbandonato.
+  La sequenza va tenuta corta: niente ragionamenti lunghi mentre hai il lock, correggi il JSON e rientra. Rilascia anche se fallisci. Un lock è abbandonato quando il processo che lo teneva è morto o ha superato il tempo massimo dichiarato (default 10-15 min); chi aspetta vede chi lo tiene e da quanto. Il lock si tiene **per un run**, mai per un giro di lavoro. Una sessione `serve` è di chi l'ha avviata (`--as NOME`): nessun altro worker ci fa play-test, build o `session-stop`.
 - Un worker solo prende comunque il lock: costa zero e protegge da worker rimasti appesi.
 - Vale anche per gli helper che un worker lancia a sua volta: stesso contratto, `OWNS` disgiunti, un solo helper con l'editor.
 

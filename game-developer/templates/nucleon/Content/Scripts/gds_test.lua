@@ -69,12 +69,25 @@ function t.perf(name, seconds, key)
   print(("GDS-PERF {\"name\":%q,\"p50_ms\":%.2f,\"p95_ms\":%.2f,\"p99_ms\":%.2f,\"max_ms\":%.2f,\"frames\":%d}"):format(
     name, q(0.5), q(0.95), q(0.99), times[#times] or 0, #times))
 end
+-- Engine data a test depends on (a surface tag, a hit zone, a bone, a setting): never `x or default`. need() fails the test
+-- with a message that says WHAT was missing and prints `GDS-GAP <what>` so `ncli play-test` lists it as engine_gap (the parent
+-- routes it: fix, work around, or report with the repro). A value that is legitimately absent is checked with t.check instead.
+function t.need(value, what)
+  if value == nil then
+    print("GDS-GAP " .. tostring(what))
+    error("engine data missing: " .. tostring(what), 0)
+  end
+  return value
+end
 function t.shot(name)
   local dir = os.getenv("NC_GDS_TEST_OUT")
   if dir and dir ~= "" then TakeScreenshot(dir .. "/" .. name .. ".png") end
 end
 
+-- a previous Play of the same editor session can leave a key held (a test that timed out inside t.hold): start from released
+local HELD_KEYS = {"W", "A", "S", "D", "Space", "Left Shift", "Left Ctrl", "E", "R", "Q", "F", "Tab", "Escape", "1", "2", "3", "4", "5"}
 CreateThread(function()
+  for _, k in ipairs(HELD_KEYS) do SimulateKey(k, false) end
   t.waitFor("the pawn", 15, function() return GetLocalPlayer() and t.pawn() and DoesEntityExist(t.pawn()) end)
   t.wait(0.5)
   local pass, fail = 0, 0

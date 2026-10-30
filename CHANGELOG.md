@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-30 (sera): lock per run, sessioni con proprietario, `bench`, `playthrough`, timeout ovunque
+
+| Cosa | Dove |
+|---|---|
+| **Un solo lock per l'esecuzione del motore** = lock GPU di macchina + lock di progetto, presi insieme in ordine fisso, **per run e non per round**; registrano proprietario, pid, ora, durata massima; un pid morto o una durata superata li rompe, chi attende vede chi li tiene e da quando (un lock altrui senza `info.json` non viene mai giudicato stantio). I comandi che avviano il motore (`play-test`, `capture`, `cycle`, `bench`, `playthrough`, `run-game`, `lint --play`, `exe package|hlod|build-gi`) lo prendono e lo rilasciano da soli; nuovo `ncli locked --owner O -- CMD` per gli script dei worker | `scripts/nc_proc.py` (nuovo), `scripts/ncli.py` |
+| **Timeout ovunque**: ogni comando ha un watchdog (`--max-seconds`, 1800, uscita 124), ogni figlio un limite, l'albero di processi viene ucciso, i lock si liberano a qualsiasi uscita (atexit, SIGINT/SIGTERM) | `nc_proc.py`, `ncli.py` |
+| **Sessioni `serve` con proprietario** (incidente: un `play-test` si e' agganciato alla sessione di un altro worker e il suo `session-stop` l'ha chiusa): `serve` si stacca da solo, richiede `--as NOME`, registra il proprietario; `play-test`/build/modifiche su una sessione altrui sono rifiutati, `session-stop` anche (il parent usa `--break PROPRIETARIO`); le letture restano aperte | `ncli.py` |
+| **`ncli bench`**: misura ripetibile (vsync spento, upscaler spento, camera o percorso fissi), p50/p95/p99 di frame, CPU, GPU, Present, draw call, istanze, bound; confronto col baseline `docs/bench/<nome>.baseline.json`; avvisa e segna `trusted:false` se un altro motore girava, i numeri stanno su un refresh bloccato, il renderer e' software o i frame sono pochi | `scripts/nc_bench.py` (nuovo), `ncli.py` |
+| **`ncli playthrough`** + `gds_playthrough.lua` (inerte senza `NC_GDS_PLAYTHROUGH`): input veri per ogni azione legata, scrive `docs/gates/playthrough-NN.md`; cio' che non sa pilotare (rotella, gamepad) e' elencato come `engine_gap`, mai saltato | `ncli.py`, `templates/nucleon/Content/Scripts/gds_playthrough.lua` |
+| **Trappole note guardate dallo strumento**: `--save current` con stdio/serve rifiutato; `log` a testo pieno; `play-test` scrive il log intero e riporta `GDS-GAP` come `engine_gap`, `--fresh` riavvia la sessione; `build` avvisa che `nc_mat.py assign` si perde al rebuild; `t.need()` nell'harness fa fallire in modo visibile un dato nil del motore | `ncli.py`, `gds_test.lua` |
+| `scripts/context_budget.py`: token (caratteri/4) letti da parent e da ogni fase | `scripts/context_budget.py` (nuovo) |
+
+Provato: 46 test `test_ncli.py` (anche attraverso il parser vero) e 18 `test_nc_proc.py` verdi; dal vivo solo `locked` + attesa del lock GPU di un altro agente (ha atteso 181 s, preso il lock, eseguito il comando, rilasciato; il comando e' fallito perche' la cartella di prova non era vuota). **Mai eseguiti su un motore**: `serve --as` staccato, rifiuto di sessione altrui, `play-test --fresh`, `bench`, `playthrough`, `gds_playthrough.lua` (Lua mai compilato), `t.need`. Linux/macOS non provati.
+
 ## 2026-10-30: niente piu' domanda sulla scheda video; regole dure dalla partita vera in prima persona
 
 | Cosa | Dove |

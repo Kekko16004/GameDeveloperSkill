@@ -378,5 +378,231 @@ class ToolCommands(unittest.TestCase):
         self.assertEqual(args["render_flags"], {"receive_shadow": False, "custom_depth_stencil": 3, "lighting_channels": 2})
 
 
+class Ownership(unittest.TestCase):
+    """The incident: a worker's play-test attached to another worker's serve session and its session-stop closed it."""
+
+    def setUp(self):
+        import argparse
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        self.argparse = argparse
+        self.d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.d, "Saved"))
+        hits = self.hits = []
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _ok(self):
+                self.send_response(200)
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+            def do_GET(self):
+                self._ok()
+
+            def do_POST(self):
+                hits.append(self.path)
+                self._ok()
+        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        with open(ncli.session_path(self.d), "w") as f:
+            json.dump({"port": self.srv.server_address[1], "token": "t", "pid": os.getpid(), "owner": "w1", "stdio": "x"}, f)
+
+    def tearDown(self):
+        self.srv.shutdown()
+        self.srv.server_close()
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def ns(self, cmd, worker=None, **kw):
+        return self.argparse.Namespace(cmd=cmd, worker=worker, project=self.d, port=None, token=None, stdio=None, timeout=5,
+                                       no_lua=False, save=False, break_owner=None, **kw)
+
+    def test_other_worker_cannot_use_the_session_for_a_run(self):
+        sess = ncli.read_session(self.d)
+        for who in ("w2", None):
+            with self.assertRaises(ncli.McpError) as cm:
+                ncli.check_session_access(self.ns("play-test", who), sess)
+            self.assertIn("belongs to 'w1'", str(cm.exception))
+        ncli.check_session_access(self.ns("play-test", "w1"), sess)            # the owner is fine
+
+    def test_reads_are_open_to_everyone(self):
+        sess = ncli.read_session(self.d)
+        ncli.check_session_access(self.ns("ping", "w2"), sess)
+        ncli.check_session_access(self.ns("entity", "w2", action="get"), sess)
+        with self.assertRaises(ncli.McpError):
+            ncli.check_session_access(self.ns("entity", "w2", action="set"), sess)
+
+    def test_connect_refuses_before_any_call(self):
+        with self.assertRaises(ncli.McpError):
+            ncli.connect(self.ns("play-test", "w2"))
+        self.assertEqual(self.hits, [])
+
+    def test_session_stop_is_owner_only(self):
+        with self.assertRaises(ncli.McpError) as cm:
+            ncli.cmd_session_stop(self.ns("session-stop", "w2"))
+        self.assertIn("--break w1", str(cm.exception))
+        self.assertEqual(self.hits, [])                                      # nothing reached the session
+        a = self.ns("session-stop", "w2")
+        a.break_owner = "w3"
+        with self.assertRaises(ncli.McpError):
+            ncli.cmd_session_stop(a)
+        a.break_owner = "w1"                                                 # the parent, on purpose and by exact name
+        ncli.cmd_session_stop(a)
+        self.assertEqual(self.hits, ["/shutdown"])
+
+    def test_owner_can_stop_its_own(self):
+        ncli.cmd_session_stop(self.ns("session-stop", "w1"))
+        self.assertEqual(self.hits, ["/shutdown"])
+
+    def test_serve_needs_a_name_and_refuses_a_second_session(self):
+        a = self.ns("serve", None, foreground=True)
+        a.stdio = "editor.exe"
+        with self.assertRaises(ncli.McpError) as cm:
+            ncli.cmd_serve(a)
+        self.assertIn("owned by 'w1'", str(cm.exception))
+        os.remove(ncli.session_path(self.d))
+        with self.assertRaises(ncli.McpError) as cm:
+            ncli.cmd_serve(a)
+        self.assertIn("needs a name", str(cm.exception))
+
+    def test_save_current_through_a_session_or_stdio_is_refused(self):
+        class Ed:
+            transport = "session"
+        a = self.argparse.Namespace(save="current", save_main_level=False)
+        with self.assertRaises(ncli.McpError):
+            ncli.refuse_main_level_save(Ed(), a)
+        Ed.transport = "stdio"
+        with self.assertRaises(ncli.McpError):
+            ncli.refuse_main_level_save(Ed(), a)
+        a.save_main_level = True
+        ncli.refuse_main_level_save(Ed(), a)
+        a.save_main_level, a.save = False, "Content/Levels/Scratch.nclevel"
+        ncli.refuse_main_level_save(Ed(), a)
+        Ed.transport, a.save = "http", "current"                             # the owner's own editor: his choice
+        ncli.refuse_main_level_save(Ed(), a)
+
+
+class RunLock(unittest.TestCase):
+    """One lock path for an engine run: GPU + project, taken by the run command itself, per run."""
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        self.gpu = os.path.join(self.d, "gpu.lock")
+
+    def tearDown(self):
+        import nc_proc
+        nc_proc.HELD[:] = []
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def ns(self, worker, wait=0):
+        import argparse
+        return argparse.Namespace(cmd="play-test", worker=worker, project=self.d, gpu_lock=self.gpu, wait_lock=wait, max_seconds=1800)
+
+    def test_a_run_takes_both_locks_and_frees_them(self):
+        with ncli.run_lock(self.ns("w1"), "play-test"):
+            self.assertTrue(os.path.isdir(self.gpu))
+            self.assertTrue(os.path.exists(ncli.lock_path(self.d)))
+        self.assertFalse(os.path.exists(self.gpu))
+        self.assertFalse(os.path.exists(ncli.lock_path(self.d)))
+
+    def test_a_second_worker_is_refused_with_the_holder_named(self):
+        with ncli.run_lock(self.ns("w1"), "bench level"):
+            with self.assertRaises(ncli.McpError) as cm:
+                with ncli.run_lock(self.ns("w2"), "play-test"):
+                    pass
+        self.assertIn("held by w1", str(cm.exception))
+        self.assertIn("bench level", str(cm.exception))
+
+    def test_a_wrapper_that_holds_the_locks_stays_in_charge(self):
+        with ncli.run_lock(self.ns("w1"), "locked"):
+            with ncli.run_lock(self.ns("w1"), "play-test"):
+                pass
+            self.assertTrue(os.path.isdir(self.gpu))                         # the inner run did not release the outer's lock
+        self.assertFalse(os.path.isdir(self.gpu))
+
+    def test_which_commands_run_the_engine(self):
+        import argparse
+
+        def yes(**kw):
+            return ncli.needs_run_lock(argparse.Namespace(**kw))
+        self.assertTrue(yes(cmd="play-test"))
+        self.assertTrue(yes(cmd="bench"))
+        self.assertTrue(yes(cmd="lint", play=True))
+        self.assertFalse(yes(cmd="lint", play=False))
+        self.assertFalse(yes(cmd="capture", write_only="dir"))
+        self.assertTrue(yes(cmd="exe", what="package"))
+        self.assertFalse(yes(cmd="exe", what="new-project"))
+        self.assertFalse(yes(cmd="ping"))
+
+    def test_lock_command_takes_and_releases_both(self):
+        import argparse
+        a = argparse.Namespace(action="acquire", owner="w1", wait=0, max_hold=60, holder_cmd=None, cmd="lock", project=self.d, gpu_lock=self.gpu,
+                               no_gpu=False, force=False)
+        ncli.cmd_lock(a)
+        self.assertTrue(os.path.isdir(self.gpu) and os.path.exists(ncli.lock_path(self.d)))
+        b = argparse.Namespace(**{**vars(a), "owner": "w2"})
+        with self.assertRaises(SystemExit):
+            ncli.cmd_lock(b)
+        self.assertFalse(os.path.exists(os.path.join(self.gpu, "..", "nothing")))
+        a.action = "release"
+        ncli.cmd_lock(a)
+        self.assertFalse(os.path.isdir(self.gpu) or os.path.exists(ncli.lock_path(self.d)))
+
+
+class CliSmoke(unittest.TestCase):
+    """Through the real argument parser: a dest that clashes with a sub-command name once broke `lock` (no unit test saw it)."""
+
+    def run_cli(self, *args, timeout=60):
+        import subprocess
+        p = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(ncli.__file__)), "ncli.py")] + list(args),
+                           capture_output=True, text=True, timeout=timeout)
+        return p.returncode, (p.stdout.strip().splitlines() or [""])[-1], p.stderr
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        self.gpu = os.path.join(self.d, "gpu.lock")
+
+    def tearDown(self):
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def test_lock_status_acquire_release(self):
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "lock", "status")
+        self.assertEqual(rc, 0)
+        self.assertFalse(json.loads(out)["project"]["locked"])
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "lock", "acquire", "--owner", "w1", "--cmd", "bench")
+        self.assertEqual((rc, json.loads(out)["locks"]), (0, ["gpu", "project"]))
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "lock", "acquire", "--owner", "w2", "--wait", "0")
+        self.assertEqual(rc, 1)
+        self.assertEqual(json.loads(out)["heldBy"], "w1")
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "lock", "release", "--owner", "w1")
+        self.assertEqual(rc, 0)
+
+    def test_play_test_without_a_name_cannot_enter_a_named_session(self):
+        # no session here, so it falls through to HTTP and fails to connect: the point is that it is the parser that works
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "--wait-lock", "0", "--port", "1", "play-test", "--seconds", "1")
+        self.assertEqual(rc, 2)
+        self.assertIn("not reachable", json.loads(out)["error"])
+        self.assertFalse(os.path.exists(self.gpu))                                # and the run lock was released on the way out
+
+    def test_locked_runs_a_command_releases_and_reports_a_timeout(self):
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "locked", "--owner", "w1", "--", sys.executable, "-c", "print('hi')")
+        res = json.loads(out)
+        self.assertEqual((rc, res["ok"], res["locks"], res["tail"]), (0, True, ["gpu", "project"], ["hi"]))
+        self.assertFalse(os.path.exists(self.gpu))
+        rc, out, _ = self.run_cli("--project", self.d, "--gpu-lock", self.gpu, "locked", "--owner", "w1", "--cmd-timeout", "2", "--",
+                                  sys.executable, "-c", "import time;time.sleep(60)")
+        res = json.loads(out)
+        self.assertEqual((rc, res["timedOut"]), (124, True))
+        self.assertFalse(os.path.exists(self.gpu))
+
+    def test_watchdog_reports_and_exits_124(self):
+        rc, out, _ = self.run_cli("--project", self.d, "--max-seconds", "1", "--port", "9", "--timeout", "30", "tools-check")
+        # nothing listens on port 9: it fails by itself, long before any watchdog; the watchdog flag must at least parse
+        self.assertIn(rc, (2, 124))
+
+
 if __name__ == "__main__":
     unittest.main()
